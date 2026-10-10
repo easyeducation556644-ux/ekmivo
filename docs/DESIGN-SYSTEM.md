@@ -31,7 +31,7 @@ Exact values live in [design/tokens.css](./design/tokens.css). Components use se
 | Success label | `#206B4E` | `#B3F1C3` |
 | Essential control border | `#647F8C` | `#98B4BF` |
 
-Status palettes for warning, danger and information also live in the CSS. Every badge needs a readable text label; color alone does not convey status. Decorative separators may be subtle, but input boundaries use `control-border`. Keyboard focus uses a visible outline. The [contrast report](./design/CONTRAST-REPORT.md) was generated for the previous palette and must be regenerated for V3; a code-level token update alone is not accessibility evidence. This does not replace rendered accessibility checks. [W3C contrast guidance](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html)
+Status palettes for warning, danger and information also live in the CSS. Every badge needs a readable text label; color alone does not convey status. Decorative separators may be subtle, but input boundaries use `control-border`. Keyboard focus uses a visible outline. The refreshed [contrast report](./design/CONTRAST-REPORT.md) verifies all 82 specified V3 solid-color pairs; rendered layouts, overlays and focus behavior still require browser accessibility audits. This does not replace rendered accessibility checks. [W3C contrast guidance](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html)
 
 ## 3. Typography
 
@@ -221,4 +221,4 @@ Use semantic controls, visible keyboard focus, skip navigation, meaningful landm
 5. Apply components across all scope rows. Do not simplify away channels, voice, booking, agency, mobile or other required functionality to make a cleaner screenshot.
 6. Before release: theme persistence/system switching, language persistence/routing, form preservation, complete translation keys, correct numbers/time, no customer TrxID step, full S-ID coverage.
 
-Current V3 verification: GitHub source changes are committed; Vercel build, token contrast, rendered accessibility and device/browser audits must be recorded separately. Previous checks are not V3 evidence. Authentication is not connected; login and registration forms disclose that credentials are not submitted or saved.
+Current V3 verification: the source is committed, a Vercel production-build check has passed for the implementation, and 82 token contrast pairs pass. Visual rendering, accessibility, interaction and physical-device audits remain open; this is not evidence of live provider integrations. Authentication is not connected; login and registration forms disclose that credentials are not submitted or saved.
