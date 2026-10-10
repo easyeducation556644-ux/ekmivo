@@ -1,47 +1,48 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
-import { siteCopy } from "../lib/site-copy";
+import { useActionState, useEffect, useState } from "react";
+import { useFormStatus } from "react-dom";
+import { loginAction, registerAction } from "../actions/account";
+import { emptyState, type FormErrorState } from "../lib/server/validation";
 import type { Locale } from "../lib/site-copy";
 
-type Mode = "login" | "register";
-
-const copy = {
-  en: {
-    login: { eyebrow: "WELCOME BACK", title: "Good to see you again.", intro: "Your workspace will be ready here when account access opens.", submit: "Continue to workspace", alternative: "New to Ekmivo?", alternativeLink: "Create an account" },
-    register: { eyebrow: "YOUR WORKSPACE STARTS HERE", title: "Make room for better work.", intro: "One place for customer conversations and commerce operations.", submit: "Create account", alternative: "Already have an account?", alternativeLink: "Log in" },
-    name: "Your name", namePlaceholder: "Full name", email: "Work email", emailPlaceholder: "you@company.com", password: "Password", passwordPlaceholder: "At least 8 characters", confirm: "Confirm password", show: "Show password", hide: "Hide password", mismatch: "Passwords do not match.", unavailable: "Account access is being set up. Your details were not sent or saved. Please check back soon.", note: "Account access is not open yet. This form is a preview of the sign-in flow.", home: "Back to home",
-  },
-  bn: {
-    login: { eyebrow: "আবার স্বাগতম", title: "আপনাকে আবার পেয়ে ভালো লাগছে।", intro: "অ্যাকাউন্ট চালু হলে এখান থেকেই ওয়ার্কস্পেসে ঢুকতে পারবেন।", submit: "ওয়ার্কস্পেসে যান", alternative: "Ekmivo-তে নতুন?", alternativeLink: "অ্যাকাউন্ট তৈরি করুন" },
-    register: { eyebrow: "আপনার ওয়ার্কস্পেস শুরু হোক", title: "কাজের জন্য নতুন জায়গা তৈরি করুন।", intro: "কাস্টমারের কথোপকথন ও কমার্স পরিচালনার এক জায়গা।", submit: "অ্যাকাউন্ট তৈরি করুন", alternative: "আগে থেকেই অ্যাকাউন্ট আছে?", alternativeLink: "লগ ইন করুন" },
-    name: "আপনার নাম", namePlaceholder: "পুরো নাম", email: "কাজের ইমেইল", emailPlaceholder: "you@company.com", password: "পাসওয়ার্ড", passwordPlaceholder: "অন্তত ৮টি অক্ষর", confirm: "পাসওয়ার্ড নিশ্চিত করুন", show: "পাসওয়ার্ড দেখুন", hide: "পাসওয়ার্ড লুকান", mismatch: "পাসওয়ার্ড দুটি মিলছে না।", unavailable: "অ্যাকাউন্ট চালু করার কাজ চলছে। আপনার তথ্য পাঠানো বা সংরক্ষণ করা হয়নি। কিছুদিন পরে আবার দেখুন।", note: "অ্যাকাউন্ট এখনো চালু হয়নি। এখানে প্রবেশের ফর্মের নকশা দেখানো হয়েছে।", home: "হোমে ফিরুন",
-  },
+const copy={
+ en:{login:{title:"Welcome back.",subtitle:"Sign in to your Ekmivo workspace.",submit:"Sign in",bottom:"New to Ekmivo?",swap:"Create an account"},register:{title:"Make room for better work.",subtitle:"Your first workspace is one step away.",submit:"Create account",bottom:"Already registered?",swap:"Sign in"},name:"Full name",email:"Email address",password:"Password",confirm:"Confirm password",show:"Show",hide:"Hide",strength:"At least 12 characters.",error:"Unable to continue",back:"Back to home",privacy:"Your credentials are processed on the server. Never share passwords.",pending:"Please wait…"},
+ bn:{login:{title:"আবার স্বাগতম।",subtitle:"Ekmivo ওয়ার্কস্পেসে প্রবেশ করুন।",submit:"লগ ইন করুন",bottom:"Ekmivo-তে নতুন?",swap:"অ্যাকাউন্ট তৈরি করুন"},register:{title:"নতুনভাবে কাজ শুরু করুন।",subtitle:"অ্যাকাউন্ট তৈরি করে প্রথম ওয়ার্কস্পেস সেটআপ করুন।",submit:"অ্যাকাউন্ট তৈরি করুন",bottom:"আগেই অ্যাকাউন্ট আছে?",swap:"লগ ইন করুন"},name:"আপনার পুরো নাম",email:"ইমেইল ঠিকানা",password:"পাসওয়ার্ড",confirm:"পাসওয়ার্ড নিশ্চিত করুন",show:"দেখুন",hide:"লুকান",strength:"অন্তত ১২ অক্ষরের পাসওয়ার্ড ব্যবহার করুন।",error:"কাজটি সম্পন্ন হয়নি",back:"হোমে ফিরুন",privacy:"পাসওয়ার্ড শুধুমাত্র সার্ভারে যাচাই করা হয়। কাউকে পাসওয়ার্ড দেবেন না।",pending:"অপেক্ষা করুন…"}
 } as const;
 
-export function AuthForm({ locale, mode }: { locale: Locale; mode: Mode }) {
-  const t = copy[locale];
-  const page = t[mode];
-  const [showPassword, setShowPassword] = useState(false);
-  const [message, setMessage] = useState("");
-
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    if (mode === "register" && data.get("password") !== data.get("confirm")) {
-      setMessage(t.mismatch);
-      return;
-    }
-    setMessage(t.unavailable);
-  }
-
-  return <main className="auth-main"><div className="auth-atmosphere" aria-hidden="true"><span /><span /><span /></div><div className="auth-shell"><div className="auth-intro"><p className="eyebrow"><span className="eyebrow-line" />{page.eyebrow}</p><h1>{page.title}</h1><p>{page.intro}</p><div className="auth-orbit" aria-hidden="true"><div /><div /><span>EKMIVO</span></div></div><div className="auth-card"><div className="auth-card-top"><span className="auth-card-mark">e<span>.</span></span><span>{mode === "login" ? "01 / LOGIN" : "02 / REGISTER"}</span></div><h2>{mode === "login" ? siteCopy[locale].login : siteCopy[locale].register}</h2><p className="auth-note">{t.note}</p><form onSubmit={submit}>
-    {mode === "register" && <label>{t.name}<input name="name" type="text" autoComplete="name" placeholder={t.namePlaceholder} required minLength={2} /></label>}
-    <label>{t.email}<input name="email" type="email" autoComplete="email" placeholder={t.emailPlaceholder} required /></label>
-    <label>{t.password}<span className="password-field"><input name="password" type={showPassword ? "text" : "password"} autoComplete={mode === "login" ? "current-password" : "new-password"} placeholder={t.passwordPlaceholder} required minLength={8} /><button type="button" onClick={() => setShowPassword(current => !current)} aria-label={showPassword ? t.hide : t.show}>{showPassword ? "◉" : "◎"}</button></span></label>
-    {mode === "register" && <label>{t.confirm}<input name="confirm" type="password" autoComplete="new-password" placeholder={t.passwordPlaceholder} required minLength={8} /></label>}
-    <button className="button-primary auth-submit" type="submit">{page.submit}<span aria-hidden="true">↗</span></button>
-    {message && <p className="auth-message" role="status">{message}</p>}
-  </form><div className="auth-switch"><span>{page.alternative}</span><Link href={`/${locale}/${mode === "login" ? "register" : "login"}`}>{page.alternativeLink} ↗</Link></div></div><Link className="auth-back" href={`/${locale}`}>← {t.home}</Link></div></main>;
+function Submit({label,loading}:{label:string;loading:string}){
+ const {pending}=useFormStatus();
+ return <button className="button-primary auth-submit" type="submit" disabled={pending}>{pending?loading:label}<span aria-hidden="true">{pending?"◷":"↗"}</span></button>;
+}
+export function AuthForm({locale,mode}:{locale:Locale;mode:"login"|"register"}){
+ const t=copy[locale],p=t[mode];
+ const action=mode==="login"?loginAction.bind(null,locale):registerAction.bind(null,locale);
+ const [state,formAction]=useActionState<FormErrorState,FormData>(action,emptyState);
+ const [show,setShow]=useState(false);
+ const [toast,setToast]=useState("");
+ useEffect(()=>{if(state.status==="error")setToast(state.message);},[state]);
+ return <main className="auth-main ek-auth-main"><div className="auth-shell">
+  <div className="auth-intro"><p className="eyebrow"><span className="eyebrow-line"/>EKMIVO / ACCOUNT</p><h1>{p.title}</h1><p>{p.subtitle}</p>
+   <div className="ek-auth-benefits"><span>01 / AI COMMUNICATION</span><span>02 / COMMERCE & PAYMENTS</span><span>03 / WORKSPACE CONTROL</span></div>
+  </div>
+  <div className="auth-card ek-auth-card">
+   <div className="auth-card-top"><span className="auth-card-mark">e<span>.</span></span><span>{mode==="login"?"01 / SIGN IN":"02 / REGISTER"}</span></div>
+   <h2>{p.title}</h2><p className="auth-note">{p.subtitle}</p>
+   <form action={formAction} noValidate={false}>
+    {mode==="register"&&<label>{t.name}<input name="name" type="text" autoComplete="name" minLength={2} maxLength={100} placeholder={t.name} required aria-invalid={!!state.fields?.name}/>{state.fields?.name&&<small className="ek-field-error">{state.fields.name}</small>}</label>}
+    <label>{t.email}<input name="email" type="email" autoComplete="email" placeholder="you@company.com" required maxLength={254} aria-invalid={!!state.fields?.email}/>{state.fields?.email&&<small className="ek-field-error">{state.fields.email}</small>}</label>
+    <label>{t.password}<span className="password-field"><input name="password" type={show?"text":"password"} autoComplete={mode==="login"?"current-password":"new-password"} required minLength={mode==="register"?12:1} maxLength={256} aria-invalid={!!state.fields?.password}/><button type="button" aria-label={show?t.hide:t.show} onClick={()=>setShow(x=>!x)}>{show?t.hide:t.show}</button></span>{mode==="register"&&<small className="ek-field-hint">{t.strength}</small>}{state.fields?.password&&<small className="ek-field-error">{state.fields.password}</small>}</label>
+    {mode==="register"&&<label>{t.confirm}<input name="confirm" type={show?"text":"password"} autoComplete="new-password" minLength={12} required aria-invalid={!!state.fields?.confirm}/>{state.fields?.confirm&&<small className="ek-field-error">{state.fields.confirm}</small>}</label>}
+    {state.status==="error"&&<p role="alert" className="ek-form-error">{state.message}</p>}
+    <Submit label={p.submit} loading={t.pending}/>
+   </form>
+   <div className="auth-switch"><span>{p.bottom}</span> <Link href={`/${locale}/${mode==="login"?"register":"login"}`}>{p.swap} ↗</Link></div>
+   <small className="ek-auth-disclaimer">{t.privacy}</small>
+  </div>
+  <Link className="auth-back" href={`/${locale}`}>← {t.back}</Link>
+ </div>
+ {toast&&<div className="ek-toast" role="alert"><span>{t.error}</span><p>{toast}</p><button type="button" onClick={()=>setToast("")} aria-label="Dismiss">×</button></div>}
+ </main>;
 }
