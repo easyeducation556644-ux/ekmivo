@@ -111,10 +111,10 @@ export function MarketingExperience({locale}:{locale:LandingLocale}) {
     <div className="v3-wrap">
      <SectionHeading eyebrow={t.servicesTag} title={t.servicesTitle} lead={t.servicesLead}/>
      <div className="v3-service-explorer" data-reveal>
-      <div className="v3-service-switcher" role="tablist" aria-label={t.servicesTitle}>
-       {t.serviceOptions.map((label,i)=><button key={label} role="tab" type="button" id={`v3-service-tab-${i}`} aria-controls="v3-service-panel" aria-selected={service===i} tabIndex={service===i?0:-1} className={service===i?"active":""} onClick={()=>setService(i)}>{String(i+1).padStart(2,"0")} <span>{label}</span></button>)}
+      <div className="v3-service-switcher" role="group" aria-label={t.servicesTitle}>
+       {t.serviceOptions.map((label,i)=><button key={label} type="button" id={`v3-service-tab-${i}`} aria-controls="v3-service-panel" aria-pressed={service===i} className={service===i?"active":""} onClick={()=>setService(i)}>{String(i+1).padStart(2,"0")} <span>{label}</span></button>)}
       </div>
-      <div className="v3-service-panel" id="v3-service-panel" role="tabpanel" aria-labelledby={`v3-service-tab-${service}`}>
+      <div className="v3-service-panel" id="v3-service-panel" role="region" aria-labelledby={`v3-service-tab-${service}`}>
        <div className="v3-service-panel-copy"><span>{t.included}</span><h3>{t.serviceOptions[service]}</h3><p>{t.serviceDescriptors[service]}</p><div className="v3-service-tags">{(service===0?t.featuresAI.slice(0,4):service===1?t.featuresCommerce.slice(0,4):[...t.featuresAI.slice(0,2),...t.featuresCommerce.slice(0,2)]).map(f=><span key={f.id}>{f.title}</span>)}</div><div className="v3-service-subnote">✓ {t.independent}</div></div>
        <div className="v3-service-illustration"><div className={`v3-service-orbit choice-${service}`}><div className="v3-service-center"><strong>ekmivo</strong><span>UNIFIED VIEW</span></div><div className="v3-service-node one"><b>✳</b><small>AI</small></div><div className="v3-service-node two"><b>▦</b><small>COMMERCE</small></div><span className="v3-service-beam"/></div></div>
       </div>
@@ -150,8 +150,8 @@ export function MarketingExperience({locale}:{locale:LandingLocale}) {
     <div className="v3-wrap">
      <SectionHeading eyebrow={t.paymentTag} title={t.paymentTitle} lead={t.paymentLead}/>
      <div className="v3-payment-grid" data-reveal>
-      <div className="v3-payment-tabs" role="tablist" aria-label={t.paymentTitle}>{t.scenarios.map((s,i)=><button key={s} type="button" id={`v3-pay-tab-${i}`} role="tab" aria-selected={scenario===i} aria-controls="v3-pay-panel" tabIndex={scenario===i?0:-1} onClick={()=>setScenario(i)} className={scenario===i?"active":""}><span>0{i+1}</span><strong>{s}</strong><span>↗</span></button>)}
-       <div className="v3-pay-explain" id="v3-pay-panel" role="tabpanel" aria-labelledby={`v3-pay-tab-${scenario}`}><h3>{t.scenarioTitles[scenario]}</h3><p>{t.scenarioBodies[scenario]}</p></div>
+      <div className="v3-payment-tabs" role="group" aria-label={t.paymentTitle}>{t.scenarios.map((s,i)=><button key={s} type="button" id={`v3-pay-tab-${i}`} aria-pressed={scenario===i} aria-controls="v3-pay-panel"  onClick={()=>setScenario(i)} className={scenario===i?"active":""}><span>0{i+1}</span><strong>{s}</strong><span>↗</span></button>)}
+       <div className="v3-pay-explain" id="v3-pay-panel" role="region" aria-labelledby={`v3-pay-tab-${scenario}`}><h3>{t.scenarioTitles[scenario]}</h3><p>{t.scenarioBodies[scenario]}</p></div>
       </div>
       <div className={`v3-payment-interface state-${scenario}`}>
        <div className="v3-pay-head"><span>EKMIVO / PAYMENT MATCH</span><span>{t.demo}</span></div>
@@ -174,8 +174,8 @@ export function MarketingExperience({locale}:{locale:LandingLocale}) {
     <div className="v3-wrap">
      <SectionHeading eyebrow={t.solutionTag} title={t.solutionTitle}/>
      <div className="v3-solutions-grid" data-reveal>
-      <div className="v3-solution-menu" role="tablist" aria-label={t.solutionTitle}>{t.solutions.map((opt,i)=><button key={opt.name} type="button" role="tab" id={`v3-solution-tab-${i}`} aria-controls="v3-solution-panel" aria-selected={solution===i} tabIndex={solution===i?0:-1} onClick={()=>setSolution(i)} className={solution===i?"active":""}><span>0{i+1}</span>{opt.name}<b>↗</b></button>)}</div>
-      <div className="v3-solution-preview" id="v3-solution-panel" role="tabpanel" aria-labelledby={`v3-solution-tab-${solution}`}><span>EKMIVO / SOLUTIONS</span><div className="v3-solution-art"><span>{["▦","◷","⬡","{ }"][solution]}</span><i/><i/></div><div key={solution} className="v3-solution-copy"><h3>{t.solutions[solution].title}</h3><p>{t.solutions[solution].body}</p></div><small>{t.demo}</small></div>
+      <div className="v3-solution-menu" role="group" aria-label={t.solutionTitle}>{t.solutions.map((opt,i)=><button key={opt.name} type="button" id={`v3-solution-tab-${i}`} aria-controls="v3-solution-panel" aria-pressed={solution===i} onClick={()=>setSolution(i)} className={solution===i?"active":""}><span>0{i+1}</span>{opt.name}<b>↗</b></button>)}</div>
+      <div className="v3-solution-preview" id="v3-solution-panel" role="region" aria-labelledby={`v3-solution-tab-${solution}`}><span>EKMIVO / SOLUTIONS</span><div className="v3-solution-art"><span>{["▦","◷","⬡","{ }"][solution]}</span><i/><i/></div><div key={solution} className="v3-solution-copy"><h3>{t.solutions[solution].title}</h3><p>{t.solutions[solution].body}</p></div><small>{t.demo}</small></div>
      </div>
     </div>
    </section>
