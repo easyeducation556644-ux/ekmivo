@@ -570,3 +570,13 @@
  .v3-story-step,.v3-story-step:last-child{background:var(--v3-card-surface);border-color:var(--v3-card-border)}
  .v3-story-step.is-current{background:color-mix(in srgb,var(--v3-card-surface) 80%,#17a896)}
 }
+
+
+/* Accessible touch targets for visual chapter controls. */
+.v3-progress-dots button{position:relative;min-width:44px;width:44px;height:44px;background:transparent;border:0;border-radius:6px}
+.v3-progress-dots button:before{content:"";position:absolute;left:0;right:0;top:19px;height:5px;background:#456071;border-radius:5px;transition:background .2s}
+.v3-progress-dots button.is-active{width:56px;background:transparent}
+.v3-progress-dots button.is-active:before{background:var(--v3-cyan)}
+.v3-terminal-timeline button{min-height:44px;justify-content:center}
+.v3-story-navigation button{min-height:44px}
+.v3-play-toggle{min-height:44px}
