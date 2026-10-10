@@ -2,10 +2,15 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { randomBytes, createHash, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
-import { promisify } from "node:util";
 import { database } from "./db";
 
-const scrypt = promisify(scryptCallback);
+function derive(password: string, salt: Buffer): Promise<Buffer> {
+ return new Promise((resolve,reject)=>{
+  scryptCallback(password,salt,64,{N:16384,r:8,p:1},(error,derived)=>{
+   if(error)reject(error);else resolve(derived);
+  });
+ });
+}
 const COOKIE = "ekmivo-session";
 const THIRTY_DAYS = 30 * 24 * 3600 * 1000;
 export type User = { id: string; email: string; name: string; verified: boolean };
@@ -16,7 +21,7 @@ export function hashToken(token: string) {
 }
 export async function passwordHash(password: string) {
  const salt = randomBytes(24).toString("hex");
- const hash = await scrypt(password,Buffer.from(salt,"hex"),64,{N:16384,r:8,p:1}) as Buffer;
+ const hash = await derive(password,Buffer.from(salt,"hex"));
  return `scrypt-v1:${salt}:${hash.toString("hex")}`;
 }
 export async function passwordMatches(password: string, stored: string) {
