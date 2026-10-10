@@ -17,7 +17,7 @@ Read in this order before implementation:
 - All listed features belong in the first full public MVP. Do not silently move them to a later release. Internal build milestones can be partial.
 - Payment verification is automatic using transaction time, actual sender number, amount, receiving account and method. A valid unique match automatically verifies/confirms and dispatches the merchant webhook.
 - Do not introduce customer TrxID entry, screenshot submission, routine merchant approval or an auto-verification opt-in into the normal payment flow. Receipt IDs may be extracted internally for deduplication. Additional gateway integrations are not prerequisites for the phone verification path.
-- Follow the selected minimal neutral/forest-green design. Both light/dark modes and a complete EN/BN switcher are first-release features.
+- Follow the selected minimal ivory/charcoal/copper design with Hind Siliguri. Both light/dark modes and a complete EN/BN switcher are first-release features.
 - Build the design foundation before product page styling. Preserve feature coverage; minimal visuals do not mean fewer features.
 - Selected core: Go, PostgreSQL and Next.js/TypeScript. Single implementation collaborator is Codex; account/business actions belong to the user.
 

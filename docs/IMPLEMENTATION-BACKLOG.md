@@ -7,7 +7,7 @@ Design specification completed: guide, [semantic tokens](./design/tokens.css) an
 ### First implementation checkpoint, 2026-10-11
 
 - F01 in progress: monorepo folders, Next.js app, Go API/worker entry points, Dockerfile and initial OpenAPI contract are committed in GitHub `masharzy/ekmivo`. Web production build and lint pass. Go 1.27 `go test ./...` compiles both entry points; local `/healthz` returns 200 and `/readyz` correctly returns 503 before database setup. Go worker and business API are not operational. CI configuration exists at `infra/ci-template.yml`; GitHub rejected publishing it under `.github/workflows/` because the current CLI OAuth token lacks `workflow` scope, so CI is **not active**.
-- D01/D02 in progress: the public `/bn` and `/en` introduction uses design tokens and has working locale/theme selectors with server-rendered language and saved theme. Dashboard components, complete translation catalog, cross-tab theme sync, fonts, and the four-combination visual/accessibility audit remain open.
+- D01/D02 in progress: the public `/bn` and `/en` site uses the revised ivory/charcoal/copper tokens and self-hosted Hind Siliguri, with shared animated header/footer and `/login` and `/register` pages in both languages. Locale/theme selectors, server-rendered language and saved theme work. Account submission is intentionally disabled until auth and Neon are connected. Dashboard components, complete translation catalog, cross-tab theme sync, and the four-combination rendered visual/accessibility audit remain open.
 - Production web foundation: <https://ekmivo-web-masharzys-projects.vercel.app>. The page labels sample data and development status. This is not the full public MVP launch. Go API/worker hosting and Neon PostgreSQL are not connected yet.
 
 Priority: P0 = required for the full first public release. Previously deferred features are now P0. A Spike resolves feasibility for a required feature; it does not remove that feature from launch. Every completed item must link its change, relevant checks, and staging/provider/device evidence. A green mock test does not count as a live provider test. The previous 8–12 week estimate and small-pilot budget are superseded; full-scope estimates require access checks and measured progress.
@@ -31,7 +31,7 @@ G0-2 blocks provider-verified payment claims; G0-3/G0-7 block the relevant publi
 | ID | Work package | Depends on | Acceptance evidence |
 |---|---|---|---|
 | F01 | Monorepo web/backend/mobile/extension, pinned toolchains, Docker local services, CI | Baseline | Reproducible clean builds, native signing secrets protected, no committed secret |
-| D01 | Semantic design tokens, typography, components and responsive shell | F01 | Guide-matching neutral/green palette, Bengali glyphs, keyboard states, desktop/mobile layouts; sample data labelled |
+| D01 | Semantic design tokens, typography, components and responsive shell | F01 | Guide-matching ivory/charcoal/copper palette, Bengali glyphs, keyboard states, desktop/mobile layouts; sample data labelled |
 | D02 | Theme and EN/BN infrastructure, switchers and translation catalog | D01 | Four theme-locale combinations, persistence/system changes, SSR without flash, preserved routes/forms, complete keys and locale-safe amounts/time |
 | F02 | PostgreSQL migrations and tenant schema | F01 | Up migrations work on empty and prior schema; composite FK tests |
 | F03 | Managed auth, membership/RBAC, admin MFA boundary | F02 | Expired/revoked identity, removed member and unauthorized role tests |

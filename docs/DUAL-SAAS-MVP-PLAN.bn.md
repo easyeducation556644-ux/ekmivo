@@ -297,7 +297,7 @@ Meta public onboarding-এ required access/review critical dependency। Test/ad
 
 ## ১১. Dashboard ও customer experience
 
-Visual/interaction authority: [DESIGN-SYSTEM.md](./DESIGN-SYSTEM.md)। Palette: light canvas `#F7F7F2`, text `#20241F`, primary `#245C46`; dark canvas `#141713`, text `#EEF2E8`, primary `#96CAA6`। English font IBM Plex Sans, বাংলা Noto Sans Bengali। Theme ও language preference personal/persistent; change করলে current task/form হারাবে না। UI language আর AI reply language আলাদা। Gradient/glow/glass styling নয়; tables, lists, inbox ও detail panels দিয়ে পুরো feature set থাকবে।
+Visual/interaction authority: [DESIGN-SYSTEM.md](./DESIGN-SYSTEM.md)। Palette: light canvas `#F7F5F1`, text `#1B1A18`, primary `#A9361E`; dark canvas `#141311`, text `#F7F2EA`, primary `#FFAB8E`। বাংলা ও English UI-তে Hind Siliguri। Theme ও language preference personal/persistent; change করলে current task/form হারাবে না। UI language আর AI reply language আলাদা। Public site-এ full-height centered hero, restrained animated background ও scroll-aware floating header; app-এর tables, lists, inbox ও detail panels-এ animation সংযত থাকবে।
 
 Public pages: Home, AI service, Operations/Payments service, pricing, interactive/sample demo, integration docs, support, privacy/terms/data deletion, status। Unsupported channel বা unverified performance landing page-এ থাকবে না।
 

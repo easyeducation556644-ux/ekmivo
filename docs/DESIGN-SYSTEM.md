@@ -2,104 +2,52 @@
 
 Version 1 · 2026-10-10 · Design specification before application implementation.
 
-**Selected direction: warm neutral surfaces, charcoal text, one restrained forest-green accent.** The product should feel like a well-organized business workspace: readable conversations, clear financial records, compact controls and useful details. Minimal styling must preserve the complete feature set.
+**Selected direction: warm ivory, charcoal and copper.** Hind Siliguri is the common typeface for Bengali and English. The public site uses a centered full-screen opening, restrained animated orbital lines and an editorial flow. Product workspaces remain clear and information-led. Minimal styling preserves the complete feature set.
 
-বাংলায়: পরিষ্কার ব্যবসায়িক interface; হালকা উষ্ণ background, গাঢ় লেখা এবং অল্প সবুজ। ফিচার কমিয়ে minimal নয়—সঠিক grouping, table, inbox ও detail panel দিয়ে সহজ করা হবে।
+বাংলায়: উষ্ণ আইভরি, গাঢ় লেখা ও সংযত তামাটে রং। বড় হিরো শুধু পাবলিক সাইটে; কাজের স্ক্রিনে তথ্য, অবস্থা ও নিয়ন্ত্রণ স্পষ্ট থাকবে।
 
 The canonical product plan is [DUAL-SAAS-MVP-PLAN.bn.md](./DUAL-SAAS-MVP-PLAN.bn.md). This file owns design behavior. [MVP-FEATURE-SCOPE.md](./MVP-FEATURE-SCOPE.md) owns feature coverage; [IMPLEMENTATION-BACKLOG.md](./IMPLEMENTATION-BACKLOG.md) owns work order and evidence. Start with the repository [AGENTS.md](../AGENTS.md) for the reading sequence.
 
 ## 1. Visual direction
 
-Use a consistent left alignment, measured whitespace, flat working surfaces, readable labels and tabular data. The distinctive detail is a thin green selection rail beside the active navigation item or selected record; a soft tint reinforces it. It is not a decorative stripe on every panel.
+The public opening is a centered, viewport-height hero. Thin orbital lines and a faint grid move slowly behind the text. Service explanations use editorial rows, an explicitly labelled sample workflow and a concrete payment explanation. The public header starts as a centered floating bar, expands to full width after scrolling, hides while scrolling down and returns full width on upward scroll; near the top it returns to floating width. Every public page, including login and registration, shares the header and footer. Motion stops under `prefers-reduced-motion`.
 
-Working screens are led by the task: inbox for conversations, ledger/table for payments, list/Kanban for orders, calendar for bookings. A small number of summary figures can appear above the working area; they do not consume half the screen.
+The application itself remains task-led: inbox for conversations, tables for payments, list/Kanban for orders and a calendar for bookings. Do not copy the large public hero into operational screens. Keep labels, evidence and record states visible.
 
-Rules that prevent a generic AI-generated appearance:
-
-- No gradient text, purple/blue gradient backgrounds, floating blobs, glow, glass panels, noise overlays or ambient motion.
-- No repeated three-card feature grids, oversized pill buttons, random emoji icons or sparkle icons on every AI feature.
-- No giant welcome banner, motivational copy or decorative illustration above an operational table.
-- No invented customer logos, fake reviews, fake analytics or unsupported claims. Design fixtures must say “Sample data / নমুনা তথ্য”.
-- No border and shadow on every wrapper. Separate related rows with spacing and rules; use a panel when it represents a distinct task or object.
-- No arbitrary accent per module. AI Hub and Operations share the same palette; channel logos retain their identity only as small identifiers.
-- No custom cursor, magnetic button, scroll hijack, parallax or loading animation that delays access to content.
-- Use concrete labels: “Connect page”, “View payment”, “Pause AI”; avoid “Unlock potential”, “Revolutionize” or “Supercharge”.
-
-These choices deliberately override decorative texture/motion examples in the generic frontend skill. The user's requirement is a minimal, restrained product.
+Avoid fabricated customer logos, reviews, analytics, growth claims and functional demos. Label illustrative records as sample. Avoid purple gradients, oversized feature-card grids, glowing interface chrome, glass-heavy surfaces, emoji decoration, parallax and scroll hijacking. The public background's faint radial tint and orbit motion are a specific design element, not a general rule for app panels.
 
 ## 2. Palette and semantic tokens
 
-Exact implementation values live in [design/tokens.css](./design/tokens.css). Components use semantic variables; they must not introduce their own hex palette. Light and dark modes are separate palettes, not a CSS inversion filter.
+Exact values live in [design/tokens.css](./design/tokens.css). Components use semantic variables. Light and dark are separate palettes. Copper marks primary actions and active navigation; **verified payment uses its separate success color and explicit label**.
 
-| Role / CSS suffix | Light | Dark | Use |
-|---|---|---|---|
-| `canvas` | `#F7F7F2` | `#141713` | Page background |
-| `surface` | `#FFFFFF` | `#1B201A` | Main work surface, inputs |
-| `surface-subtle` | `#F0F1EC` | `#242B22` | Grouped rows, quiet header |
-| `surface-raised` | `#FFFFFF` | `#242B22` | Dialogs and popovers |
-| `hover` | `#E9ECE5` | `#2B3328` | Hovered neutral item |
-| `text` | `#20241F` | `#EEF2E8` | Main text |
-| `text-secondary` | `#596157` | `#B4BEB0` | Supporting information |
-| `text-muted` | `#606A5D` | `#A0AD9B` | Timestamps, placeholders; still readable |
-| `border` | `#D8DDD3` | `#35402F` | Decorative separators only |
-| `control-border` | `#7B8577` | `#73846A` | Input/checkbox and essential boundaries |
-| `primary` | `#245C46` | `#96CAA6` | Main action, active rail, links |
-| `primary-hover` | `#194A37` | `#B0DABA` | Hovered primary action |
-| `on-primary` | `#FFFFFF` | `#14251B` | Primary button text/icon |
-| `primary-soft` | `#E7F1E9` | `#263C2C` | Selected row/navigation background |
-| `focus` | `#245C46` | `#96CAA6` | Visible keyboard focus |
+| Role | Light | Dark |
+|---|---|---|
+| Canvas | `#F7F5F1` | `#141311` |
+| Surface | `#FFFFFF` | `#1D1B18` |
+| Main text | `#1B1A18` | `#F7F2EA` |
+| Secondary text | `#514D48` | `#C9BFB4` |
+| Primary copper | `#A9361E` | `#FFAB8E` |
+| Soft accent | `#F7EAE4` | `#42271F` |
+| Success label | `#24613B` | `#9CD3AD` |
+| Essential control border | `#82786E` | `#958778` |
 
-Keep most of the interface neutral. Use green for meaningful actions and selected states. A screen must still be understandable in grayscale.
-
-### Status colors
-
-| Meaning | Light text / background | Dark text / background | Example |
-|---|---|---|---|
-| Success | `#245C46` / `#E7F1E9` | `#96CAA6` / `#263C2C` | Verified / যাচাই সম্পন্ন |
-| Warning | `#79520F` / `#FBF1DD` | `#E8C17D` / `#392F1C` | Connection delayed / সংযোগে দেরি |
-| Danger | `#A13228` / `#FBECE9` | `#F1A79B` / `#38221E` | Failed / ব্যর্থ |
-| Information | `#285D83` / `#EAF1F7` | `#A6C8E8` / `#202E3A` | Syncing / সিঙ্ক হচ্ছে |
-| Neutral | secondary / subtle | secondary / subtle | Pending / অপেক্ষমাণ |
-
-Every badge has a readable text label; an icon can reinforce the meaning. Green selection does not mean payment verified. Use the actual state label and an appropriate icon. Pending is neutral during normal operation; do not paint every pending payment red or amber.
-
-Light `border` and dark `border` are intentionally subtle, unsuitable as the only visible boundary for an interactive control. Use `control-border` where the outline communicates interaction. Focus uses a 2px outline with a 2px offset so it remains distinct beside a filled primary control. Do not reduce text opacity to create hierarchy.
-
-### Contrast evidence
-
-Solid-color ratios calculated from the tokens, rounded for display:
-
-| Pair | Light | Dark |
-|---|---:|---:|
-| Main text / canvas | 14.65:1 | 15.93:1 |
-| Secondary text / surface | 6.42:1 | 8.62:1 |
-| Primary button text / fill | 7.79:1 | 8.62:1 |
-| Control outline / surface | 3.84:1 | 4.13:1 |
-| Success label / badge | 6.74:1 | 6.40:1 |
-| Warning label / badge | 6.19:1 | 7.73:1 |
-| Danger label / badge | 6.09:1 | 7.59:1 |
-| Information label / badge | 6.17:1 | 7.96:1 |
-
-Text targets ≥4.5:1; essential boundaries/focus ≥3:1. The project uses these as baseline checks and keeps body text at the stronger threshold regardless of heading size. Token verification is not a complete accessibility or rendered UI audit. [W3C text contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html)
+Status palettes for warning, danger and information also live in the CSS. Every badge needs a readable text label; color alone does not convey status. Decorative separators may be subtle, but input boundaries use `control-border`. Keyboard focus uses a visible outline. The generated [contrast report](./design/CONTRAST-REPORT.md) checks 82 light/dark token pairs at text 4.5:1 and essential outline 3:1. This does not replace rendered accessibility checks. [W3C contrast guidance](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html)
 
 ## 3. Typography
 
-English/Latin: **IBM Plex Sans**. বাংলা: **Noto Sans Bengali**. IDs, API keys and code: **IBM Plex Mono**, only where alignment or literal characters matter. Normal money values use tabular numerals in the UI font.
+**Hind Siliguri** is the UI and display family in both languages. The web app self-hosts the licensed 400, 500, 600 and 700 font files through `next/font/local` with `font-display: swap`; the OFL notice is kept in `apps/web/src/fonts/OFL.txt`. [Google Fonts source](https://github.com/google/fonts/tree/main/ofl/hindsiliguri) describes its Bengali and Latin coverage. Code, IDs and API keys use a system monospace face only where literal character distinction matters.
 
-Self-host licensed WOFF2 fonts at implementation time, keep license notices, load only needed weights (400, 500, 600), use `font-display: swap` and metric-compatible fallbacks. Do not fetch fonts on every render. Font sources: [IBM Plex](https://github.com/IBM/plex), [Noto Bengali](https://github.com/notofonts/bengali).
-
-| Role | EN size / line-height | BN size / line-height | Weight |
+| Role | English | বাংলা | Weight |
 |---|---|---|---|
-| Public hero, desktop | 48px / 1.12 | 44px / 1.4 | 600 |
-| Public hero, mobile | 32px / 1.2 | 30px / 1.4 | 600 |
+| Public hero desktop | 52–104px / 1.04 | 44–78px / 1.3 | 600 |
+| Public hero mobile | 43–70px / 1.1 | 44–78px / 1.3 | 600 |
 | App page title | 28px / 1.25 | 28px / 1.4 | 600 |
 | Section title | 20px / 1.35 | 20px / 1.5 | 600 |
-| Body / forms | 16px / 1.5 | 16px / 1.7 | 400 |
-| Navigation / button | 14px / 1.4 | 15px / 1.6 | 500 |
-| Data row / label | 14px / 1.5 | 15px / 1.6 | 400/500 |
-| Metadata | 12px / 1.5 | 13px / 1.6 | 400 |
+| Body and forms | 16px / 1.5 | 16px / 1.7 | 400 |
+| Navigation and button | 14px / 1.4 | 14–15px / 1.6 | 600 |
+| Data row | 14px / 1.5 | 15px / 1.6 | 400/500 |
 
-Use relative font sizing when implemented; px here denotes the 16px-root reference size. Never put a critical amount, validation error or main action at metadata size. Bengali conjuncts and vowel marks must not clip; row/control dimensions are minima, not fixed-height clipping boxes. No letter spacing or uppercase transformation on Bengali. English heading tracking may be −0.01em; body stays normal. One page-level heading; logical heading order.
+Bengali conjuncts and vowel marks must not clip. Bengali text has no forced uppercase or letter spacing. Controls and rows may grow taller for longer labels. Keep one page heading and a logical heading order.
 
 ## 4. Spacing, shape and iconography
 
@@ -112,9 +60,9 @@ Use relative font sizing when implemented; px here denotes the 16px-root referen
 
 ## 5. Application shell and responsive behavior
 
-Desktop: sidebar 232px, header min-height 64px, content gutter 32px, page max-width 1440px. Settings/forms max-width 720px. Inbox and wide operations tables may use the full available width.
+Desktop application: sidebar 232px, header min-height 64px, content gutter 32px, page max-width 1440px. Settings/forms max-width 720px. Inbox and wide operations tables may use the full available width.
 
-Header order: workspace selector → context/service selector → page tools → `EN / বাংলা` → theme control → notifications/profile. Theme and language remain discoverable, not hidden solely inside account settings. On narrow screens move workspace/context into the navigation drawer and keep a compact language and theme control visible in the header.
+For the **public site**, use the shared floating/scrolling header described in section 1; login and registration keep it. For the **authenticated application**, header order: workspace selector → context/service selector → page tools → `EN / বাংলা` → theme control → notifications/profile. Theme and language remain discoverable, not hidden solely inside account settings. On narrow screens move workspace/context into the navigation drawer and keep a compact language and theme control visible in the header.
 
 | Width | Layout |
 |---|---|
@@ -205,7 +153,7 @@ Entitlements and roles determine access; hiding a navigation item does not grant
 
 | Component | Design and interaction contract |
 |---|---|
-| Button | Primary filled green, secondary neutral outline, tertiary text. One primary action per local task. Loading preserves width and action label; prevent duplicate submission. Disabled reason is available in text, not a hover-only tooltip. |
+| Button | Primary filled copper, secondary neutral outline, tertiary text. One primary action per local task. Loading preserves width and action label; prevent duplicate submission. Disabled reason is available in text, not a hover-only tooltip. |
 | Destructive action | Danger text/icon and explicit action name; confirmation shows the affected record when irreversible. No red used for ordinary navigation. |
 | Input/select | Persistent label, optional help, error below field, visible control boundary. Focus does not move layout. Currency/phone/reference fields use suitable input modes; no placeholder-only labels. |
 | Search/filter | Search above list; compact filter controls with active count and Clear. Preserve filters across detail/back navigation. Applied filters need meaningful text, not unlabeled color dots. |
@@ -215,7 +163,7 @@ Entitlements and roles determine access; hiding a navigation item does not grant
 | Drawer | Record details beside a list on desktop; full-screen on mobile. Close/escape and focus return. Unsaved edits remain protected. |
 | Dialog | Focus trap, title/description, explicit buttons, safe initial focus. Closing does not imply a transaction was cancelled server-side. |
 | Toast/banner | Toast for transient confirmation; persistent banner/inline notice for lost sync, missing permission or payment exception. Do not rely on a disappearing toast for a financial outcome. |
-| Chat message | Customer/merchant/AI identity labelled, clear timestamp, attachment state, sent/failed state. Do not render all text as green bubbles or pretend AI is a person. |
+| Chat message | Customer/merchant/AI identity labelled, clear timestamp, attachment state, sent/failed state. Do not render all text as accent-colored bubbles or pretend AI is a person. |
 | Empty state | One sentence explaining what is missing and one relevant action. Example: “No products yet. Add a product.” No giant robot illustration. |
 | Loading state | Geometry-matched skeleton or inline progress. Keep known data visible with stale/sync notice; do not replace a whole table with a spinner for a small update. |
 | Chart | Limited series, direct legend, readable axis/tooltips, table alternative. Use semantic colors for meaning and line/dash/marker distinctions. No gradient area fill as decoration or fabricated forecast. |
@@ -255,12 +203,12 @@ Live status comes from the backend; do not animate a fake success after a timeou
 - **Bookings:** calendar plus list alternative; date/resource filters; explicit timezone and unavailable-slot state. On mobile start with the day/list view, not a compressed month grid.
 - **Billing:** balance, usage ledger, subscription and invoices. Exact money and clear rate labels; no progress bar that obscures actual charges. Credit exhaustion keeps human inbox and independent B operations reachable.
 - **Admin:** shared components, visibly distinct admin/workspace context; support access reason and expiry where required. Never disguise a cross-tenant operation as an ordinary merchant action.
-- **Public site:** restrained two-column hero with actual product workflow screenshot or labelled sample. Follow with A/B service explanation, chat→payment→order walkthrough, full grouped features, transparent pricing and help. No invented usage figures or copied competitor promises.
+- **Public site:** full-height centered hero with restrained orbit and grid motion, then the two services, a clearly labelled sample workflow, automatic payment explanation, grouped features, pricing and help. The header starts as a floating bar, expands on scroll, hides while moving down and returns on upward scroll. No invented usage figures or copied competitor promises.
 - **Mobile/extension:** same semantic tokens and terminology; native controls may adapt to platform patterns. Small extension width gets focused assistant/takeover tasks, not a squeezed full dashboard.
 
 ## 12. Motion and accessibility
 
-Motion tokens: 120ms hover/focus color, 180ms menu/change, 220ms drawer/dialog; easing `cubic-bezier(0.2, 0, 0, 1)`. No bounce, decorative reveal sequence or continuous movement. Do not use `transition: all`. Under reduced motion, remove translation/scale and avoid nonessential animation; functional progress remains readable.
+Motion tokens: 120ms hover/focus color, 180ms menu/change, 220ms drawer/dialog; easing `cubic-bezier(0.2, 0, 0, 1)`. The public header expansion/hide and slow hero orbit are permitted purposeful motion. No bounce, scroll hijacking or delayed access to content. Under reduced motion, remove translation/scale and nonessential animation; functional progress remains readable.
 
 Use semantic controls, visible keyboard focus, skip navigation, meaningful landmarks, programmatic field/error associations, accessible dialog focus handling and text alternatives. Announce significant async status with a restrained live region; every queue update must not interrupt the user. On auto-verification announce once without stealing focus. Support contrast/forced-color modes with native outlines where appropriate. Drag/drop always has a non-drag alternative.
 
@@ -273,4 +221,4 @@ Use semantic controls, visible keyboard focus, skip navigation, meaningful landm
 5. Apply components across all scope rows. Do not simplify away channels, voice, booking, agency, mobile or other required functionality to make a cleaner screenshot.
 6. Before release: theme persistence/system switching, language persistence/routing, form preservation, complete translation keys, correct numbers/time, no customer TrxID step, full S-ID coverage.
 
-Current verification is limited to token contrast and document consistency. No rendered application or native client has been built or visually audited yet.
+Current verification: 82 token contrast checks, local web lint/build and deployment route checks. A rendered visual and accessibility audit of the redesigned public pages remains required. Authentication is not connected; login and registration forms disclose that credentials are not submitted or saved.
