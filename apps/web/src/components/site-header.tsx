@@ -35,8 +35,12 @@ export function SiteHeader({ locale, initialTheme }: { locale: Locale; initialTh
       <Link className="brand" href={`/${locale}`} aria-label="Ekmivo home" onClick={() => setMenuOpen(false)}><span className="brand-mark" aria-hidden="true"><span /></span><span>ekmivo<span className="brand-dot">.</span></span></Link>
       <nav className={`header-nav${menuOpen ? " open" : ""}`} aria-label={locale === "bn" ? "প্রধান নেভিগেশন" : "Main navigation"}>
         <Link href={`/${locale}#services`} onClick={() => setMenuOpen(false)}>{t.nav.services}</Link>
+        <Link href={`/${locale}#ai`} onClick={() => setMenuOpen(false)}>{t.nav.ai}</Link>
+        <Link href={`/${locale}#commerce`} onClick={() => setMenuOpen(false)}>{t.nav.commerce}</Link>
         <Link href={`/${locale}#workflow`} onClick={() => setMenuOpen(false)}>{t.nav.workflow}</Link>
-        <Link href={`/${locale}#principles`} onClick={() => setMenuOpen(false)}>{t.nav.principles}</Link>
+        <Link href={`/${locale}#pricing`} onClick={() => setMenuOpen(false)}>{t.nav.pricing}</Link>
+        <Link className="mobile-extra" href={`/${locale}#solutions`} onClick={() => setMenuOpen(false)}>{t.nav.solutions}</Link>
+        <Link className="mobile-extra" href={`/${locale}#faq`} onClick={() => setMenuOpen(false)}>{t.nav.faq}</Link>
         <Link className="mobile-login" href={`/${locale}/login`} onClick={() => setMenuOpen(false)}>{t.login}</Link>
         <Link className="mobile-register" href={`/${locale}/register`} onClick={() => setMenuOpen(false)}>{t.register} ↗</Link>
       </nav>
