@@ -1,9 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { cookies } from "next/headers";
 import { database } from "../lib/server/db";
-import { createSession, currentUser, hashToken, passwordHash, passwordMatches, revokeSession, requireUser } from "../lib/server/auth";
+import { createSession, currentUser, hashToken, passwordHash, passwordMatches, revokeSession } from "../lib/server/auth";
 import { asText, strongPassword, validEmail, validatedName, type FormErrorState, safeLocale } from "../lib/server/validation";
 
 const strings = {
@@ -67,7 +67,7 @@ export async function loginAction(localeParam:string,_previous:FormErrorState,fo
 
 export async function createWorkspaceAction(localeParam:string,_previous:FormErrorState,form:FormData):Promise<FormErrorState>{
  const locale=safeLocale(localeParam),t=strings[locale];
- let user=await currentUser();
+ const user=await currentUser();
  if(!user)return fail(t.unauthorized);
  const name=asText(form.get("name")),mode=asText(form.get("mode"));
  if(!validatedName(name))return fail(t.name,{name:t.name});
