@@ -540,16 +540,7 @@
 }
 
 
-/* Theme-aware editorial surfaces. Legacy default palettes; final Ink & Bone theme layer overrides every surface for Light/Dark/System. */
-.v3{--v3-white-section:#fffffb;--v3-soft-section:#f5f5f1;--v3-card-surface:#fcfcf8;--v3-card-alt:#f9f9f5;--v3-card-border:#d9d9d5;--v3-body-copy:#676765;--v3-nav-ink:#323232}
-:root[data-theme="dark"] .v3{
- --v3-ink:#f7f7f3;--v3-muted:#c7c7c3;--v3-line:#5c5c5a;--v3-white-section:#1d1d1d;--v3-soft-section:#252525;--v3-card-surface:#313131;--v3-card-alt:#303030;--v3-card-border:#5b5b59;--v3-body-copy:#c4c4c0;--v3-nav-ink:#eeeeea
-}
-@media(prefers-color-scheme:dark){
- :root:not([data-theme="light"]):not([data-theme="dark"]) .v3{
-  --v3-ink:#f7f7f3;--v3-muted:#c7c7c3;--v3-line:#5c5c5a;--v3-white-section:#1d1d1d;--v3-soft-section:#252525;--v3-card-surface:#313131;--v3-card-alt:#303030;--v3-card-border:#5b5b59;--v3-body-copy:#c4c4c0;--v3-nav-ink:#eeeeea
- }
-}
+/* Theme values are declared once in landing-ink-bone.css; structural styles continue below. */
 .v3-features,.v3-solutions,.v3-pricing{background:var(--v3-white-section);color:var(--v3-ink)}
 .v3-commerce-features,.v3-journey,.v3-faq{background:var(--v3-soft-section);color:var(--v3-ink)}
 .v3-operations,.v3-trust{background:var(--v3-soft-section);color:var(--v3-ink)}
