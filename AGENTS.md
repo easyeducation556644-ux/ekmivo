@@ -17,7 +17,7 @@ Read in this order before implementation:
 - All listed features belong in the first full public MVP. Do not silently move them to a later release. Internal build milestones can be partial.
 - Payment verification is automatic using transaction time, actual sender number, amount, receiving account and method. A valid unique match automatically verifies/confirms and dispatches the merchant webhook.
 - Do not introduce customer TrxID entry, screenshot submission, routine merchant approval or an auto-verification opt-in into the normal payment flow. Receipt IDs may be extracted internally for deduplication. Additional gateway integrations are not prerequisites for the phone verification path.
-- Follow the selected minimal ivory/charcoal/copper design with Hind Siliguri. Both light/dark modes and a complete EN/BN switcher are first-release features.
+- Follow the latest user-selected V3 public landing direction: a premium animated midnight-blue/teal/lime product narrative with Hind Siliguri. Operational UI remains readable, information-led and accessible. Both light/dark modes and a complete EN/BN switcher are first-release features.
 - Build the design foundation before product page styling. Preserve feature coverage; minimal visuals do not mean fewer features.
 - Selected core: Go, PostgreSQL and Next.js/TypeScript. Single implementation collaborator is Codex; account/business actions belong to the user.
 
@@ -27,4 +27,4 @@ The user's latest explicit instruction takes precedence. Within the documents, t
 
 Take the next dependency-ready work item. Record the item and scope IDs, concrete changes, relevant checks and unresolved dependencies. Planned work, mock provider output and sample screens are not evidence of a live integration. Do not mark incomplete tasks done or claim an untested capability.
 
-Current repository status: implementation started. The web introduction and repository skeleton are early foundation work, not the complete MVP. The first UI milestone is D01/D02 in the backlog: semantic tokens/components, application shell, theme behavior and complete locale infrastructure. Treat unfinished parts of those milestones as open.
+Current repository status: implementation started. The expanded bilingual V3 public landing and repository skeleton are early foundation work, not the complete MVP. The first UI milestone is D01/D02 in the backlog: semantic tokens/components, application shell, theme behavior and complete locale infrastructure. Treat unfinished parts of those milestones as open.
