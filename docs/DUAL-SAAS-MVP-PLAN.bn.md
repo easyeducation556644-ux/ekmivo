@@ -1,6 +1,6 @@
 # Dual SaaS MVP: প্রোডাক্ট ও বাস্তবায়ন পরিকল্পনা
 
-তারিখ: ১০ অক্টোবর ২০২৬। Revision 4: সব feature প্রথম public MVP-তে; payment verification স্বয়ংক্রিয়; minimal design system, light/dark এবং EN/BN switcher নির্ধারিত। Implementation বা deployment এখনো শুরু হয়নি। Working project name: Ekmivo; এটি চূড়ান্ত brand decision নয়।
+তারিখ: ১০ অক্টোবর ২০২৬। Revision 5, implementation checkpoint ১১ অক্টোবর: সব feature প্রথম public MVP-তে; payment verification স্বয়ংক্রিয়; minimal design system, light/dark এবং EN/BN switcher নির্ধারিত। Repository scaffold ও public web foundation বাস্তবায়ন শুরু হয়েছে; পূর্ণ MVP এখনো তৈরি হয়নি। Working project name: Ekmivo; এটি চূড়ান্ত brand decision নয়।
 
 **Agent-এর মূল implementation plan এই ফাইল।** Entry instructions: [AGENTS.md](../AGENTS.md)। UI বানানোর আগে [DESIGN-SYSTEM.md](./DESIGN-SYSTEM.md) এবং [design/tokens.css](./design/tokens.css) অনুসরণ করতে হবে। Feature completeness-এর জন্য [MVP-FEATURE-SCOPE.md](./MVP-FEATURE-SCOPE.md), কাজের ক্রমের জন্য [IMPLEMENTATION-BACKLOG.md](./IMPLEMENTATION-BACKLOG.md)।
 
@@ -415,7 +415,7 @@ Pilot success measures: প্রথম successful workflow-এ activation time,
 
 ## ১৭. আপনার কাজ ও আমার কাজ
 
-**আমার implementation দায়িত্ব:** code, schema/migration, UI, provider adapter, tests, documentation, deploy configuration, observability setup ও verification evidence তৈরি। এই turn-এ deliverable পরিকল্পনা; code build এখনো শুরু হয়নি।
+**আমার implementation দায়িত্ব:** code, schema/migration, UI, provider adapter, tests, documentation, deploy configuration, observability setup ও verification evidence তৈরি। প্রথম বাস্তবায়ন checkpoint: repository structure, Go entry points এবং bilingual/theme-capable public web foundation GitHub-এ push ও Vercel-এ deploy হয়েছে। ব্যবসায়িক API, database, provider integration এবং পূর্ণ dashboard এখনো বাস্তবায়িত নয়; বিস্তারিত [backlog evidence](./IMPLEMENTATION-BACKLOG.md)।
 
 **আপনার প্রয়োজনীয় input/action:** brand/domain ownership, business/merchant documents, payment/courier/Meta accounts, budget ceiling, billing account, বাস্তব sample catalog, privacy/terms-এর business approval, test phone ও pilot merchant access, customer support/incident contact। Secret সাধারণ chat/file-এ নয়, approved secret channel-এ দিতে হবে।
 
