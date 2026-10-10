@@ -1,5 +1,6 @@
 @import "../styles/tokens.css";
 @import "./landing-v3.css";
+@import "./landing-ink-bone.css";
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 100px; }
@@ -212,19 +213,19 @@ h1,h2,h3,p { margin-top: 0; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
 
 
-/* V3 shared chrome: contemporary cool palette with accessible non-marketing auth surfaces. */
+/* Ink & Bone shared chrome. Uses tokens for all three theme modes. */
 .header-nav .mobile-extra{display:none}
-.site-header{border-color:var(--color-border);background:color-mix(in srgb,var(--color-surface) 96%,transparent);box-shadow:0 15px 45px rgb(5 34 50 / 13%)}
+.site-header{border-color:var(--color-border);background:color-mix(in srgb,var(--color-surface) 97%,transparent);box-shadow:0 12px 38px rgb(0 0 0 / 7%)}
 .site-header .header-nav{gap:clamp(13px,1.5vw,22px)}
 .site-header .header-nav a{font-size:13px}
 .site-header .brand-mark{transform:none;border-radius:7px}
-.site-footer{background:#091723;color:#ecf8fc}
-.footer-brand{color:#ecf8fc}
-.footer-main p{color:#aec9d4}
-.site-footer nav a{color:#c1d8e1}
-.site-footer nav a:hover{color:#85f4e6}
-.footer-bottom{border-color:#365362;color:#96b1bd}
-.footer-status i{color:#85f4e6}
+.site-footer{background:var(--color-surface-subtle);color:var(--color-text);border-top:1px solid var(--color-border)}
+.footer-brand{color:var(--color-text)}
+.footer-main p{color:var(--color-text-secondary)}
+.site-footer nav a{color:var(--color-text-secondary)}
+.site-footer nav a:hover{color:var(--color-text)}
+.footer-bottom{border-color:var(--color-border);color:var(--color-text-muted)}
+.footer-status i{color:var(--color-text)}
 @media (max-width:1100px){
  .site-header .header-nav{gap:12px}
  .site-header .header-nav a{font-size:12px}
