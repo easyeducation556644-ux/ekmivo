@@ -1,0 +1,148 @@
+/* Ekmivo design specification v1. Theme values are the color source of truth.
+   This file defines tokens only; it is not an implemented application theme. */
+:root {
+  color-scheme: light;
+  --color-canvas: #F7F7F2;
+  --color-surface: #FFFFFF;
+  --color-surface-subtle: #F0F1EC;
+  --color-surface-raised: #FFFFFF;
+  --color-hover: #E9ECE5;
+  --color-text: #20241F;
+  --color-text-secondary: #596157;
+  --color-text-muted: #606A5D;
+  --color-border: #D8DDD3;
+  --color-control-border: #7B8577;
+  --color-primary: #245C46;
+  --color-primary-hover: #194A37;
+  --color-on-primary: #FFFFFF;
+  --color-primary-soft: #E7F1E9;
+  --color-focus: #245C46;
+  --color-success: #245C46;
+  --color-success-bg: #E7F1E9;
+  --color-warning: #79520F;
+  --color-warning-bg: #FBF1DD;
+  --color-danger: #A13228;
+  --color-danger-bg: #FBECE9;
+  --color-info: #285D83;
+  --color-info-bg: #EAF1F7;
+  --color-overlay: rgb(20 23 19 / 40%);
+  --shadow-popover: 0 8px 24px rgb(20 23 19 / 10%);
+  --shadow-dialog: 0 16px 48px rgb(20 23 19 / 16%);
+
+  --font-latin: "IBM Plex Sans", "Noto Sans Bengali", system-ui, sans-serif;
+  --font-bengali: "Noto Sans Bengali", "IBM Plex Sans", system-ui, sans-serif;
+  --font-ui: var(--font-latin);
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --line-body: 1.5;
+  --line-heading: 1.25;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --radius-control: 6px;
+  --radius-panel: 10px;
+  --radius-dialog: 12px;
+  --control-height: 44px;
+  --control-height-compact: 36px;
+  --table-row-height: 48px;
+  --table-row-height-compact: 40px;
+  --sidebar-width: 232px;
+  --header-height: 64px;
+  --content-max: 1440px;
+  --public-max: 1200px;
+  --duration-fast: 120ms;
+  --duration-normal: 180ms;
+  --duration-panel: 220ms;
+  --ease-ui: cubic-bezier(0.2, 0, 0, 1);
+  --layer-base: 0;
+  --layer-sticky: 10;
+  --layer-dropdown: 20;
+  --layer-drawer: 30;
+  --layer-dialog: 40;
+  --layer-toast: 50;
+}
+
+/* Set data-theme="light" for explicit light mode. Missing attribute = system.
+   Runtime must resolve the saved preference before first paint; see the guide. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    color-scheme: dark;
+    --color-canvas: #141713;
+    --color-surface: #1B201A;
+    --color-surface-subtle: #242B22;
+    --color-surface-raised: #242B22;
+    --color-hover: #2B3328;
+    --color-text: #EEF2E8;
+    --color-text-secondary: #B4BEB0;
+    --color-text-muted: #A0AD9B;
+    --color-border: #35402F;
+    --color-control-border: #73846A;
+    --color-primary: #96CAA6;
+    --color-primary-hover: #B0DABA;
+    --color-on-primary: #14251B;
+    --color-primary-soft: #263C2C;
+    --color-focus: #96CAA6;
+    --color-success: #96CAA6;
+    --color-success-bg: #263C2C;
+    --color-warning: #E8C17D;
+    --color-warning-bg: #392F1C;
+    --color-danger: #F1A79B;
+    --color-danger-bg: #38221E;
+    --color-info: #A6C8E8;
+    --color-info-bg: #202E3A;
+    --color-overlay: rgb(0 0 0 / 60%);
+    --shadow-popover: 0 8px 24px rgb(0 0 0 / 24%);
+    --shadow-dialog: 0 16px 48px rgb(0 0 0 / 32%);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-canvas: #141713;
+  --color-surface: #1B201A;
+  --color-surface-subtle: #242B22;
+  --color-surface-raised: #242B22;
+  --color-hover: #2B3328;
+  --color-text: #EEF2E8;
+  --color-text-secondary: #B4BEB0;
+  --color-text-muted: #A0AD9B;
+  --color-border: #35402F;
+  --color-control-border: #73846A;
+  --color-primary: #96CAA6;
+  --color-primary-hover: #B0DABA;
+  --color-on-primary: #14251B;
+  --color-primary-soft: #263C2C;
+  --color-focus: #96CAA6;
+  --color-success: #96CAA6;
+  --color-success-bg: #263C2C;
+  --color-warning: #E8C17D;
+  --color-warning-bg: #392F1C;
+  --color-danger: #F1A79B;
+  --color-danger-bg: #38221E;
+  --color-info: #A6C8E8;
+  --color-info-bg: #202E3A;
+  --color-overlay: rgb(0 0 0 / 60%);
+  --shadow-popover: 0 8px 24px rgb(0 0 0 / 24%);
+  --shadow-dialog: 0 16px 48px rgb(0 0 0 / 32%);
+}
+
+:root:lang(bn) {
+  --font-ui: var(--font-bengali);
+  --line-body: 1.7;
+  --line-heading: 1.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+    --duration-panel: 0ms;
+  }
+}

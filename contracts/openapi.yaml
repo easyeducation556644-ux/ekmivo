@@ -1,0 +1,18 @@
+openapi: 3.1.0
+info:
+  title: Ekmivo API
+  version: 0.1.0
+  description: Initial health contract. Product endpoints will be added with backend implementation.
+paths:
+  /healthz:
+    get:
+      summary: Process liveness
+      responses:
+        '200':
+          description: Process is responding
+  /readyz:
+    get:
+      summary: Product readiness
+      responses:
+        '503':
+          description: Database-backed product routes are not available yet
