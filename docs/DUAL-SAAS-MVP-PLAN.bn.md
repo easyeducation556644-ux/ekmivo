@@ -1,6 +1,6 @@
 # Dual SaaS MVP: প্রোডাক্ট ও বাস্তবায়ন পরিকল্পনা
 
-তারিখ: ১০ অক্টোবর ২০২৬। Revision 5, implementation checkpoint ১১ অক্টোবর: সব feature প্রথম public MVP-তে; payment verification স্বয়ংক্রিয়; minimal design system, light/dark এবং EN/BN switcher নির্ধারিত। Repository scaffold ও public web foundation বাস্তবায়ন শুরু হয়েছে; পূর্ণ MVP এখনো তৈরি হয়নি। Working project name: Ekmivo; এটি চূড়ান্ত brand decision নয়।
+তারিখ: ১০ অক্টোবর ২০২৬। Revision 5, implementation checkpoint ১১ অক্টোবর: সব feature প্রথম public MVP-তে; payment verification স্বয়ংক্রিয়; V3 motion-first premium landing visual direction, light/dark এবং EN/BN switcher নির্ধারিত। Repository scaffold ও public web foundation বাস্তবায়ন শুরু হয়েছে; পূর্ণ MVP এখনো তৈরি হয়নি। Working project name: Ekmivo; এটি চূড়ান্ত brand decision নয়।
 
 **Agent-এর মূল implementation plan এই ফাইল।** Entry instructions: [AGENTS.md](../AGENTS.md)। UI বানানোর আগে [DESIGN-SYSTEM.md](./DESIGN-SYSTEM.md) এবং [design/tokens.css](./design/tokens.css) অনুসরণ করতে হবে। Feature completeness-এর জন্য [MVP-FEATURE-SCOPE.md](./MVP-FEATURE-SCOPE.md), কাজের ক্রমের জন্য [IMPLEMENTATION-BACKLOG.md](./IMPLEMENTATION-BACKLOG.md)।
 
