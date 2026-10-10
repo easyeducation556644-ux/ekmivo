@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: { params: Promise<{locale:str
  return {title,description,openGraph:{title,description,type:"website",siteName:"Ekmivo"}};
 }
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "../../components/site-header";
 import { SiteFooter } from "../../components/site-footer";
@@ -20,5 +20,7 @@ export default async function LocaleLayout({ children, params }: { children: Rea
   if (locale !== "bn" && locale !== "en") notFound();
   const storedTheme = (await cookies()).get("ekmivo-theme")?.value;
   const initialTheme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : "system";
+  const isApp = (await headers()).get("x-ekmivo-application") === "1";
+  if(isApp) return <>{children}</>;
   return <><SiteHeader locale={locale} initialTheme={initialTheme} />{children}<SiteFooter locale={locale} /></>;
 }
