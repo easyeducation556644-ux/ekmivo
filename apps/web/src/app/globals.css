@@ -210,3 +210,27 @@ h1,h2,h3,p { margin-top: 0; }
 @media (max-width: 900px) { .header-nav { display: none; } .menu-toggle { display: block; } .header-right { margin-left: auto; } .header-nav.open { display: grid; position: absolute; left: 0; right: 0; top: calc(100% + 8px); padding: 18px; gap: 0; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); box-shadow: var(--shadow-popover); } .header-nav.open a { padding: 12px; } .header-nav.open .mobile-login, .header-nav.open .mobile-register { display: block; } .idea-grid, .workflow-heading, .payment-grid { grid-template-columns: 1fr; gap: 25px; } .idea-grid { margin-bottom: 50px; } .workflow-grid { grid-template-columns: 1fr; } .workflow-preview { max-width: 650px; margin: auto; } .service-row { grid-template-columns: 1fr 1.5fr; } .service-row ul { grid-column: 2; } .service-arrow { display: none; } .auth-shell { grid-template-columns: 1fr 420px; gap: 45px; } }
 @media (max-width: 700px) { .site-header { width: calc(100% - 24px); top: 12px; border-radius: 13px; } .header-inner { min-height: 61px; padding: 0 12px; gap: 8px; } .brand { font-size: 19px; gap: 6px; } .brand-mark { width: 23px; height: 23px; border-radius: 6px; } .brand-mark span { width: 9px; height: 9px; left: 7px; top: 7px; } .header-login, .header-cta { display: none; } .header-right { gap: 2px; } .select-control { max-width: 80px; padding-left: 4px; padding-right: 17px; font-size: 11px; background-position: calc(100% - 10px) 17px,calc(100% - 6px) 17px; } .menu-toggle { width: 34px; } .hero { padding: 125px 20px 90px; } .hero h1 { font-size: clamp(43px,10vw,70px); } .hero-lead { font-size: 16px; } .hero-bottom { left: 18px; right: 18px; } .hero-bottom span:first-child, .hero-bottom span:last-child { display: none; } .hero-bottom span:nth-child(2) { margin: auto; } .section-shell, .footer-inner { width: calc(100% - 40px); } .idea-section, .workflow-section, .payment-section { padding-top: 75px; padding-bottom: 78px; } .section-head { margin-bottom: 32px; } .idea-grid h2, .workflow-heading h2, .payment-grid h2, .principles-section h2, .final-cta h2 { font-size: clamp(33px,8vw,47px); } .service-row { grid-template-columns: 1fr; padding: 32px 0; gap: 15px; } .service-row ul { grid-column: 1; } .service-meta { justify-content: space-between; } .workflow-heading { margin-bottom: 35px; } .workflow-grid { gap: 38px; } .workflow-preview { padding: 18px; transform: none; } .payment-visual { padding: 21px; } .principles-section { padding-top: 30px; padding-bottom: 82px; } .principles-list { grid-template-columns: 1fr; gap: 0; } .principles-list article { padding: 23px 0; border-bottom: 1px solid var(--color-border); } .principles-list h3 { margin-top: 14px; } .final-cta { padding: 75px 0 82px; } .auth-main { padding: 126px 20px 70px; } .auth-shell { display: block; } .auth-intro { margin-bottom: 30px; } .auth-intro h1 { font-size: clamp(37px,8vw,54px); } .auth-intro > p:not(.eyebrow) { font-size: 15px; } .auth-orbit { display: none; } .auth-card { padding: 24px; } .auth-back { position: static; display: inline-block; margin-top: 24px; } .footer-inner { grid-template-columns: 1fr; gap: 38px; } .site-footer nav { justify-content: start; } .footer-bottom { flex-direction: column; } }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+
+
+/* V3 shared chrome: contemporary cool palette with accessible non-marketing auth surfaces. */
+.header-nav .mobile-extra{display:none}
+.site-header{border-color:var(--color-border);background:color-mix(in srgb,var(--color-surface) 96%,transparent);box-shadow:0 15px 45px rgb(5 34 50 / 13%)}
+.site-header .header-nav{gap:clamp(13px,1.5vw,22px)}
+.site-header .header-nav a{font-size:13px}
+.site-header .brand-mark{transform:none;border-radius:7px}
+.site-footer{background:#091723;color:#ecf8fc}
+.footer-brand{color:#ecf8fc}
+.footer-main p{color:#aec9d4}
+.site-footer nav a{color:#c1d8e1}
+.site-footer nav a:hover{color:#85f4e6}
+.footer-bottom{border-color:#365362;color:#96b1bd}
+.footer-status i{color:#85f4e6}
+@media (max-width:1100px){
+ .site-header .header-nav{gap:12px}
+ .site-header .header-nav a{font-size:12px}
+ .site-header .header-inner{gap:16px}
+}
+@media (max-width:900px){
+ .site-header .header-nav.open .mobile-extra{display:block}
+ .site-header .header-nav.open{max-height:calc(100svh - 94px);overflow:auto}
+}
