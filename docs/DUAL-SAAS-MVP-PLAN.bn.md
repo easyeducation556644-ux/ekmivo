@@ -1,6 +1,6 @@
 # Dual SaaS MVP: প্রোডাক্ট ও বাস্তবায়ন পরিকল্পনা
 
-তারিখ: ১০ অক্টোবর ২০২৬। Revision 5, implementation checkpoint ১১ অক্টোবর: সব feature প্রথম public MVP-তে; payment verification স্বয়ংক্রিয়; V3 motion-first premium landing visual direction, light/dark এবং EN/BN switcher নির্ধারিত। Repository scaffold ও public web foundation বাস্তবায়ন শুরু হয়েছে; পূর্ণ MVP এখনো তৈরি হয়নি। Working project name: Ekmivo; এটি চূড়ান্ত brand decision নয়।
+তারিখ: ১০ অক্টোবর ২০২৬। Revision 5, implementation checkpoint ১১ অক্টোবর: সব feature প্রথম public MVP-তে; payment verification স্বয়ংক্রিয়; V3 motion-first landing-এর জন্য Option F Ink & Bone minimal palette এবং পূর্ণ Light/Dark/System ও EN/BN switcher নির্ধারিত। Repository scaffold ও public web foundation বাস্তবায়ন শুরু হয়েছে; পূর্ণ MVP এখনো তৈরি হয়নি। Working project name: Ekmivo; এটি চূড়ান্ত brand decision নয়।
 
 **Agent-এর মূল implementation plan এই ফাইল।** Entry instructions: [AGENTS.md](../AGENTS.md)। UI বানানোর আগে [DESIGN-SYSTEM.md](./DESIGN-SYSTEM.md) এবং [design/tokens.css](./design/tokens.css) অনুসরণ করতে হবে। Feature completeness-এর জন্য [MVP-FEATURE-SCOPE.md](./MVP-FEATURE-SCOPE.md), কাজের ক্রমের জন্য [IMPLEMENTATION-BACKLOG.md](./IMPLEMENTATION-BACKLOG.md)।
 
@@ -297,7 +297,7 @@ Meta public onboarding-এ required access/review critical dependency। Test/ad
 
 ## ১১. Dashboard ও customer experience
 
-Visual/interaction authority: [DESIGN-SYSTEM.md](./DESIGN-SYSTEM.md)। Palette: light canvas `#F7F5F1`, text `#1B1A18`, primary `#A9361E`; dark canvas `#141311`, text `#F7F2EA`, primary `#FFAB8E`। বাংলা ও English UI-তে Hind Siliguri। Theme ও language preference personal/persistent; change করলে current task/form হারাবে না। UI language আর AI reply language আলাদা। Public site-এ full-height centered hero, restrained animated background ও scroll-aware floating header; app-এর tables, lists, inbox ও detail panels-এ animation সংযত থাকবে।
+Visual/interaction authority: [DESIGN-SYSTEM.md](./DESIGN-SYSTEM.md)। Palette (Option F Ink & Bone): light canvas `#FAFAF8`, surface `#FFFFFF`, text `#222222`, primary `#262626`; dark canvas `#141414`, surface `#242424`, text `#F5F5F1`, primary `#F1F1E9`। বাংলা ও English UI-তে Hind Siliguri। Theme ও language preference personal/persistent; change করলে current task/form হারাবে না। UI language আর AI reply language আলাদা। Public site-এ animated split hero, scroll-driven product stories ও scroll-aware floating header; Light/Dark mode-এ hero, demos, payments, FAQ এবং footer-সহ প্রতিটি section-এ theme-sensitive surfaces; app-এর tables, lists, inbox ও detail panels-এ animation সংযত থাকবে।
 
 Public pages: Home, AI service, Operations/Payments service, pricing, interactive/sample demo, integration docs, support, privacy/terms/data deletion, status। Unsupported channel বা unverified performance landing page-এ থাকবে না।
 
