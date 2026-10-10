@@ -1,6 +1,7 @@
 @import "../styles/tokens.css";
 @import "./landing-v3.css";
 @import "./landing-ink-bone.css";
+@import "./dashboard.css";
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 100px; }
