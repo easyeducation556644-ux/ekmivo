@@ -2,36 +2,36 @@
 
 Version 1 · 2026-10-10 · Design specification before application implementation.
 
-**Selected direction: warm ivory, charcoal and copper.** Hind Siliguri is the common typeface for Bengali and English. The public site now uses a product-led split opening: a typographic promise beside a clearly labelled illustrative conversation → order → payment interface, followed by an editorial flow. Product workspaces remain clear and information-led. Minimal styling preserves the complete feature set.
+**Selected direction (V3): midnight blue, electric teal and fresh lime with cool neutral light-mode surfaces.** Hind Siliguri is the typeface for Bengali and English. The public site is product-led and motion-forward: animated hero workspace, customer-journey chapters, AI and Commerce deep dives, and an interactive evidence-matching explanation. Product workspaces remain information-led and accessible. V3 is a marketing implementation milestone, not a claim that business integrations are live.
 
-বাংলায়: উষ্ণ আইভরি, গাঢ় লেখা ও সংযত তামাটে রং। বড় হিরো শুধু পাবলিক সাইটে; কাজের স্ক্রিনে তথ্য, অবস্থা ও নিয়ন্ত্রণ স্পষ্ট থাকবে।
+বাংলায়: নতুন রঙ গাঢ় নেভি, টিল ও হালকা লাইম; লাইট মোডে থাকবে ঠান্ডা সাদা/নীলচে পটভূমি। আকর্ষণীয় বড় হিরো শুধু পাবলিক সাইটে; কাজের স্ক্রিনে তথ্য, অবস্থা ও নিয়ন্ত্রণ স্পষ্ট থাকবে।
 
 The canonical product plan is [DUAL-SAAS-MVP-PLAN.bn.md](./DUAL-SAAS-MVP-PLAN.bn.md). This file owns design behavior. [MVP-FEATURE-SCOPE.md](./MVP-FEATURE-SCOPE.md) owns feature coverage; [IMPLEMENTATION-BACKLOG.md](./IMPLEMENTATION-BACKLOG.md) owns work order and evidence. Start with the repository [AGENTS.md](../AGENTS.md) for the reading sequence.
 
 ## 1. Visual direction
 
-The public opening is a responsive split hero with the message on one side and an explicitly labelled illustrative workflow on the other. The concept demonstrates a proposed conversation → catalog-backed order → evidence-based payment, not a functional integration. Services are presented as two independent modules, with a second sample workflow and a concrete payment explanation further down. The public header starts as a centered floating bar, expands to full width after scrolling, hides while scrolling down and returns full width on upward scroll; near the top it returns to floating width. Every public page, including login and registration, shares the header and footer. Motion stops under `prefers-reduced-motion`.
+The public opening is a deep-navy split hero with an animated sample workspace on the other side. The next story has six scroll-progress chapters (mobile: horizontally navigable cards) followed by independent AI/Commerce service modes, 13 capability mockups and selectable verified/pending/exception payment states. All examples are prominently labelled illustrations; none are connected to live merchant systems. Mobile layouts are intentionally different from desktop. The public header starts as a centered floating bar, expands to full width after scrolling, hides while scrolling down and returns full width on upward scroll; near the top it returns to floating width. Every public page, including login and registration, shares the header and footer. Motion stops under `prefers-reduced-motion`.
 
 The application itself remains task-led: inbox for conversations, tables for payments, list/Kanban for orders and a calendar for bookings. Do not copy the large public hero into operational screens. Keep labels, evidence and record states visible.
 
-Avoid fabricated customer logos, reviews, analytics, growth claims and functional demos. Label illustrative records as sample. Avoid purple gradients, oversized feature-card grids, glowing interface chrome, glass-heavy surfaces, emoji decoration, parallax and scroll hijacking. The public background's faint radial tint is a restrained atmosphere, not a general rule for app panels. The redesigned home hero does not use orbital decoration; existing login/register atmosphere is separate.
+Avoid fabricated customer logos, reviews, analytics, growth claims and functional demos. Label illustrative records as sample. Avoid purple gradients, random floating blobs, generic 3D shapes, emoji decoration and scroll hijacking. Use motion to demonstrate meaningful product state transitions, and keep essential information visible even without animation. The public background's faint radial tint is a restrained atmosphere, not a general rule for app panels. The redesigned home hero does not use orbital decoration; existing login/register atmosphere is separate.
 
 ## 2. Palette and semantic tokens
 
-Exact values live in [design/tokens.css](./design/tokens.css). Components use semantic variables. Light and dark are separate palettes. Copper marks primary actions and active navigation; **verified payment uses its separate success color and explicit label**.
+Exact values live in [design/tokens.css](./design/tokens.css). Components use semantic variables. Light and dark are separate palettes. Teal marks primary actions and active navigation; lime is reserved for selective marketing emphasis. **Verified payment uses its separate success color and explicit label**.
 
 | Role | Light | Dark |
 |---|---|---|
-| Canvas | `#F7F5F1` | `#141311` |
-| Surface | `#FFFFFF` | `#1D1B18` |
-| Main text | `#1B1A18` | `#F7F2EA` |
-| Secondary text | `#514D48` | `#C9BFB4` |
-| Primary copper | `#A9361E` | `#FFAB8E` |
-| Soft accent | `#F7EAE4` | `#42271F` |
-| Success label | `#24613B` | `#9CD3AD` |
-| Essential control border | `#82786E` | `#958778` |
+| Canvas | `#F3F8F9` | `#091723` |
+| Surface | `#FFFFFF` | `#14283A` |
+| Main text | `#102536` | `#EEF9FC` |
+| Secondary text | `#385565` | `#BBD0DB` |
+| Primary teal | `#096F6E` | `#85F4E6` |
+| Soft accent | `#DDF7EE` | `#174449` |
+| Success label | `#206B4E` | `#B3F1C3` |
+| Essential control border | `#647F8C` | `#98B4BF` |
 
-Status palettes for warning, danger and information also live in the CSS. Every badge needs a readable text label; color alone does not convey status. Decorative separators may be subtle, but input boundaries use `control-border`. Keyboard focus uses a visible outline. The generated [contrast report](./design/CONTRAST-REPORT.md) checks 82 light/dark token pairs at text 4.5:1 and essential outline 3:1. This does not replace rendered accessibility checks. [W3C contrast guidance](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html)
+Status palettes for warning, danger and information also live in the CSS. Every badge needs a readable text label; color alone does not convey status. Decorative separators may be subtle, but input boundaries use `control-border`. Keyboard focus uses a visible outline. The [contrast report](./design/CONTRAST-REPORT.md) was generated for the previous palette and must be regenerated for V3; a code-level token update alone is not accessibility evidence. This does not replace rendered accessibility checks. [W3C contrast guidance](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html)
 
 ## 3. Typography
 
@@ -153,7 +153,7 @@ Entitlements and roles determine access; hiding a navigation item does not grant
 
 | Component | Design and interaction contract |
 |---|---|
-| Button | Primary filled copper, secondary neutral outline, tertiary text. One primary action per local task. Loading preserves width and action label; prevent duplicate submission. Disabled reason is available in text, not a hover-only tooltip. |
+| Button | Primary filled teal, secondary neutral outline, tertiary text. One primary action per local task. Loading preserves width and action label; prevent duplicate submission. Disabled reason is available in text, not a hover-only tooltip. |
 | Destructive action | Danger text/icon and explicit action name; confirmation shows the affected record when irreversible. No red used for ordinary navigation. |
 | Input/select | Persistent label, optional help, error below field, visible control boundary. Focus does not move layout. Currency/phone/reference fields use suitable input modes; no placeholder-only labels. |
 | Search/filter | Search above list; compact filter controls with active count and Clear. Preserve filters across detail/back navigation. Applied filters need meaningful text, not unlabeled color dots. |
@@ -203,12 +203,12 @@ Live status comes from the backend; do not animate a fake success after a timeou
 - **Bookings:** calendar plus list alternative; date/resource filters; explicit timezone and unavailable-slot state. On mobile start with the day/list view, not a compressed month grid.
 - **Billing:** balance, usage ledger, subscription and invoices. Exact money and clear rate labels; no progress bar that obscures actual charges. Credit exhaustion keeps human inbox and independent B operations reachable.
 - **Admin:** shared components, visibly distinct admin/workspace context; support access reason and expiry where required. Never disguise a cross-tenant operation as an ordinary merchant action.
-- **Public site:** full-height centered hero with restrained orbit and grid motion, then the two services, a clearly labelled sample workflow, automatic payment explanation, grouped features, pricing and help. The header starts as a floating bar, expands on scroll, hides while moving down and returns on upward scroll. No invented usage figures or copied competitor promises.
+- **Public site:** split dark hero with meaningful animation, chapter-based journey, two independently selectable services, thirteen feature demonstrations, evidence-based payment states, operations, solutions, trust, pricing configurations and FAQ. All illustrative interface data is labelled sample. The header starts as a floating bar, expands on scroll, hides while moving down and returns on upward scroll. No invented usage figures or copied competitor promises.
 - **Mobile/extension:** same semantic tokens and terminology; native controls may adapt to platform patterns. Small extension width gets focused assistant/takeover tasks, not a squeezed full dashboard.
 
 ## 12. Motion and accessibility
 
-Motion tokens: 120ms hover/focus color, 180ms menu/change, 220ms drawer/dialog; easing `cubic-bezier(0.2, 0, 0, 1)`. The public header expansion/hide and a short hero entrance reveal are permitted purposeful motion. No bounce, scroll hijacking or delayed access to content. Under reduced motion, remove translation/scale and nonessential animation; functional progress remains readable.
+Motion tokens: 120ms hover/focus color, 180ms menu/change, 220ms drawer/dialog; easing `cubic-bezier(0.2, 0, 0, 1)`. The public header expansion/hide, animated illustrative workspace, limited scroll chapter transitions and short entrance reveals are permitted purposeful motion. Pause/replay must be available for auto-cycling motion. No bounce, scroll hijacking or delayed access to content. Under reduced motion, remove translation/scale and nonessential animation; functional progress remains readable.
 
 Use semantic controls, visible keyboard focus, skip navigation, meaningful landmarks, programmatic field/error associations, accessible dialog focus handling and text alternatives. Announce significant async status with a restrained live region; every queue update must not interrupt the user. On auto-verification announce once without stealing focus. Support contrast/forced-color modes with native outlines where appropriate. Drag/drop always has a non-drag alternative.
 
@@ -221,4 +221,4 @@ Use semantic controls, visible keyboard focus, skip navigation, meaningful landm
 5. Apply components across all scope rows. Do not simplify away channels, voice, booking, agency, mobile or other required functionality to make a cleaner screenshot.
 6. Before release: theme persistence/system switching, language persistence/routing, form preservation, complete translation keys, correct numbers/time, no customer TrxID step, full S-ID coverage.
 
-Current verification: 82 token contrast checks, local web lint/build and deployment route checks. A rendered visual and accessibility audit of the redesigned public pages remains required. Authentication is not connected; login and registration forms disclose that credentials are not submitted or saved.
+Current V3 verification: GitHub source changes are committed; Vercel build, token contrast, rendered accessibility and device/browser audits must be recorded separately. Previous checks are not V3 evidence. Authentication is not connected; login and registration forms disclose that credentials are not submitted or saved.
