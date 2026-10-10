@@ -64,7 +64,7 @@ export async function workspacesFor(userId:string):Promise<Workspace[]>{
 }
 export async function requireWorkspace(locale:"bn"|"en",id:string){
  const user=await requireUser(locale);
- if(!/^[0-9a-f-]{36}$/i.test(id))redirect(`/${locale}/workspaces`);
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))redirect(`/${locale}/workspaces`);
  const rows=await database()`
  SELECT w.id,w.name,w.service_mode,m.role FROM workspace_members m
  JOIN workspaces w ON w.id=m.workspace_id
