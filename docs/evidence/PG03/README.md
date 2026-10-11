@@ -32,3 +32,24 @@ The new CI web job runs disposable PostgreSQL 17 DDL, hash-only storage, missing
 
 ## Owner manual test source
 All manual PG03 and PG00–PG17 requirements are kept in `docs/MANUAL-VERIFICATION.md` for one consolidated owner pass. Do not require one-at-a-time manual interruptions.
+
+
+## First implementation checkpoint — 2026-10-11 (evidence observed)
+
+**Source merged:** [PR #3](https://github.com/masharzy/ekmivo/pull/3) squash merge `19c7a011004260a5db4a9d8318c7217591586671`. This is not an acceptance of the live payment product.
+
+**Automated PASS 3/3:** [CI 38125321809](https://github.com/masharzy/ekmivo/actions/runs/38125321809), PR source `a19605ef7afafc0f55e35970924de4c901f99145`:
+- Next.js lint / TypeScript / production build; disposable Postgres 17 migrations, key hash + constrained resolver + use timestamp, no runtime table rights, wrong public ID/digest, revoked/expired, disabled product, suspended environment, cross-tenant negative matrix and rollback.
+- Go unit tests, merchant bearer token syntax, explicit environment and fail-closed HTTP response with correlation ID; Kotlin debug assemble/unit tests unaffected.
+- Latest source also has server-scoped non-secret form Save/Restore/Discard; passwords/raw keys are never stored as drafts.
+- Preceding CI failures from React render-purity lint were fixed (expiry computed by PostgreSQL rather than render-time `Date.now()`); earlier failed/cancelled runs are **not** called passed.
+
+**Render:** live [Go deployment `dep-db5kljvavr4c73f6636g`](https://dashboard.render.com/web/srv-db5j532d0e5s73fli4h0) for exactly `19c7a011`, finished 2026-10-11 08:38 UTC. This verifies deployment metadata, not successful authenticated production API probes.
+
+**Neon production:** read-only schema inspection of Ekmivo project `sparkling-mountain-38618629` found PG02 `workspace_environments` and `workspace_product_access`, but **no `merchant_api_keys` table**. Migration 0007 is **not applied to production**. Until an authorized, separately verified rollout, the developer UI cannot create real production keys and Go candidate resolver is unavailable. No privileged or destructive production SQL was run in this PG03 checkpoint.
+
+**Vercel production:** latest listed READY web build is still PG02 commit `3cc4eeef`, not merged PG03 `19c7a011`. Explicit deployment request failed with **HTTP 402 `api-deployments-free-per-day`**, 24h retry advice; there is no verified PG03 web deployment. Do not label deployment parity passed or attempt repeated quota-consuming redeployments.
+
+**Status:** PG03 source implementation and regression CI **green**, Render GO code deployed; production DB 0007 and web parity **blocked**, real owner/admin/viewer and credential/API/browser acceptance still pending. PG03 stays **OPEN / NOT ACCEPTED**. No real transaction, verified payment or outbound webhook has been claimed.
+
+**Required safe rollout:** owner-authorized Neon schema migration through isolated branch/preflight → verify DB permissions/function and audit → production web deploy once Vercel capacity permits → issue a test sandbox key (owner + current password) → verify direct Go endpoint wrong environment/revoke/read scope/expiry and role matrix → complete one combined manual test ledger.
