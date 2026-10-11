@@ -541,7 +541,14 @@ CREATE FUNCTION pg09_action(w uuid,e text,resource text,resource_id uuid,action 
  ELSIF resource='webhooks' AND action='revoke_previous' THEN
   UPDATE pg08_endpoints SET previous_secret=NULL,previous_until=NULL
   WHERE workspace_id=w AND environment=e AND id=resource_id AND previous_secret IS NOT NULL;
- ELSIF resource='deliveries' AND action='replay' THEN INSERT INTO pg08_deliveries(workspace_id,environment,endpoint_id,event_id) SELECT w,e,endpoint_id,event_id FROM pg08_deliveries WHERE workspace_id=w AND environment=e AND id=resource_id AND status IN ('failed','delivered','disabled') RETURNING id INTO generated; IF generated IS NOT NULL THEN INSERT INTO pg09_audit(workspace_id,environment,resource,resource_id,action) VALUES(w,e,resource,generated,action);RETURN jsonb_build_object('id',generated); END IF;
+ ELSIF resource='deliveries' AND action='replay' THEN INSERT INTO pg08_deliveries(workspace_id,environment,endpoint_id,event_id) SELECT w,e,d.endpoint_id,d.event_id FROM pg08_deliveries d
+ WHERE d.workspace_id=w AND d.environment=e AND d.id=resource_id
+ AND d.status IN ('failed','delivered','disabled')
+ AND EXISTS(SELECT 1 FROM pg08_endpoints ep WHERE ep.id=d.endpoint_id
+   AND ep.workspace_id=w AND ep.environment=e AND ep.active)
+ AND NOT EXISTS(SELECT 1 FROM pg08_deliveries active
+   WHERE active.endpoint_id=d.endpoint_id AND active.event_id=d.event_id
+   AND active.status IN ('pending','sending')) RETURNING id INTO generated; IF generated IS NOT NULL THEN INSERT INTO pg09_audit(workspace_id,environment,resource,resource_id,action) VALUES(w,e,resource,generated,action);RETURN jsonb_build_object('id',generated); END IF;
  ELSE RAISE EXCEPTION 'action unavailable' USING ERRCODE='22023'; END IF;
  GET DIAGNOSTICS affected=ROW_COUNT;
  IF affected<>1 THEN RAISE EXCEPTION 'resource or allowed transition unavailable' USING ERRCODE='P0002';END IF;
