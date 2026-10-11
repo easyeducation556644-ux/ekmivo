@@ -81,6 +81,11 @@ func TestPostgresSessionMembershipAndEnvironment(t *testing.T){
  _,err=admin.ExecContext(ctx,"UPDATE platform_administrators SET role='super_admin' WHERE user_id=$1::uuid",ids[0]);if err!=nil{t.Fatal(err)}
  if _,err=repo.AuthorizeWorkspace(ctx,principal,workspaces[0],Sandbox,PaymentsRead);err!=nil{t.Fatalf("own sandbox denied: %v",err)}
  if _,err=repo.AuthorizeWorkspace(ctx,principal,workspaces[0],Live,PaymentsRead);err!=nil{t.Fatalf("own live denied: %v",err)}
+ _,err=admin.ExecContext(ctx,"UPDATE workspace_product_access SET enabled=false WHERE workspace_id=$1::uuid AND product='payments'",workspaces[0]);if err!=nil{t.Fatal(err)}
+ if _,err=repo.AuthorizeWorkspace(ctx,principal,workspaces[0],Live,PaymentsRead);!errors.Is(err,ErrForbidden){t.Fatalf("disabled payment product still authorized: %v",err)}
+ _,err=admin.ExecContext(ctx,"UPDATE workspace_product_access SET enabled=true WHERE workspace_id=$1::uuid AND product='payments'",workspaces[0]);if err!=nil{t.Fatal(err)}
+ if _,err=repo.AuthorizeWorkspace(ctx,principal,workspaces[0],Live,PaymentsRead);err!=nil{t.Fatalf("restored payments denied: %v",err)}
+
  if _,err=repo.AuthorizeWorkspace(ctx,principal,workspaces[1],Live,PaymentsRead);!errors.Is(err,ErrForbidden){t.Fatalf("other tenant accessed: %v",err)}
  if _,err=repo.AuthorizeWorkspace(ctx,principal,workspaces[0],"preview",PaymentsRead);!errors.Is(err,ErrForbidden){t.Fatalf("unsupported env accessed: %v",err)}
  _,err=admin.ExecContext(ctx,"UPDATE workspace_members SET role='viewer' WHERE workspace_id=$1::uuid AND user_id=$2::uuid",workspaces[0],ids[0]);if err!=nil{t.Fatal(err)}

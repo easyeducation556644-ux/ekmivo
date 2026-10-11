@@ -134,15 +134,15 @@ func (r *Repository) AuthorizeWorkspace(ctx context.Context,principal Principal,
  tx,err:=r.DB.BeginTx(ctx,&sql.TxOptions{ReadOnly:true})
  if err!=nil{return result,ErrUnavailable}
  defer tx.Rollback()
- var role,service string
- err=tx.QueryRowContext(ctx,`SELECT m.role,w.service_mode
+ var role string
+ err=tx.QueryRowContext(ctx,`SELECT m.role
   FROM workspace_members m JOIN workspaces w ON w.id=m.workspace_id
   JOIN app_users u ON u.id=m.user_id
   WHERE m.workspace_id=$1::uuid AND m.user_id=$2::uuid AND u.disabled_at IS NULL
-  LIMIT 1`,workspaceID,principal.UserID).Scan(&role,&service)
+  LIMIT 1`,workspaceID,principal.UserID).Scan(&role)
  if errors.Is(err,sql.ErrNoRows){return result,ErrForbidden}
  if err!=nil{return result,ErrUnavailable}
- if !permits(role,capability)||!serviceAllows(service,capability){return result,ErrForbidden}
+ if !permits(role,capability){return result,ErrForbidden}
  var actor,tenant,env string
  err=tx.QueryRowContext(ctx,`SELECT
   set_config('ekmivo.user_id',$1,true),
@@ -150,6 +150,13 @@ func (r *Repository) AuthorizeWorkspace(ctx context.Context,principal Principal,
   set_config('ekmivo.environment',$3,true)`,principal.UserID,workspaceID,string(environment)).
  Scan(&actor,&tenant,&env)
  if err!=nil{return result,ErrUnavailable}
+ if capability==PaymentsRead||capability==PaymentsManage{
+  var enabled bool
+  err=tx.QueryRowContext(ctx,`SELECT enabled FROM workspace_product_access
+   WHERE workspace_id=$1::uuid AND product='payments' LIMIT 1`,workspaceID).Scan(&enabled)
+  if errors.Is(err,sql.ErrNoRows)||err==nil&&!enabled{return result,ErrForbidden}
+  if err!=nil{return result,ErrUnavailable}
+ }
  var exists int
  err=tx.QueryRowContext(ctx,`SELECT 1 FROM workspace_environments
   WHERE workspace_id=$1::uuid AND environment=$2 AND status='active'
