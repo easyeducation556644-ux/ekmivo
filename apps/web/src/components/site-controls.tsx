@@ -24,14 +24,20 @@ export function SiteControls({locale,initialTheme}:{locale:"bn"|"en";initialThem
   document.cookie=`ekmivo-theme=${next}; Path=/; Max-Age=31536000; SameSite=Lax`;
   try{window.localStorage.setItem("ekmivo-theme-preference",next);}catch{/* Cookie and React state still work. */}
  }
+ // Persist locale only after navigation truly commits, including a guarded
+ // Save draft / Discard / Stay decision. Cancelling must not change cookies.
+ useEffect(()=>{
+  document.cookie=`ekmivo-locale=${locale}; Path=/; Max-Age=31536000; SameSite=Lax`;
+ },[locale]);
  function changeLocale(next:"bn"|"en"){
   if(next===locale)return;
-  document.cookie=`ekmivo-locale=${next}; Path=/; Max-Age=31536000; SameSite=Lax`;
   // Query params (especially payment environment, page cursors and filters)
   // are part of the context. Do not drop them on an EN/BN switch.
   const href=pathname.replace(/^\/(bn|en)(?=\/|$)/,`/${next}`)+window.location.search+window.location.hash;
   const intent=new CustomEvent("ekmivo:guarded-navigation",{cancelable:true,detail:{href}});
   if(!window.dispatchEvent(intent))return;
+  // Only an accepted navigation may persist the new preference.
+  document.cookie=`ekmivo-locale=${next}; Path=/; Max-Age=31536000; SameSite=Lax`;
   router.push(href);
  }
  return <>
