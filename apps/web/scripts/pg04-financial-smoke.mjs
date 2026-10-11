@@ -926,6 +926,40 @@ try{
  const paidCount=(await pg07DB.unsafe(
   "SELECT count(*)::int n FROM financial_payments WHERE observation_id=$1::uuid",[pg07ReceiptID]))[0].n;
  same(paidCount,1,"PG07 replay issued multiple verified payments");
+
+ // Deterministic lock inversion case: PG05 holds the intent BEFORE its
+ // attempt-issuance bucket lock. Matcher must not wait holding the bucket.
+ const pg07Lock=postgres(ds("ekmivo_pg04_sandbox"),{max:1,prepare:false});
+ const pg07Racer=postgres(ds("ekmivo_pg04_sandbox"),{max:2,prepare:false});
+ try {
+  const locked=await pg07Attempt();
+  const blockedObservation=await pg07Receipt(locked);
+  await pg07Lock.begin(async tx=>{
+   await tx.unsafe("SELECT id FROM payment_intents WHERE id=$1::uuid FOR UPDATE",[locked.intent]);
+   same(await pg07Match(blockedObservation,pg07Version,pg07Racer),
+    "pending","PG07 did not defer when checkout held intent lock");
+  });
+  same(await pg07Match(blockedObservation),"matched","PG07 did not retry after checkout released lock");
+  const competing=await pg07Attempt();
+  const candidate=await pg07Receipt(competing);
+  const outcomes=await Promise.all([
+   pg07Match(candidate,pg07Version,pg07DB),
+   pg07Match(candidate,pg07Version,pg07Racer)
+  ]);
+  same(outcomes,["matched","matched"],"PG07 two workers diverged under same receipt");
+  const cardinality=(await pg07DB.unsafe(
+   "SELECT (SELECT count(*)::int FROM financial_payments WHERE observation_id=$1::uuid) AS payments, "+
+   "(SELECT count(*)::int FROM pg07_events e JOIN financial_payments p ON e.payment_id=p.id WHERE p.observation_id=$1::uuid) AS events, "+
+   "(SELECT count(*)::int FROM pg08_deliveries d JOIN pg07_events e ON d.event_id=e.id JOIN financial_payments p ON e.payment_id=p.id WHERE p.observation_id=$1::uuid) AS deliveries",
+   [candidate]))[0];
+  same(cardinality.payments,1,"PG07 parallel workers duplicated payment");
+  same(cardinality.events,1,"PG07 parallel workers duplicated event");
+  same(cardinality.deliveries,1,"PG07 parallel workers duplicated queued webhook");
+ } finally {
+  await pg07Lock.end({timeout:3});
+  await pg07Racer.end({timeout:3});
+ }
+
  console.log("PG07 isolated matching PASS: atomic verified payment/allocation/event/queued delivery, idempotency, five fields, minute boundary, late, cancellation, stale projection (FICTIONAL SANDBOX only)");
 
  const controlEmpty=await admin`SELECT to_regclass('public.payment_intents') IS NULL AS no_payments`;
