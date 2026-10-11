@@ -10,6 +10,8 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -67,6 +69,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ekmivo.mobile.data.AppPreferences
 import com.ekmivo.mobile.data.Appearance
 import com.ekmivo.mobile.data.Language
@@ -230,7 +233,7 @@ private fun Payments(copy:AppCopy,status:ServiceStatus){
    Text(copy.payout,style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
   }
   item {
-   Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+   Row(horizontalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.horizontalScroll(rememberScrollState())){
     PaymentView.entries.forEach{mode ->
      FilterChip(selected=view==mode,onClick={view=mode},label={Text(copy.paymentName(mode))})
     }
@@ -280,7 +283,7 @@ private fun Preferences(copy:AppCopy,appearance:Appearance,language:Language,sta
   }
   item{
    SettingsPanel(title=copy.appearance){
-    Row(horizontalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.fillMaxWidth()){
+    Row(horizontalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())){
      Appearance.entries.forEach{mode->
       FilterChip(selected=appearance==mode,onClick={onAppearance(mode)},
        label={Text(when(mode){Appearance.SYSTEM->copy.system;Appearance.LIGHT->copy.light;Appearance.DARK->copy.dark})})
