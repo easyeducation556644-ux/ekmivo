@@ -370,18 +370,69 @@ CREATE FUNCTION pg08_due() RETURNS TABLE(id uuid,workspace_id uuid,environment t
  SELECT d.id,d.workspace_id,d.environment,r.entitlement_version FROM pg08_deliveries d JOIN financial_workspace_registry r USING(workspace_id,environment) WHERE r.status='active' AND d.next_at<=now() AND (d.status='pending' OR d.status='sending' AND d.lease_until<now()) ORDER BY d.next_at LIMIT 10
 $$;
 CREATE FUNCTION pg08_claim(delivery uuid,expected_version bigint) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
-DECLARE d pg08_deliveries;endpoint pg08_endpoints;event pg07_events;lease uuid:=gen_random_uuid(); BEGIN
- SELECT * INTO d FROM pg08_deliveries WHERE id=delivery AND next_at<=now() AND (status='pending' OR status='sending' AND lease_until<now()) FOR UPDATE SKIP LOCKED;
+DECLARE d pg08_deliveries; endpoint pg08_endpoints; evt pg07_events; lease uuid:=gen_random_uuid();
+BEGIN
+ SELECT * INTO d FROM pg08_deliveries
+ WHERE id=delivery AND next_at<=now()
+ AND (status='pending' OR status='sending' AND lease_until<now())
+ FOR UPDATE SKIP LOCKED;
  IF d.id IS NULL THEN RETURN NULL; END IF;
- IF NOT EXISTS(SELECT 1 FROM financial_workspace_registry WHERE workspace_id=d.workspace_id AND environment=d.environment AND status='active' AND entitlement_version=expected_version) THEN RAISE EXCEPTION 'stale authority' USING ERRCODE='42501';END IF;
- SELECT * INTO endpoint FROM pg08_endpoints WHERE id=d.endpoint_id;
- IF NOT endpoint.active THEN UPDATE pg08_deliveries SET status='disabled',reason='endpoint_disabled' WHERE id=d.id;RETURN NULL;END IF;
- SELECT * INTO event FROM pg07_events WHERE id=d.event_id;
- UPDATE pg08_deliveries SET status='sending',attempts=attempts+1,lease_id=lease,lease_until=now()+interval '60 seconds' WHERE id=d.id;
- RETURN jsonb_build_object('id',d.id,'event_id',event.id,'lease_id',lease,'url',endpoint.url,'secret',encode(endpoint.secret,'base64'),'body',event.payload||jsonb_build_object('id',event.id),'attempt',d.attempts+1,'workspace_id',d.workspace_id,'environment',d.environment);
+ IF d.environment IS DISTINCT FROM (SELECT environment FROM financial_realm WHERE singleton)
+ OR NOT EXISTS(SELECT 1 FROM financial_workspace_registry
+  WHERE workspace_id=d.workspace_id AND environment=d.environment
+  AND status='active' AND entitlement_version=expected_version)
+ THEN RAISE EXCEPTION 'stale authority or wrong realm' USING ERRCODE='42501'; END IF;
+ SELECT * INTO endpoint FROM pg08_endpoints
+ WHERE id=d.endpoint_id AND workspace_id=d.workspace_id AND environment=d.environment;
+ IF endpoint.id IS NULL OR NOT endpoint.active THEN
+  UPDATE pg08_deliveries SET status='disabled',reason='endpoint_disabled',
+   lease_id=NULL,lease_until=NULL,completed_at=now() WHERE id=d.id;
+  RETURN NULL;
+ END IF;
+ -- Crash with no pg08_finish still consumes the previous attempt; cap retries.
+ IF d.attempts>=8 THEN
+  UPDATE pg08_deliveries SET status='failed',reason='delivery_attempts_exhausted',
+   lease_id=NULL,lease_until=NULL,completed_at=now() WHERE id=d.id;
+  RETURN NULL;
+ END IF;
+ SELECT * INTO evt FROM pg07_events WHERE id=d.event_id
+ AND workspace_id=d.workspace_id AND environment=d.environment;
+ IF evt.id IS NULL THEN RAISE EXCEPTION 'domain event absent' USING ERRCODE='23503'; END IF;
+ UPDATE pg08_deliveries SET status='sending',attempts=d.attempts+1,
+  lease_id=lease,lease_until=now()+interval '60 seconds',completed_at=NULL
+ WHERE id=d.id;
+ RETURN jsonb_build_object('id',d.id,'event_id',evt.id,'lease_id',lease,
+  'url',endpoint.url,'secret',encode(endpoint.secret,'base64'),
+  'body',evt.payload||jsonb_build_object('id',evt.id),'attempt',d.attempts+1,
+  'workspace_id',d.workspace_id,'environment',d.environment);
 END $$;
-CREATE FUNCTION pg08_finish(delivery uuid,lease uuid,code integer,error_code text) RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
-BEGIN UPDATE pg08_deliveries SET status=CASE WHEN code BETWEEN 200 AND 299 THEN 'delivered' WHEN attempts>=10 THEN 'failed' ELSE 'pending' END,http_status=code,reason=left(error_code,80),lease_id=NULL,lease_until=NULL,next_at=now()+make_interval(secs=>least(3600,(power(2,least(attempts,10))*5)::integer)),completed_at=CASE WHEN code BETWEEN 200 AND 299 OR attempts>=10 THEN now() END WHERE id=delivery AND lease_id=lease AND status='sending';RETURN FOUND;END $$;
+CREATE FUNCTION pg08_finish(delivery uuid,lease uuid,code integer,error_code text)
+ RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE d pg08_deliveries; success boolean; retryable boolean; delay_seconds integer;
+BEGIN
+ SELECT * INTO d FROM pg08_deliveries WHERE id=delivery AND lease_id=lease
+ AND status='sending' FOR UPDATE;
+ IF d.id IS NULL THEN RETURN false; END IF;
+ success:=code BETWEEN 200 AND 299;
+ retryable:=code IS NULL OR code=0 OR code IN (408,429) OR code BETWEEN 500 AND 599;
+ -- 1m, 5m, 15m, 1h, 3h, 6h, 12h plus bounded deterministic 0-30s jitter.
+ delay_seconds:=(ARRAY[60,300,900,3600,10800,21600,43200])[least(d.attempts,7)]
+  +(mod((hashtextextended(d.id::text||':'||d.attempts::text,0) & 2147483647),31))::integer;
+ UPDATE pg08_deliveries SET
+  status=CASE WHEN success THEN 'delivered'
+   WHEN NOT retryable OR d.attempts>=8 THEN 'failed' ELSE 'pending' END,
+  http_status=NULLIF(code,0),
+  reason=CASE WHEN success THEN ''
+   WHEN NOT retryable THEN 'terminal_http_status'
+   WHEN d.attempts>=8 THEN 'delivery_attempts_exhausted'
+   ELSE left(coalesce(error_code,'transport_unknown'),80) END,
+  lease_id=NULL,lease_until=NULL,
+  next_at=CASE WHEN success OR NOT retryable OR d.attempts>=8
+   THEN d.next_at ELSE now()+make_interval(secs=>delay_seconds) END,
+  completed_at=CASE WHEN success OR NOT retryable OR d.attempts>=8 THEN now() ELSE NULL END
+ WHERE id=d.id;
+ RETURN true;
+END $$;
 
 CREATE FUNCTION pg07_candidates(w uuid,e text,observation uuid) RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public,pg_temp AS $$
  SELECT coalesce(jsonb_agg(to_jsonb(t)),'[]'::jsonb) FROM (
