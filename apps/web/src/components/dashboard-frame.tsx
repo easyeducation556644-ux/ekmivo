@@ -277,7 +277,7 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
      </label>}
     </div>
     <div className="ds-topbar-tools">
-     <button type="button" className="ds-global-search-button" onClick={()=>{searchReturnFocus.current=document.activeElement instanceof HTMLElement?document.activeElement:null;setSearchOpen(true);setGlobalQuery("");setActiveResult(0);}}><Icon name="search"/><span>{bn?"খুঁজুন":"Search"}</span><kbd>⌘ K</kbd></button>
+     <button type="button" className="ds-global-search-button" aria-label={bn?"পৃষ্ঠা বা ব্যবসা খুঁজুন":"Search pages or businesses"} onClick={()=>{searchReturnFocus.current=document.activeElement instanceof HTMLElement?document.activeElement:null;setSearchOpen(true);setGlobalQuery("");setActiveResult(0);}}><Icon name="search"/><span>{bn?"খুঁজুন":"Search"}</span><kbd>⌘ K</kbd></button>
      <SiteControls locale={locale} initialTheme={theme}/>
      <details className="ds-notifications" open={noticeOpen} onToggle={event=>setNoticeOpen(event.currentTarget.open)}>
       <summary className="ds-icon-button" aria-label={bn?"নোটিফিকেশন":"Notifications"}><Icon name="bell"/></summary>

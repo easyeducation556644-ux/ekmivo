@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import {randomUUID,randomBytes,createHash} from "node:crypto";
 import postgres from "postgres";
+import "./openapi-check.mjs";
+import {execFileSync} from "node:child_process";
 const raw=process.env.PG00_TEST_DATABASE_URL;
 if(!raw)throw Error("PG03 requires PG00_TEST_DATABASE_URL");
 const url=new URL(raw);
@@ -10,6 +12,11 @@ const sql=postgres(raw,{max:1,prepare:false});
 const migration=await readFile(new URL("../../../infra/migrations/0007_pg03_merchant_keys.sql",import.meta.url),"utf8");
 try{
  await sql.unsafe(migration);
+ // Exercise the Go database/sql adapter after migration 0007, not merely
+ // the SQL resolver. This runs in the existing isolated PostgreSQL CI job.
+ execFileSync("go",["test","./internal/authz","-run","TestPostgresMerchantCredentials","-count=1","-v"],{
+  cwd:new URL("../../../backend/",import.meta.url),stdio:"inherit",env:process.env
+ });
  const rls=await sql`SELECT relname,relrowsecurity,relforcerowsecurity FROM pg_class
   WHERE relname IN ('merchant_api_keys','merchant_api_key_audit')`;
  assert.equal(rls.length,2);

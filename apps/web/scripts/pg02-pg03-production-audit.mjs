@@ -147,6 +147,6 @@ try{
 finally{
  if(seeded)try{await sql.begin(async tx=>{for(const w of workspaces)await tx`DELETE FROM workspaces WHERE id=${w}`;for(const id of ids)await tx`DELETE FROM app_users WHERE id=${id}`;});const left=await sql`SELECT count(*)::int AS n FROM app_users WHERE id=ANY(${ids}::uuid[])`;record('PG23','Disposable fixture cleanup',left[0].n===0);}catch{record('PG23','Disposable fixture cleanup',false,{safe_response:'Operator cleanup required; fixture identifiers suppressed.'});}
  await sql.end();
- for(const pg of ['PG02','PG03'])await writeFile('../../docs/evidence/'+pg+'/independent-production-audit.json',JSON.stringify({tested_at:new Date().toISOString(),source:'4f1c4d6',deployed_web_sha:'c441dca',web,api,method:'Dedicated disposable fixtures; actual deployed RSC actions and Go HTTP; secrets memory-only. UI interactions tracked separately.',results:records.filter(r=>r.pg===pg||r.pg==='PG23')},null,2)+'\n');
+ for(const pg of ['PG02','PG03'])await writeFile('../../docs/evidence/'+pg+'/'+(process.env.PG23_REPORT_NAME||'independent-production-audit.json'),JSON.stringify({tested_at:new Date().toISOString(),source:process.env.PG23_SOURCE_SHA||'4f1c4d6',deployed_web_sha:process.env.PG23_WEB_SHA||'c441dca',deployed_api_sha:process.env.PG23_API_SHA||'4f1c4d6',web,api,method:'Dedicated disposable fixtures; actual deployed RSC actions and Go HTTP; secrets memory-only. UI interactions tracked separately.',results:records.filter(r=>r.pg===pg||r.pg==='PG23')},null,2)+'\n');
  if(records.some(r=>!r.pass))process.exitCode=1;
 }

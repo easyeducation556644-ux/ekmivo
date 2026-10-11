@@ -51,3 +51,34 @@ const external={detail:{href:"https://other.test/"},defaultPrevented:false,preve
 listeners.get("ekmivo:guarded-navigation")(external);
 assert.equal(external.defaultPrevented,false,"External guard intent is not a local route");
 console.log("PG02 PASS: dirty onboarding blocks locale routing and opens Save/Discard/Stay");
+
+// Render actual locale controls and run committed effects. A blocked intent
+// must leave both document language and route unchanged; successful route
+// props (including browser back) must synchronize the persistent root layout.
+const controlsSource=await readFile(new URL("../src/components/site-controls.tsx",import.meta.url),"utf8");
+const controlsCompiled=ts.transpileModule(controlsSource,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+let currentLocale="en",block=false;
+const pushed=[],nodes=[];
+const documentState={documentElement:{lang:"en",dataset:{},removeAttribute(){}},cookie:""};
+const controlsSandbox={exports:{},document:documentState,CustomEvent:class{constructor(name,options){this.type=name;Object.assign(this,options);}},window:{
+ location:{search:"?env=sandbox",hash:"#keys"},addEventListener(){},removeEventListener(){},
+ dispatchEvent(){return !block;},localStorage:{setItem(){}}
+},require(id){
+ if(id==="next/navigation")return {usePathname:()=>`/${currentLocale}/workspaces`,useRouter:()=>({push:href=>pushed.push(href)})};
+ if(id==="react")return {useState:initial=>[initial,()=>{}],useEffect:fn=>fn()};
+ if(id==="react/jsx-runtime")return {jsx:(type,props)=>{const node={type,props};nodes.push(node);return node;},jsxs:(type,props)=>{const node={type,props};nodes.push(node);return node;}};
+ throw Error("Unexpected controls dependency "+id);
+}};
+vm.runInNewContext(controlsCompiled,controlsSandbox,{timeout:3000});
+function renderControls(locale){currentLocale=locale;nodes.length=0;controlsSandbox.exports.SiteControls({locale,initialTheme:"system"});}
+renderControls("en");
+const select=nodes.find(node=>node.type==="select"&&node.props.id==="site-locale");
+block=true;select.props.onChange({target:{value:"bn"}});
+assert.equal(documentState.documentElement.lang,"en");assert.equal(pushed.length,0);
+assert.ok(documentState.cookie.startsWith("ekmivo-locale=en;"));
+block=false;select.props.onChange({target:{value:"bn"}});
+assert.equal(pushed[0],"/bn/workspaces?env=sandbox#keys");
+assert.equal(documentState.documentElement.lang,"en","Language changes only when new route commits");
+renderControls("bn");assert.equal(documentState.documentElement.lang,"bn");
+renderControls("en");assert.equal(documentState.documentElement.lang,"en");
+console.log("PG02 PASS: committed EN/BN language, browser-back props, blocked navigation and query/hash preservation");

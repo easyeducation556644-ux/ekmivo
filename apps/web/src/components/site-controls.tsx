@@ -27,6 +27,7 @@ export function SiteControls({locale,initialTheme}:{locale:"bn"|"en";initialThem
  // Persist locale only after navigation truly commits, including a guarded
  // Save draft / Discard / Stay decision. Cancelling must not change cookies.
  useEffect(()=>{
+  document.documentElement.lang=locale;
   document.cookie=`ekmivo-locale=${locale}; Path=/; Max-Age=31536000; SameSite=Lax`;
  },[locale]);
  function changeLocale(next:"bn"|"en"){

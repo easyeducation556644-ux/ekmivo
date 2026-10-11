@@ -159,33 +159,7 @@ components:
               type: boolean
             correlation_id:
               type: string
-              pattern: '^[a-f0-9]{24}
-  responses:
-    BadEnvironment:
-      description: Missing, repeated or unsupported environment
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiError'
-    InvalidCredential:
-      description: Invalid, revoked or expired merchant key
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiError'
-    ScopeDenied:
-      description: Authenticated key cannot access required scope/environment
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiError'
-    AuthUnavailable:
-      description: Credential database unavailable; safe to retry
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiError'
-
+              pattern: '^[a-f0-9]{24}$'
   responses:
     BadEnvironment:
       description: Missing, repeated or unsupported environment
