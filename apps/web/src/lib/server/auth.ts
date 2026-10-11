@@ -15,7 +15,7 @@ function derive(password: string, salt: Buffer): Promise<Buffer> {
 const COOKIE = "ekmivo-session";
 const THIRTY_DAYS = 30 * 24 * 3600 * 1000;
 export type User = { id: string; email: string; name: string; verified: boolean };
-export type Workspace = { id: string; name: string; mode: "ai"|"commerce"|"both"; role: "owner"|"admin"|"editor"|"viewer" };
+export type Workspace = { id: string; name: string; mode: "ai"|"commerce"|"both"|"off"; role: "owner"|"admin"|"editor"|"viewer" };
 
 export function hashToken(token: string) {
  return createHash("sha256").update(token).digest("hex");
@@ -64,8 +64,12 @@ export async function requireUser(locale:"bn"|"en"):Promise<User> {
  return u;
 }
 export async function workspacesFor(userId:string):Promise<Workspace[]>{
- const rows=await database()`SELECT w.id,w.name,w.service_mode,m.role
+ const rows=await database()`SELECT w.id,w.name,CASE WHEN COALESCE(ai.enabled,false) AND COALESCE(pay.enabled,false) THEN 'both'
+ WHEN COALESCE(ai.enabled,false) THEN 'ai'
+ WHEN COALESCE(pay.enabled,false) THEN 'commerce' ELSE 'off' END AS service_mode,m.role
  FROM workspace_members m JOIN workspaces w ON w.id=m.workspace_id
+ LEFT JOIN workspace_product_access ai ON ai.workspace_id=w.id AND ai.product='ai'
+ LEFT JOIN workspace_product_access pay ON pay.workspace_id=w.id AND pay.product='payments'
  WHERE m.user_id=${userId} ORDER BY w.created_at DESC`;
  return rows.map(w=>({id:String(w.id),name:String(w.name),mode:w.service_mode as Workspace["mode"],role:w.role as Workspace["role"]}));
 }
@@ -73,8 +77,12 @@ export async function requireWorkspace(locale:"bn"|"en",id:string){
  const user=await requireUser(locale);
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))redirect(`/${locale}/workspaces`);
  const rows=await database()`
- SELECT w.id,w.name,w.service_mode,m.role FROM workspace_members m
+ SELECT w.id,w.name,CASE WHEN COALESCE(ai.enabled,false) AND COALESCE(pay.enabled,false) THEN 'both'
+ WHEN COALESCE(ai.enabled,false) THEN 'ai'
+ WHEN COALESCE(pay.enabled,false) THEN 'commerce' ELSE 'off' END AS service_mode,m.role FROM workspace_members m
  JOIN workspaces w ON w.id=m.workspace_id
+ LEFT JOIN workspace_product_access ai ON ai.workspace_id=w.id AND ai.product='ai'
+ LEFT JOIN workspace_product_access pay ON pay.workspace_id=w.id AND pay.product='payments'
  WHERE m.user_id=${user.id} AND w.id=${id}::uuid LIMIT 1`;
  if(!rows.length)redirect(`/${locale}/workspaces`);
  const w=rows[0];
