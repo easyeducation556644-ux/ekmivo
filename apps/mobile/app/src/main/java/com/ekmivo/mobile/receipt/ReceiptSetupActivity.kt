@@ -75,6 +75,11 @@ class ReceiptSetupActivity:ComponentActivity(){
        Text(active!!.optString("environment")+" · "+active!!.optString("source")+" · "+active!!.optString("binding"))
        Text((if(bn)"অপেক্ষমাণ receipt: " else "Queued receipts: ")+ReceiptStore(applicationContext).use{it.count()})
        val overflow=ReceiptStore(applicationContext).use{it.overflowCount()}
+       val queueError=ReceiptStore(applicationContext).use{it.queueError()}
+       if(queueError.isNotEmpty())Text(
+        (if(bn)"Receipt queue সমস্যা: " else "Receipt queue requires attention: ")+queueError,
+        color=MaterialTheme.colorScheme.error
+       )
        if(overflow>0)Text(
         (if(bn)"সতর্কতা: queue পূর্ণ থাকায় অন্তত $overflow টি receipt সংগ্রহ হয়নি। Server-এ এগুলো জমা হয়নি; account ও device health পরীক্ষা করুন।"
          else "Warning: $overflow receipts were missed while the offline queue was full. They were not uploaded; review the account and device health."),
