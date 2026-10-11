@@ -2,6 +2,7 @@ import "server-only";
 import { currentUser } from "./auth";
 import { database } from "./db";
 import { verificationEnabled } from "./email";
+import { sessionMfaValid } from "./mfa";
 export type PlatformRole="super_admin"|"admin"|"support"|"analyst";
 export async function platformRole(userId:string):Promise<PlatformRole|null> {
  const rows=await database()`SELECT role FROM platform_administrators WHERE user_id=${userId}::uuid LIMIT 1`;
@@ -11,7 +12,8 @@ export async function verifiedAdmin(){
  const user=await currentUser();
  if(!user || (!user.verified && await verificationEnabled()))return null;
  const role=await platformRole(user.id);
- return role?{user,role}:null;
+ if(!role || !await sessionMfaValid(user.id))return null;
+ return {user,role};
 }
 export async function requireSuperAdmin(){
  const admin=await verifiedAdmin();
