@@ -48,8 +48,14 @@ CREATE TRIGGER workspace_environment_seed_after_insert
 -- role with NO BYPASSRLS and no table ownership. Applying this without that role
 -- deliberately fails; do not silently fall back to privileged application queries.
 GRANT USAGE ON SCHEMA public TO ekmivo_runtime;
-GRANT SELECT ON app_users,auth_sessions,workspace_members,workspaces,platform_administrators,
- platform_auth_settings TO ekmivo_runtime;
+-- Column-scoped access: never grant the runtime password_hash, MFA secrets
+-- or admin settings writes. The financial service may read only the minimum
+-- control-plane values needed for a fresh authorization decision.
+GRANT SELECT (id,email,email_verified_at,disabled_at) ON app_users TO ekmivo_runtime;
+GRANT SELECT (id,user_id,token_hash,expires_at,revoked_at,mfa_verified_at) ON auth_sessions TO ekmivo_runtime;
+GRANT SELECT (workspace_id,user_id,role) ON workspace_members TO ekmivo_runtime;
+GRANT SELECT (id,service_mode) ON workspaces TO ekmivo_runtime;
+GRANT SELECT (user_id,role) ON platform_administrators TO ekmivo_runtime;
 GRANT SELECT (user_id,confirmed_at) ON platform_admin_mfa TO ekmivo_runtime;
 GRANT SELECT ON workspace_environments,workspace_environment_settings TO ekmivo_runtime;
 GRANT UPDATE (checkout_expiry_minutes,updated_at)
