@@ -40,6 +40,7 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
  const groups=sidebarQuery?searchableNavigation(service,sidebarQuery):navigation[service];
  const foundGroups=searchableNavigation(service,globalQuery);
  const foundKeys=foundGroups.flatMap(group=>group.items);
+ const roleNames={owner:{bn:"মালিক",en:"Owner"},admin:{bn:"অ্যাডমিন",en:"Admin"},editor:{bn:"সম্পাদক",en:"Editor"},viewer:{bn:"দর্শক",en:"Viewer"}} as const;
  const visibleBusinesses=spaces.filter(space=>space.name.toLocaleLowerCase().includes(businessQuery.trim().toLocaleLowerCase()));
  const contextHref=useCallback((key:SectionKey,product:Service=service,businessId:string=workspace.id,env:PaymentEnvironment=environment)=>dashboardHref(locale,businessId,product,key,env),[locale,workspace.id,service,environment]);
 
@@ -108,7 +109,7 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
    <summary><span className="ds-business-avatar">{workspace.name.slice(0,1).toUpperCase()}</span><span><small>{bn?"বর্তমান ব্যবসা":"Current business"}</small><strong>{workspace.name}</strong></span><Icon name="chevron"/></summary>
    <div className="ds-business-menu">
     <label className="ds-switch-search"><span className="sr-only">{bn?"ব্যবসা খুঁজুন":"Find business"}</span><input value={businessQuery} onChange={event=>setBusinessQuery(event.target.value)} placeholder={bn?"ব্যবসা খুঁজুন…":"Search businesses…"} /></label>
-    {visibleBusinesses.map(space=><button key={space.id} type="button" aria-current={space.id===workspace.id?"true":undefined} onClick={()=>switchBusiness(space)}><span className="ds-business-avatar">{space.name.slice(0,1).toUpperCase()}</span><span><strong>{space.name}</strong><small>{space.role}{space.id===workspace.id?(bn?" · বর্তমান":" · Current"):""}</small></span>{space.id===workspace.id&&<Icon name="check"/>}</button>)}
+    {visibleBusinesses.map(space=><button key={space.id} type="button" aria-current={space.id===workspace.id?"true":undefined} onClick={()=>switchBusiness(space)}><span className="ds-business-avatar">{space.name.slice(0,1).toUpperCase()}</span><span><strong>{space.name}</strong><small>{roleNames[space.role][locale]}{space.id===workspace.id?(bn?" · বর্তমান":" · Current"):""}</small></span>{space.id===workspace.id&&<Icon name="check"/>}</button>)}
     {!visibleBusinesses.length&&<p className="ds-no-match" role="status">{bn?"কোনো ব্যবসা পাওয়া যায়নি":"No businesses match"}</p>}
     <Link href={`/${locale}/workspaces`} onClick={()=>setMobileOpen(false)}><Icon name="plus"/>{bn?"ব্যবসা পরিচালনা / নতুন ব্যবসা":"Manage / create businesses"}</Link>
    </div>
@@ -116,8 +117,8 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
   <label className="ds-nav-search"><Icon name="search"/><span className="sr-only">{bn?"মেনু খুঁজুন":"Find a page"}</span><input value={sidebarQuery} onChange={event=>setSidebarQuery(event.target.value)} placeholder={bn?"মেনু খুঁজুন…":"Find a page…"}/></label>
   <nav className="ds-navigation" aria-label={bn?`${serviceNames[service].bn} নেভিগেশন`:`${serviceNames[service].en} navigation`}>
    {groups.map(group=><section className="ds-nav-section" key={group.label.en}>
-    <h2>{group.label[locale]}</h2>
-    {group.items.map(key=><Link key={key} href={contextHref(key)} className={section===key?"is-current":undefined} aria-current={section===key?"page":undefined} onClick={event=>{event.preventDefault();nav(key);}}>
+    {service==="payments"&&group.label.en==="Commerce"?<details className="ds-unreleased-nav"><summary>{group.label[locale]} <small>{bn?"নির্মাণাধীন":"In development"}</small></summary><p>{bn?"কমার্সের এই কাজগুলো Payment phase-এর পরে চালু হবে।":"Commerce operations will follow the verified payment phase."}</p></details>:<h2>{group.label[locale]}</h2>}
+    {!(service==="payments"&&group.label.en==="Commerce")&&group.items.map(key=><Link key={key} href={contextHref(key)} className={section===key?"is-current":undefined} aria-current={section===key?"page":undefined} onClick={event=>{event.preventDefault();nav(key);}}>
      <Icon name={key}/><span>{sections[key][locale]}</span>{section===key&&<span className="ds-active-mark"/>}</Link>)}
    </section>)}
    {!groups.length&&<p className="ds-search-empty" role="status">{bn?"কোনো মেনু পাওয়া যায়নি।":"No matching pages."}</p>}
@@ -171,6 +172,16 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
       <div className="ds-notifications-menu"><strong>{bn?"নোটিফিকেশন":"Notifications"}</strong><p>{bn?"ইভেন্ট সেবা এখনো সংযুক্ত হয়নি; কোনো unread count দেখানো হচ্ছে না।":"The event service is not connected; unread counts are unavailable."}</p></div>
      </details>
      <Link className="ds-help-link" href={contextHref("help")} aria-label={bn?"সহায়তা":"Help"}><Icon name="help"/></Link>
+     <details className="ds-profile-menu">
+      <summary aria-label={bn?"অ্যাকাউন্ট মেনু":"Account menu"} title={userName}><span className="ds-person-avatar">{userName.slice(0,1).toUpperCase()}</span></summary>
+      <div className="ds-profile-popover">
+       <strong>{userName}</strong><small>{workspace.name}</small>
+       <Link href={contextHref("settings")}><Icon name="settings"/>{bn?"অ্যাকাউন্ট ও ওয়ার্কস্পেস সেটিংস":"Account and workspace settings"}</Link>
+       <Link href={contextHref("help")}><Icon name="help"/>{bn?"সাহায্য":"Help"}</Link>
+       {platformAdmin&&<Link href={`/${locale}/admin`}><Icon name="shield"/>{bn?"প্ল্যাটফর্ম অ্যাডমিন":"Platform admin"}</Link>}
+       {logout}
+      </div>
+     </details>
     </div>
    </header>
    {service==="payments"&&<div className={environment==="sandbox"?"ds-env-banner":"ds-env-banner is-live"} role="status">
