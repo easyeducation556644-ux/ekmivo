@@ -53,3 +53,8 @@ All manual PG03 and PG00–PG17 requirements are kept in `docs/MANUAL-VERIFICATI
 **Status:** PG03 source implementation and regression CI **green**, Render GO code deployed; production DB 0007 and web parity **blocked**, real owner/admin/viewer and credential/API/browser acceptance still pending. PG03 stays **OPEN / NOT ACCEPTED**. No real transaction, verified payment or outbound webhook has been claimed.
 
 **Required safe rollout:** owner-authorized Neon schema migration through isolated branch/preflight → verify DB permissions/function and audit → production web deploy once Vercel capacity permits → issue a test sandbox key (owner + current password) → verify direct Go endpoint wrong environment/revoke/read scope/expiry and role matrix → complete one combined manual test ledger.
+
+
+### Neon PG03 migration preflight — 2026-10-11
+
+Prepared migration 0007 on an **isolated Neon temporary branch** of the Ekmivo production branch (database `ekmivo`), without applying schema writes to production. Migration creation succeeded. An independent preflight query confirmed both new tables have ENABLE/FORCE RLS, there are 0 existing test credentials, `ekmivo_financial_runtime` **cannot** SELECT credentials/audit tables, and it **can** execute only the restricted resolve/use functions. The prepared migration identifier is `165dd7db-48ff-4f5a-89e9-a935551b2a5a`. **Application to production is awaiting explicit owner approval** as required by the database migration workflow; do not mark 0007 applied or key issuance operational. Temporary branch cleanup/application is the pending completion action.
