@@ -84,8 +84,32 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
   const beforeLeave=(event:BeforeUnloadEvent)=>{
    if(activeDrafts().length){event.preventDefault();event.returnValue="";}
   };
+  const guardedNavigation=(event:Event)=>{
+   const intent=event as CustomEvent<{href?:string}>;
+   const href=intent.detail?.href;
+   if(typeof href!=="string"||!href.startsWith("/")||href.startsWith("//"))return;
+   if(activeDrafts().length){event.preventDefault();setDraftError("");setBlockedRoute(href);}
+  };
+  const guardedAnchor=(event:MouseEvent)=>{
+   if(event.button!==0||event.metaKey||event.ctrlKey||event.altKey||event.shiftKey||!activeDrafts().length)return;
+   const element=event.target instanceof Element?event.target.closest("a[href]"):null;
+   if(!element||!(element instanceof HTMLAnchorElement)||element.target==="_blank"||element.hasAttribute("download"))return;
+   const url=new URL(element.href);
+   if(url.origin!==window.location.origin)return;
+   const current=window.location.pathname+window.location.search+window.location.hash;
+   const destination=url.pathname+url.search+url.hash;
+   if(current===destination)return;
+   event.preventDefault();event.stopPropagation();
+   setDraftError("");setBlockedRoute(destination);
+  };
   window.addEventListener("beforeunload",beforeLeave);
-  return ()=>window.removeEventListener("beforeunload",beforeLeave);
+  window.addEventListener("ekmivo:guarded-navigation",guardedNavigation);
+  document.addEventListener("click",guardedAnchor,true);
+  return ()=>{
+   window.removeEventListener("beforeunload",beforeLeave);
+   window.removeEventListener("ekmivo:guarded-navigation",guardedNavigation);
+   document.removeEventListener("click",guardedAnchor,true);
+  };
  },[]);
  const commitDraftNavigation=async()=>{
   if(!blockedRoute)return;

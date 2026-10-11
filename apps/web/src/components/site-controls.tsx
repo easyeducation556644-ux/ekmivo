@@ -29,7 +29,10 @@ export function SiteControls({locale,initialTheme}:{locale:"bn"|"en";initialThem
   document.cookie=`ekmivo-locale=${next}; Path=/; Max-Age=31536000; SameSite=Lax`;
   // Query params (especially payment environment, page cursors and filters)
   // are part of the context. Do not drop them on an EN/BN switch.
-  router.push(pathname.replace(/^\/(bn|en)(?=\/|$)/,`/${next}`)+window.location.search+window.location.hash);
+  const href=pathname.replace(/^\/(bn|en)(?=\/|$)/,`/${next}`)+window.location.search+window.location.hash;
+  const intent=new CustomEvent("ekmivo:guarded-navigation",{cancelable:true,detail:{href}});
+  if(!window.dispatchEvent(intent))return;
+  router.push(href);
  }
  return <>
   <label htmlFor="site-locale" className="sr-only">{locale==="bn"?"ভাষা":"Language"}</label>
