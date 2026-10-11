@@ -190,7 +190,7 @@ Thread header AI replying/Human replying/AI off। Takeover atomically cancels q
 | Shipping | All named courier setup, ready/booking/status/labels/picking/QR/handover, unknown outcome; COD settlement separate। |
 | Returns | Request/approve/inspect/restock/exchange/refund links; damage/stock/money independent histories। |
 
-## ৯. Android merchant app + inbox — phase 2
+## ৯. Kotlin + Jetpack Compose Android merchant app + inbox — phase 2
 
 React Native management app reuses Kotlin receipt bridge and same Go APIs। Top-left business, header product switch, explicit payment environment। Bottom tabs vary by selected product।
 

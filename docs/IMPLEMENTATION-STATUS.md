@@ -82,3 +82,11 @@ Status: **in progress, not accepted**. Docker is excluded from laptop execution 
 - Active CI, isolated migration/integration database and complete clean-build evidence remain open. Financial engine and Android bridge remain unimplemented.
 
 Cloud agent starts at PG00 with the committed source and docs. Provision secrets via its approved environment; GitHub contains no database credential. The owner's supplied production connection is not an integration-test target.
+
+## Native Android architecture decision — 2026-10-11
+
+The owner selected one Android-native Kotlin + Jetpack Compose application. React Native and a separate receipt bridge are removed from the design (no source was deleted). Android receipt intake lives in the same app and Go remains authoritative for payment matching/confirmation; iOS is a separate FM04 client. Source foundation work is underway and must not be mistaken for real device performance or payment evidence.
+
+### PG00 CI verified
+
+GitHub Actions `Foundation CI` run [38114530626](https://github.com/masharzy/ekmivo/actions/runs/38114530626) completed successfully on commit `2b9fea86361c61f1b5bf9720c32603d05d76e155`: whole Next.js lint, production build, TypeScript noEmit, isolated PostgreSQL 17 migrations/rollback smoke, Go tests and both binary builds passed. No production database migration or receipt transaction was involved. PG00 foundation baseline is accepted; ongoing Android build/hosting/device gates remain individually open.

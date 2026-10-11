@@ -1,3 +1,3 @@
-# Android receipt bridge
+# Superseded location (no standalone bridge)
 
-Reserved for consented device receipt capture and automatic payment evidence matching in S31–S32. This is separate from the merchant app until device and distribution feasibility is measured.
+The user's 2026-10-11 choice is one **Kotlin + Jetpack Compose Android application**. PG06 receipt collection (subject to consent and real provider sample capability) will live in `apps/mobile/`; this path remains solely as a historical compatibility marker. There is no standalone Android bridge app or React Native bridge. Never delete existing migration/device evidence based on this relocation.

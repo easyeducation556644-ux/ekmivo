@@ -72,7 +72,7 @@ Latest user sequencing 2026-10-11: Phase 1 payment product running with sandbox/
 | S31–S34 | Phase 1 core phone bridge/auto-verification/receiving/API/sandbox; advanced commerce-linked COD/shipping and managed-channel integration coverage retained phase 3 |
 | S35–S39 | Phase 3 couriers/full store sync/risk/booking; required payment-only adapter/store capability subset phase 1 |
 | S40–S41 | Phase 1 payment-service subscription/reporting; AI prepaid/agency/all-product analytics phase 3 |
-| S42 | Minimal receiving bridge phase 1; full Android payment/inbox phase 2; iOS/PWA/full remaining client tasks phase 3 |
+| S42 | Native receipt collector inside the Kotlin Android app phase 1; full Kotlin/Compose payment/inbox UI phase 2; iOS/PWA/full remaining client tasks phase 3 |
 | S43–S44 | Phase 3 extension/full voice-feedback; payment help/text support/docs phase 1 |
 | S45–S46 | Required at every phase gate; full cross-product/client coverage final phase |
 

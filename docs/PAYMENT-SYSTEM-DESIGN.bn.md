@@ -123,7 +123,7 @@ Verified advance মানে invoice full paid নয়। Paid মানে sett
 
 Official adapters native callback authentication/validation + server query, merchant/reference/amount/currency check করবে। Browser success proof নয়। SSLCOMMERZ IPN route নিজের contract অনুসারে; অন্য provider-এর auth একই assumed নয়। [SSLCOMMERZ integration](https://developer.sslcommerz.com/doc/v4/)
 
-## ৭. Minimal Android bridge — phase 1
+## ৭. Native Kotlin receipt collector (same Android app) — phase 1
 
 | Screen | Contents/actions |
 |---|---|

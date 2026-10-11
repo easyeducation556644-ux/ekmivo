@@ -12,3 +12,9 @@ Status: **in progress, not accepted**. Docker is excluded from laptop execution 
 - Active CI, isolated migration/integration database and complete clean-build evidence remain open. Financial engine and Android bridge remain unimplemented.
 
 Cloud agent starts at PG00 with the committed source and docs. Provision secrets via its approved environment; GitHub contains no database credential. The owner's supplied production connection is not an integration-test target.
+
+## CI acceptance update — 2026-10-11
+
+**PG00 baseline accepted for F01/S45 foundation**, following independent GitHub Actions [run 38114530626](https://github.com/masharzy/ekmivo/actions/runs/38114530626) (commit `2b9fea86361c61f1b5bf9720c32603d05d76e155`). Web: `npm ci`, `npm run lint`, isolated loopback PostgreSQL 17 smoke against `0001`/`0002`, `npx tsc --noEmit`, `npm run build` **all passed**. Go: `go test ./...`, API and worker `go build` **passed**. `/readyz` intentionally remains 503, not a running money service. No production database changes or provider/device tests; see CI log for exact independent results.
+
+Native client changes made subsequently have their own Android acceptance evidence, not implicit PG00 financial acceptance. Backend hosts, receipt matching, real devices, cloud secrets and actual payment throughput remain PG01–PG17 release dependencies.

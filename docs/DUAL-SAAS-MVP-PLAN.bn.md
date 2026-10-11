@@ -94,7 +94,7 @@ Go নিজে থেকে database correctness, low AI cost বা high secur
 | AI | Go provider interface, initial OpenRouter adapter; approved primary + fallback model | model change business logic থেকে আলাদা |
 | Storage | S3-compatible private object storage | images, attachments, exports; short-lived signed URLs |
 | Live UI | SSE events; normal HTTP mutations; reconnect/refetch | inbox/order update, সহজ operational model |
-| Native apps | React Native + TypeScript; Android-specific Kotlin receipt bridge | Android/iOS merchant operations; receipt collection শুধু supported Android capability-তে |
+| Native apps | Native Android: Kotlin + Jetpack Compose (whole app); native receipt collection inside the same app. iOS later has a separate client | Android/iOS merchant operations; receipt collection শুধু supported Android capability-তে |
 | Browser extension | TypeScript Chrome extension, scoped backend session | business inbox পাশে takeover, summary, reply assistance |
 | Deployment | Docker services on managed container hosting; managed PostgreSQL | persistent API/worker, automated deploy, কম server maintenance |
 | Visibility | structured redacted logs, OpenTelemetry, error tracking, uptime monitor | trace conversation/payment/job; incident diagnosis |
@@ -140,9 +140,9 @@ flowchart TD
 
 ```text
 apps/web/                     Next.js UI
-apps/mobile/                  Android/iOS merchant app
+apps/mobile/                  Android-only Kotlin + Compose merchant app + receipt capture
 apps/extension/               Chrome assistant
-apps/android-bridge/          Kotlin device receipt integration
+apps/android-bridge/          Historical placeholder only; no separate bridge app
 backend/cmd/api/              HTTP entry point
 backend/cmd/worker/           queue-specific process flags
 backend/internal/core/       workspaces, catalog, entitlements
@@ -363,10 +363,10 @@ Latest user instruction, ২০২৬-১০-১১: **আগে payment gateway
 | Phase | ফলাফল | Exit gate |
 |---|---|---|
 | 1 — Payment gateway | Shared prerequisites; complete payment product/checkout/financial operations, minimal receipt bridge, API/webhooks, sandbox, developer docs, native payment integrations, operations | Backlog PG00–PG17 accepted; real-device unique match → auto-confirm → signed merchant webhook, docs quickstart + failure/security/restore tests, controlled paid cohort |
-| 2 — Android + inbox | Go/web human inbox/channel APIs এবং full Android merchant app; same payment backend/bridge, push/offline/assignment/takeover | AN01–AN05 accepted; real website/Messenger inbox and Android payment flow; channel approvals/device evidence |
+| 2 — Android + inbox | Go/web human inbox/channel APIs এবং full Kotlin/Compose Android merchant app; same Go payment backend/native receipt collector, push/offline/assignment/takeover | AN01–AN05 accepted; real website/Messenger inbox and Android payment flow; channel approvals/device evidence |
 | 3 — Full dual-service MVP | Remaining full AI/channels/media/voice, commerce/couriers/stores, booking/Stars/agency, iOS/PWA/extension, analytics/feedback | FM01–FM05 and all S01–S46 complete; full dual-service release evidence |
 
-Phase 1-এ tiny receiving-phone bridge প্রয়োজন: ফোনের evidence ছাড়া real phone auto-verification চালানো যাবে না। পূর্ণ mobile merchant/inbox UI phase 2-তে; parser/matcher Go-তে একবারই থাকবে। Official extra gateway account ফোনের matching engine implementation-এর prerequisite নয়।
+Phase 1-এ same Kotlin Android app-এর minimal native receipt collector প্রয়োজন: ফোনের evidence ছাড়া real phone auto-verification চালানো যাবে না। পূর্ণ mobile merchant/inbox UI phase 2-তে; parser/matcher Go-তে একবারই থাকবে। Official extra gateway account ফোনের matching engine implementation-এর prerequisite নয়।
 
 **Exact execution order এবং item dependencies [IMPLEMENTATION-BACKLOG.md](IMPLEMENTATION-BACKLOG.md)-তে।** Architecture detail [PAYMENT-SYSTEM-DESIGN.bn.md](PAYMENT-SYSTEM-DESIGN.bn.md); menu/button/screen contract [PRODUCT-UX-SPEC.bn.md](PRODUCT-UX-SPEC.bn.md); API/sandbox/docs [PAYMENT-API-AND-SANDBOX.md](PAYMENT-API-AND-SANDBOX.md); actual progress [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md)। New agent handoff [AGENT-HANDOFF.md](AGENT-HANDOFF.md)।
 

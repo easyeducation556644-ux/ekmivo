@@ -173,7 +173,7 @@ All items below **proposed/open** at this design checkpoint. Existing source is 
 | 03 / PG03 | Contract-first payment API skeleton; sandbox/live isolation; scoped hashed keys/rotation; onboarding | PG02 | P04,F05, S05,S34,S45 | OpenAPI security/enums/errors; same routes with separate sandbox credentials/DB/queues; wrong key/env blocked; once-visible secret |
 | 04 / PG04 | Financial schema, immutable attempts/evidence/payments/allocations; idempotency, River/outbox/durable ingress | PG03 | F02,F06,P02, S31,S32,S34 | Empty/prior migration tests; FK/unique/amount invariants, atomic commit/rollback/job enqueue, crash recovery |
 | 05 / PG05 | Standalone/linked payment-intent API, public checkout, payer+route lock, expiry/resume/cancel | PG04 | P01,P03, S32,S33,S34 | No catalog prerequisite standalone; exact amount/window; actual payer; no TrxID/screenshot/approval; spoofed return fails; overlapping attempt conflict |
-| 06 / PG06 | Minimal signed Kotlin receipt bridge, parser registry, device enrollment/source binding/health/offline | PG05,G0-6 | X08, S31 | Real consented samples/devices; SMS/notification capture route and full payer/time available; Keystore/signature fixtures, dual-SIM/revoke/reboot/offline; no OTP/unrelated SMS |
+| 06 / PG06 | Minimal signed native Kotlin receipt collector in the main Android app, parser registry, device enrollment/source binding/health/offline | PG05,G0-6 | X08, S31 | Real consented samples/devices; SMS/notification capture route and full payer/time available; Keystore/signature fixtures, dual-SIM/revoke/reboot/offline; no OTP/unrelated SMS |
 | 07 / PG07 | Automatic matching/payment confirmation and allocation/reconciliation reason engine | PG06 | P02,P03,X08, S32 | Five-field unique match auto-verifies atomically; concurrent workers/dedup/masked sender/time boundary/late/cancel/amount/direction tests; exact advance |
 | 08 / PG08 | Signed webhooks, safe endpoints, retry/query/replay/rotation, receipt notice and merchant E2E | PG07 | P04,F06, S34,S45 | Durable event+job; consumer valid raw-body HMAC + event dedup; wrong signature/env/replay/order/SSRF tests; failed webhook doesn't undo paid |
 | 09 / PG09 | Functional Payments/Requests/Incoming/detail/event/device/account dashboard pages | PG08 | D01,P03,O01, S03,S31,S32,S45,S46 | Real queries/actions, verification comparison/provenance, independent timestamps, role masking, all UI states; no manual mark-paid |
@@ -196,11 +196,11 @@ Early G0-2/G0-5/G0-6 preparation proceeds when input exists; live-account action
 |---|---|---|---|---|
 | AN01 | Go conversation/message/contact/assignment APIs, website chat and approved Messenger transport, notifications | PG17,G0-3 | A01,A02,F06, S06,S10,S12,S13 | Real inbound/outbound, dedup/echo/delivery, session/tenant/search, messaging policy/reconnect, external user test |
 | AN02 | Full human web inbox, assignment/notes/tags/saved replies/snooze/resolve/tickets and ownership boundary | AN01 | A05 boundary,X04 subset, S12,S13,S21,S25 | Takeover/queued send race, drafts/status/search/history, explicit release, snooze timers and live updates |
-| AN03 | React Native Android app shell/payment operations, secure mobile auth, reused Kotlin bridge, push/deep links | AN02 | X12, S31,S42,S46 | Same financial backend, product switch/tab UX, permission/role/token revoke, no offline success/secret leakage |
+| AN03 | Full Kotlin + Jetpack Compose Android app shell/payment operations, secure mobile auth, integrated receipt collector, push/deep links | AN02 | X12, S31,S42,S46 | Same financial backend, product switch/tab UX, permission/role/token revoke, no offline success/secret leakage |
 | AN04 | Android inbox management and offline sync parity | AN03 | X12,X04, S12,S13,S21,S25,S42 | Human reply/assignment/notes/snooze/ticket history, queued send cancellation, reconnect window checks, duplicate send prevention |
-| AN05 | Android release/device validation and operational docs | AN04,G0-7 | X12,O04 subset | Real OS/OEM/network/reboot/keyboard/theme/locale/push tests, signed build/distribution, no bridge evidence regression |
+| AN05 | Android release/device validation and operational docs | AN04,G0-7 | X12,O04 subset | Real OS/OEM/network/reboot/keyboard/theme/locale/push tests, signed build/distribution, no native receipt collector evidence regression |
 
-Phase 2 delivers human inbox and connected channel foundation. Full AI/campaign/media/other channel features remain required in phase 3; do not claim these from an inbox shell. Existing phone bridge is reused, not rewritten after payment launch.
+Phase 2 delivers human inbox and connected channel foundation. Full AI/campaign/media/other channel features remain required in phase 3; do not claim these from an inbox shell. The native receipt collector built in the same Kotlin app during PG06 is reused; there is no React Native bridge or separate receipt app.
 
 ### Phase 3 — Remaining full-MVP inventory
 
@@ -259,3 +259,8 @@ Scope: D01/D02, S03/S46 UI foundation; research for payment/phone verification c
 Planning scope: phase-1 payment delivery design, S03/S31–S34/S42/S45/S46 and full inventory traceability. Added payment architecture, every-menu UX, API/sandbox/developer-doc specification, source-based status and agent handoff; synchronized master/scope/design/backlog/AGENTS/README. No product implementation/deploy in this checkpoint.
 
 Validation: local Markdown links resolve, code fences paired, authoritative inventory retains all 46 S-IDs, PG00–PG17 sequence ordered and present; tracked diff whitespace clean. Architecture references official PostgreSQL/River/Android/Play/Render/SSLCOMMERZ docs; account-specific provider capability still needs real evidence. Existing frontend changes preserved. Next execution PG00.
+
+
+### PG00 accepted CI checkpoint and native-client architecture, 2026-10-11
+
+PG00 foundation evidence accepted in [PG00 evidence](evidence/PG00/README.md) via GitHub Actions run 38114530626 (web lint/build/typecheck, isolated PostgreSQL 17 two-migration transaction smoke, Go tests/compile). This does **not** accept Go payment readiness or downstream payment items. One Kotlin/Compose Android app is selected; PG06 receipt collection is integrated as its native module, then AN03–AN05 build the full payment/inbox application. Kotlin foundation source is preparation, not accepted PG06/AN03 real-device evidence.

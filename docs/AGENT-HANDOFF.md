@@ -16,11 +16,11 @@ Updated 2026-10-11. Single canonical implementation plan: **[DUAL-SAAS-MVP-PLAN.
 
 Next dependency-ready task: **PG00**. Existing foundation and local dashboard changes must be preserved. Inspect current source before treating any recorded check/deployment as current. Do not reset working tree, copy competitor source, or rebuild a parallel architecture.
 
-Priority: fully running payment product with sandbox/testing/developer/API docs. Minimal Android receipt bridge is required during phase 1 for live phone auto-verification; full merchant Android/inbox app phase 2. Full AI/commerce/other client features remain full-MVP requirements in phase 3.
+Priority: fully running payment product with sandbox/testing/developer/API docs. Minimal receipt collection is part of the **same native Kotlin/Jetpack Compose Android application** in phase 1 for live phone auto-verification; full merchant Android/inbox UI follows in phase 2. No React Native, Flutter or separate receipt bridge app. Full AI/commerce/other client features remain full-MVP requirements in phase 3.
 
 Verification auto: actual payer number + original transaction time + amount + receiving account + method → exactly one valid request → atomic verified/payment allocation/event/webhook. No customer TrxID, screenshot proof, routine approval, auto-accept opt-in, or second gateway approval for phone path. Receipt IDs internal only. Ambiguity/missing evidence is pending/exception, not arbitrary match.
 
-Go owns money/state/matching. Next.js web/session proxy, Kotlin collection, React Native client reuse Go API. Existing self-hosted auth/migration history preserved and hardened. Vercel web / persistent API-worker / Neon design; no duplicate serverless payment backend.
+Go owns money/state/matching. Next.js web/session proxy, Kotlin receipt collection and Compose merchant UI share one native Android app and reuse the Go API. Existing self-hosted auth/migration history preserved and hardened. Vercel web / persistent API-worker / Neon design; no duplicate serverless payment backend.
 
 Separate business/product/environment selectors; separate AI/payment navigation; all promised payment route buttons real. Theme/locale must preserve drafts and context. Current OpenAPI is health-only; API design docs are proposed until implemented/tested.
 
