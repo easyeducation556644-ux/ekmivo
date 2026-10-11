@@ -39,6 +39,7 @@ export async function sendCode(userId:string,email:string,purpose:CodePurpose){
   return {ok:false,reason:"cooldown"} as const;
  if(recent.filter(r=>now-new Date(r.created_at).getTime()<3600_000).length>=5)
   return {ok:false,reason:"hourly_limit"} as const;
+ await sql`UPDATE auth_one_time_codes SET consumed_at=now() WHERE user_id=${userId}::uuid AND purpose=${purpose} AND consumed_at IS NULL`;
  const code=String(randomInt(0,1_000_000)).padStart(6,"0");
  const digest=signature(userId,purpose,code);
  const rows=await sql`INSERT INTO auth_one_time_codes(user_id,purpose,code_hash,expires_at)
