@@ -33,3 +33,11 @@ Project Ekmivo, database `ekmivo`, Singapore. Existing 0001/0002 not re-run. Add
 4. Securely remove the unused elevated Neon API-created role **after owner approval**; never replace it with a financial API credential.
 
 **No payment API, matching engine, provider receipt, signed merchant webhook, device or live transaction is implemented or tested by PG01.** PG06 signer/validation source and AN03 APK source remain partial, as required by the owner's payment-first serial instruction.
+
+## Render deployment and production RLS startup observation (2026-10-11)
+
+**Verified:** Render service `srv-db5j532d0e5s73fli4h0` at `https://ekmivo-go-api.onrender.com` (Singapore, free plan) built commit `16fd3351` and deployed live as `dep-db5j7e8473hc73bcd8j0`. Go service configured with server-side `AUTHZ_DATABASE_URL` and `EKMIVO_REQUIRE_AUTHZ=true` (credential never logged). Render runtime log at 06:59:29 UTC: `PG01 authz runtime PASS: nonprivileged role and no-context tenant isolation verified`. The Go startup executes a read-only transaction after checking runtime role `ekmivo_financial_runtime`, clears transaction-local context, queries the two FORCE-RLS tables and rejects any exposed rows. Service is deployed and listening on port 10000. `/readyz` still reports financial services not implemented.
+
+**Production MFA owner observation:** Real Neon read-only query returned one confirmed administrator MFA enrollment and one active session with recent MFA, maintaining one Super Admin; no OTP seed/session contents copied.
+
+**Not yet verified:** authentic HTTP session forwarded through approved Next.js proxy to Go; live revoked/expired and cross-tenant HTTP negative tests; browser admin role mutation denial and repeated-code scenarios; recovery/incident procedures. Isolated Go/Postgres tests cover these paths but are not production HTTP evidence. PG01 remains **OPEN** pending those checks. PG02 not started. Android PG06/AN03 remain partial, not acceptance.
