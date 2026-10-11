@@ -268,7 +268,7 @@ func (s *Service) HandleOperations(w http.ResponseWriter, r *http.Request) {
 		}
 		if resource == "devices" && id == "" && action == "" {
 			rule, ok := s.Pipeline.Rules[body.ParserID]
-			if !ok || !rule.Approved || rule.Source != body.Source || !uuidPattern.MatchString(body.AccountID) {
+			if !ok || !rule.Approved || (rule.SandboxOnly && realm != "sandbox") || rule.Source != body.Source || !uuidPattern.MatchString(body.AccountID) {
 				return errors.New("approved parser/account/source required")
 			}
 			if !strings.HasPrefix(body.Binding, "sms:") && body.Binding != "package:"+body.Source {
