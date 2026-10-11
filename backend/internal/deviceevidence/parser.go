@@ -109,6 +109,11 @@ func (r ParserRule) Validate() error {
 		return errors.New("parser rule exceeds safe bounds")
 	}
 	if r.CapturePattern != "" {
+		// Android persists only receipts that the authoritative server parser
+		// can parse in full; a broader prefilter could store OTP/personal SMS.
+		if r.CapturePattern != r.Pattern {
+			return errors.New("capture filter must equal approved complete receipt rule")
+		}
 		if !strings.HasPrefix(r.CapturePattern, "^") || !strings.HasSuffix(r.CapturePattern, "$") {
 			return errors.New("capture filter must match whole evidence")
 		}
