@@ -1,5 +1,5 @@
 "use client";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { createWorkspaceAction } from "../actions/account";
 import { emptyState, type FormErrorState } from "../lib/server/validation";
@@ -14,16 +14,89 @@ function Submit({locale}:{locale:Locale}){
  const {pending}=useFormStatus();
  return <button className="ek-action" disabled={pending} type="submit">{pending?(locale==="bn"?"তৈরি হচ্ছে…":"Creating…"):(locale==="bn"?"ওয়ার্কস্পেস তৈরি করুন":"Create workspace")} <span>↗</span></button>;
 }
-export function WorkspaceOnboarding({locale}:{locale:Locale}){
+type Draft = {name:string;mode:"ai"|"commerce"|"both"};
+const EMPTY_DRAFT: Draft = {name:"",mode:"both"};
+function isDraft(value:unknown):value is Draft{
+ if(!value||typeof value!=="object")return false;
+ const candidate=value as Record<string,unknown>;
+ return typeof candidate.name==="string"&&candidate.name.length<=100
+  &&(candidate.mode==="ai"||candidate.mode==="commerce"||candidate.mode==="both");
+}
+export function WorkspaceOnboarding({locale,userId}:{locale:Locale;userId:string}){
+ const [name,setName]=useState("");
  const [mode,setMode]=useState<"ai"|"commerce"|"both">("both");
+ const [saved,setSaved]=useState<Draft>(EMPTY_DRAFT);
+ const [notice,setNotice]=useState("");
+ const [pendingUrl,setPendingUrl]=useState("");
+ const dialog=useRef<HTMLDialogElement>(null);
+ const submitting=useRef(false);
+ const draftKey=`ekmivo:onboarding-draft:v1:${userId}`;
+ const dirty=name!==saved.name||mode!==saved.mode;
  const [state,action]=useActionState<FormErrorState,FormData>(createWorkspaceAction.bind(null,locale),emptyState);
+ const save=():boolean=>{
+  const draft:Draft={name,mode};
+  try{
+   window.localStorage.setItem(draftKey,JSON.stringify(draft));
+   setSaved(draft);
+   setNotice(locale==="bn"?"এই ব্রাউজারে ড্রাফট সংরক্ষিত হয়েছে।":"Draft saved in this browser.");
+   return true;
+  }catch{
+   setNotice(locale==="bn"?"এই ব্রাউজারে ড্রাফট সংরক্ষণ করা যায়নি।":"Browser storage is unavailable; draft was not saved.");
+   return false;
+  }
+ };
+ const restore=()=>{
+  try{
+   const data=window.localStorage.getItem(draftKey);
+   const parsed:unknown=data?JSON.parse(data):null;
+   if(!isDraft(parsed))throw Error("missing/invalid draft");
+   setName(parsed.name);setMode(parsed.mode);setSaved(parsed);
+   setNotice(locale==="bn"?"সর্বশেষ ড্রাফট ফিরিয়ে আনা হয়েছে।":"Saved draft restored.");
+  }catch{setNotice(locale==="bn"?"এই অ্যাকাউন্টের কোনো বৈধ ড্রাফট পাওয়া যায়নি।":"No valid saved draft for this account.");}
+ };
+ const discard=()=>{
+  try{window.localStorage.removeItem(draftKey);}catch{/* No draft stored. */}
+  setName("");setMode("both");setSaved(EMPTY_DRAFT);
+  setNotice(locale==="bn"?"ড্রাফট বাতিল করা হয়েছে।":"Draft discarded.");
+ };
+ useEffect(()=>{
+  if(!dirty)return;
+  const onUnload=(event:BeforeUnloadEvent)=>{
+   if(submitting.current)return;
+   event.preventDefault();event.returnValue="";
+  };
+  const onLink=(event:MouseEvent)=>{
+   if(submitting.current||event.defaultPrevented||event.button!==0||event.ctrlKey||event.shiftKey||event.metaKey||event.altKey)return;
+   if(!(event.target instanceof Element))return;
+   const anchor=event.target.closest("a[href]");
+   if(!anchor||anchor.hasAttribute("download")||anchor.getAttribute("target"))return;
+   const href=anchor.getAttribute("href");
+   if(!href)return;
+   const next=new URL(href,window.location.href);
+   if(next.origin!==window.location.origin||next.href===window.location.href)return;
+   event.preventDefault();event.stopPropagation();
+   setPendingUrl(next.href);dialog.current?.showModal();
+  };
+  window.addEventListener("beforeunload",onUnload);
+  document.addEventListener("click",onLink,true);
+  return ()=>{window.removeEventListener("beforeunload",onUnload);document.removeEventListener("click",onLink,true);};
+ },[dirty,name,mode,locale,draftKey]);
+ useEffect(()=>{if(state.status==="error")submitting.current=false;},[state]);
+ const leave=(choice:"save"|"discard")=>{
+  if(choice==="save"&&!save())return;
+  if(choice==="discard")discard();
+  const destination=pendingUrl;
+  dialog.current?.close();
+  setPendingUrl("");
+  if(destination){submitting.current=true;window.location.assign(destination);}
+ };
  return <section className="ek-onboard" aria-labelledby="setup-title">
   <div className="ek-page-kicker">01 / WORKSPACE SETUP</div>
   <h1 id="setup-title">{locale==="bn"?"ব্যবসার ওয়ার্কস্পেস তৈরি করুন।":"Create your workspace."}</h1>
   <p className="ek-lead">{locale==="bn"?"আপনার কাজের ধরন বেছে নিন। পরেও সুবিধাগুলো স্বাধীনভাবে চালু বা বন্ধ করার ব্যবস্থা থাকবে।":"Choose a starting configuration. Service entitlements remain independent of this preference."}</p>
-  <form action={action} className="ek-onboard-form">
+  <form action={action} className="ek-onboard-form" onSubmit={()=>{submitting.current=true;}}>
    <label className="ek-input-label">{locale==="bn"?"ওয়ার্কস্পেসের নাম":"Business or workspace name"}
-    <input name="name" type="text" minLength={2} maxLength={100} required placeholder={locale==="bn"?"যেমন: আমার ব্যবসা":"e.g. North Studio"} aria-invalid={!!state.fields?.name}/>
+    <input value={name} onChange={event=>setName(event.target.value)} name="name" type="text" minLength={2} maxLength={100} required placeholder={locale==="bn"?"যেমন: আমার ব্যবসা":"e.g. North Studio"} aria-invalid={!!state.fields?.name}/>
     {state.fields?.name&&<small className="ek-field-error">{state.fields.name}</small>}
    </label>
    <p className="ek-input-label">{locale==="bn"?"প্রয়োজনীয় সেবা নির্বাচন করুন":"Choose your starting services"}</p>
@@ -38,7 +111,22 @@ export function WorkspaceOnboarding({locale}:{locale:Locale}){
    {state.fields?.mode&&<small className="ek-field-error">{state.fields.mode}</small>}
    {state.status==="error"&&<p className="ek-form-error" role="alert">{state.message}</p>}
    <Submit locale={locale}/>
+   <div className="ek-onboard-draft-controls">
+    <button type="button" onClick={save} disabled={!dirty}>{locale==="bn"?"এই ব্রাউজারে ড্রাফট সংরক্ষণ":"Save draft in this browser"}</button>
+    <button type="button" onClick={restore}>{locale==="bn"?"ড্রাফট ফিরিয়ে আনুন":"Restore saved draft"}</button>
+    <button type="button" onClick={discard}>{locale==="bn"?"ড্রাফট বাতিল":"Discard draft"}</button>
+   </div>
+   {notice&&<p role="status" className="ek-onboard-note">{notice}</p>}
   </form>
   <p className="ek-onboard-note">{locale==="bn"?"সেবা বেছে নেওয়া মানে কোনো পেইড সাবস্ক্রিপশন সক্রিয় করা নয়।":"Choosing a service does not activate a paid subscription or live provider integration."}</p>
+  <dialog ref={dialog} aria-label={locale==="bn"?"অসম্পূর্ণ ফর্ম":"Unsaved changes"} className="ek-onboard-leave" onClose={()=>setPendingUrl("")}>
+   <h2>{locale==="bn"?"অসম্পূর্ণ তথ্য আছে":"You have unsaved changes"}</h2>
+   <p>{locale==="bn"?"অন্য পৃষ্ঠায় যাওয়ার আগে এই ব্রাউজারে ড্রাফট সংরক্ষণ করবে, বাতিল করবে, নাকি এখানেই থাকবে?":"Before leaving, save your draft locally, discard it or stay on this form."}</p>
+   <div className="ek-onboard-leave-actions">
+    <button type="button" onClick={()=>leave("save")}>{locale==="bn"?"ড্রাফট সংরক্ষণ করে যান":"Save draft & leave"}</button>
+    <button type="button" onClick={()=>leave("discard")}>{locale==="bn"?"বাতিল করে যান":"Discard & leave"}</button>
+    <button type="button" onClick={()=>dialog.current?.close()}>{locale==="bn"?"এখানেই থাকুন":"Stay"}</button>
+   </div>
+  </dialog>
  </section>;
 }
