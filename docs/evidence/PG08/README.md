@@ -13,3 +13,7 @@ Acceptance: OPEN. New migration 0014 is not applied; no live verification or dep
 Signed raw-body merchant delivery, lease/retry/replay and receiver example source exists, but no disposable receiver or HTTPS test and no 0014 SQL execution occurred. Receipt notices are MISSING CODE; only payment.verified has a producer. Rotation, DNS/SSRF and crash E2E remain open.
 
 Automated verification: source-authored tests/CI invocation are not PASS until a completed exact-commit run is recorded in the audit. New migration 0014 is NOT APPLIED. Real handset/provider/merchant payment, notices and deployment are NOT TESTED. Acceptance: **OPEN**.
+
+## PG06-focused CI source context — 2026-10-11
+
+The exact-source CI 38158507367 at 8aaf240 compiled signed webhook source and applied 0014 in disposable finance realms; no controlled HTTP merchant callback, SSRF adversarial receiver, lease crash/retry or notice channel was run. PG08 acceptance OPEN, no provider callback or delivery claim. See ../PG06-PG09-AUDIT.md.
