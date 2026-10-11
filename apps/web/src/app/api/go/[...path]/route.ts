@@ -9,7 +9,11 @@ async function forward(request: Request, context: { params: Promise<{ path: stri
   return Response.json({ code: "NOT_FOUND" }, { status: 404 });
  if (!read && (!path.endsWith("/settings") || request.method !== "PATCH"))
   return Response.json({ code: "METHOD_NOT_ALLOWED" }, { status: 405 });
- const origin = new URL(request.url).origin;
+ const requestUrl = new URL(request.url);
+ // Next's local server may use localhost internally despite a 127.0.0.1 Host.
+ // Host is browser-controlled by the actual destination, never a user-id claim.
+ requestUrl.host = request.headers.get("host") || requestUrl.host;
+ const origin = requestUrl.origin;
  if (!read && request.headers.get("origin") !== origin)
   return Response.json({ code: "ORIGIN_DENIED" }, { status: 403 });
  const token = (await cookies()).get("ekmivo-session")?.value;
@@ -29,7 +33,9 @@ async function forward(request: Request, context: { params: Promise<{ path: stri
  try {
   const upstream = await fetch(target, {
    method: request.method, body, cache: "no-store", redirect: "error",
-   headers: { Cookie: "ekmivo-session=" + token, "Content-Type": "application/json", Origin: origin },
+   // Incoming mutation origin was validated above. Forward the configured
+   // server origin; preview/local hostnames never become Go's trust policy.
+   headers: { Cookie: "ekmivo-session=" + token, "Content-Type": "application/json", Origin: process.env.GO_WEB_ORIGIN || "https://ekmivo-web-masharzys-projects.vercel.app" },
    signal: AbortSignal.timeout(15000),
   });
   return new Response(await upstream.text(), { status: upstream.status,
