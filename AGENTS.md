@@ -11,6 +11,8 @@ Read in this order before implementation:
 3. `docs/DESIGN-SYSTEM.md` — required visual system, responsive patterns, light/dark and EN/BN behavior.
 4. `docs/design/tokens.css` — exact semantic design tokens.
 5. `docs/IMPLEMENTATION-BACKLOG.md` — dependency-ordered work and required evidence.
+6. `docs/PAYMENT-SYSTEM-DESIGN.bn.md`, `docs/PRODUCT-UX-SPEC.bn.md`, `docs/PAYMENT-API-AND-SANDBOX.md` — detailed payment architecture, every-screen UX and contract/sandbox/docs specification.
+7. `docs/IMPLEMENTATION-STATUS.md` and `docs/AGENT-HANDOFF.md` — latest code evidence and execution handoff.
 
 ## Fixed user decisions
 
@@ -20,6 +22,8 @@ Read in this order before implementation:
 - Follow the latest user-selected V3 public landing direction: a premium animated Ink & Bone (Option F) monochrome product narrative, with light #FAFAF8/#FFFFFF/#222222/#262626 and dark #141414/#242424/#F5F5F1/#F1F1E9, full-page Light/Dark/System coverage with Hind Siliguri. Operational UI remains readable, information-led and accessible. Both light/dark modes and a complete EN/BN switcher are first-release features.
 - Build the design foundation before product page styling. Preserve feature coverage; minimal visuals do not mean fewer features.
 - Selected core: Go, PostgreSQL and Next.js/TypeScript. Single implementation collaborator is Codex; account/business actions belong to the user.
+- Latest sequence (2026-10-11): first complete running payment gateway with isolated sandbox, tests, developer/API docs; then full Android merchant app with inbox; then remaining full dual-service MVP. Minimal Android receipt bridge is a phase-1 dependency. Follow PG00–PG17, AN01–AN05, then FM01–FM05 in the backlog; no feature silently removed.
+- Existing self-hosted auth source is preserved/hardened with Go authorization; earlier proposed Clerk is not implemented. Preserve applied migrations in infra/migrations; no duplicate migration runner.
 
 ## Document ownership and work evidence
 
@@ -27,4 +31,4 @@ The user's latest explicit instruction takes precedence. Within the documents, t
 
 Take the next dependency-ready work item. Record the item and scope IDs, concrete changes, relevant checks and unresolved dependencies. Planned work, mock provider output and sample screens are not evidence of a live integration. Do not mark incomplete tasks done or claim an untested capability.
 
-Current repository status: implementation started. The expanded bilingual V3 public landing and repository skeleton are early foundation work, not the complete MVP. The first UI milestone is D01/D02 in the backlog: semantic tokens/components, application shell, theme behavior and complete locale infrastructure. Treat unfinished parts of those milestones as open.
+Current repository status: partial web/auth/dashboard foundation; financial engine/API/worker/bridge/sandbox not implemented. Latest evidence is docs/IMPLEMENTATION-STATUS.md. Next dependency-ready execution item PG00; D01/D02 remain open and complete before financial page styling. This planning revision does not implement/deploy a gateway.

@@ -1,17 +1,19 @@
 # Implementation backlog and release evidence
 
-Baseline: [বাংলা master plan](./DUAL-SAAS-MVP-PLAN.bn.md), revision 5, 2026-10-11; this is the canonical plan the agent follows. User decisions: all features in the first public MVP; automatic phone payment verification; Ink & Bone Option F minimal public landing, readable shared UI, full-page Light/Dark/System and complete EN/BN switcher. No customer TrxID submission or routine merchant payment approval. Scope authority: [MVP-FEATURE-SCOPE.md](./MVP-FEATURE-SCOPE.md). Design authority: [DESIGN-SYSTEM.md](./DESIGN-SYSTEM.md). Status: implementation started 2026-10-11; only the repository scaffold and public web foundation are live. Single implementation owner: Codex. Product/provider owner: user.
+Baseline: [বাংলা master plan](./DUAL-SAAS-MVP-PLAN.bn.md), revision 6, 2026-10-11; payment-first execution correction; this is the canonical plan the agent follows. User decisions: all features in the first public MVP; automatic phone payment verification; Ink & Bone Option F minimal public landing, readable shared UI, full-page Light/Dark/System and complete EN/BN switcher. No customer TrxID submission or routine merchant payment approval. Scope authority: [MVP-FEATURE-SCOPE.md](./MVP-FEATURE-SCOPE.md). Design authority: [DESIGN-SYSTEM.md](./DESIGN-SYSTEM.md). Status: partial web/auth/dashboard source foundation; current deployment parity unverified. Financial engine/API/worker/bridge/sandbox not implemented; latest evidence in IMPLEMENTATION-STATUS.md. Single implementation owner: Codex. Product/provider owner: user.
 
 Design specification completed: guide, [semantic tokens](./design/tokens.css) and [contrast report](./design/CONTRAST-REPORT.md). These are planning assets, not proof of working theme/localization in an application. Implement D01/D02 after the F01 scaffold and before feature-page styling.
 
-### First implementation checkpoint, 2026-10-11
+### Current implementation checkpoint — 2026-10-11
 
-- F01 in progress: monorepo folders, Next.js app, Go API/worker entry points, Dockerfile and initial OpenAPI contract are committed in GitHub `masharzy/ekmivo`. Web production build and lint pass. Go 1.27 `go test ./...` compiles both entry points; local `/healthz` returns 200 and `/readyz` correctly returns 503 before database setup. Go worker and business API are not operational. CI configuration exists at `infra/ci-template.yml`; GitHub rejected publishing it under `.github/workflows/` because the current CLI OAuth token lacks `workflow` scope, so CI is **not active**.
-- D01/D02 in progress: the public `/bn` and `/en` site uses the Ink & Bone monochrome V3 palette and theme-aware illustrative product showcases and self-hosted Hind Siliguri, with shared animated header/footer and `/login` and `/register` pages in both languages. Locale/theme selectors, server-rendered language and saved theme work. Account submission is intentionally disabled until auth and Neon are connected. Dashboard components, complete translation catalog, cross-tab theme sync, and the four-combination rendered visual/accessibility audit remain open.
-- Public landing V3: both locales now include a product-led animated hero, navigable six-step story, dual-service selection, 13 capability previews, three payment evidence scenarios, solutions, trust, configurations and FAQ. Previews remain labelled sample; validation is not equivalent to live integrations. Legacy auth/dashboard D01/D02 and rendered light/dark, BN/EN, keyboard/mobile audits remain open. Ink & Bone token pair checks pass 82/82; production-build status has been checked independently.
-- F03/F05 auth-and-workspace foundation (source committed, **NOT deployed/verified**): Neon migration `infra/migrations/0001_auth_workspaces.sql`; self-hosted scrypt login/registration, database sessions, rate-limit table, separate platform-admin table, server-side membership checks; RSC onboarding with AI/Commerce/Both and workspace switcher; merchant and admin navigation shells. All payment/provider/AI modules remain disconnected truthful empty states. **Blockers:** Neon DATABASE_URL not provided/migration not run; email verification, recovery, admin MFA and provider connections not implemented; Vercel build check currently failing and linked Vercel team build logs are not accessible to this tool connection. See `docs/runbooks/NEON-AUTH-SETUP.md`.
-- Auth-2 verification and administration: Neon migration 0002 applied. Six-input email OTP screen, auto-focus/paste/auto-submit, reset-password challenge, Resend server-side adapter, default-OFF admin toggle and audited Super Admin roles are in source. Account identity, provider setup, live OTP delivery and admin bootstrap still need verification. No demo admin bypass created.
-- Production web foundation: <https://ekmivo-web-masharzys-projects.vercel.app>. The page labels sample data and development status. This is not the full public MVP launch. Go API/worker hosting and Neon PostgreSQL are not connected yet.
+Latest source-based status: [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md); previous research checkpoints remain history.
+
+- Monorepo/public web/auth foundation source exists. Go API exposes health only; worker exits jobs-not-implemented. Financial schema/API/auto-matcher/providers/device bridge/sandbox are not implemented.
+- Local separate AI/payment shell, icon groups/routes/tabs/empty states are partial D01/D02/S03/S46; not deployed by this checkpoint and not working financial modules.
+- Existing self-hosted scrypt sessions, memberships, OTP/recovery/admin source replaces the earlier proposed Clerk choice. Migration source exists; live application/database/security behavior is not revalidated by this planning task.
+- Prior local TypeScript/production build passed; whole lint has three existing effect failures; current CI effectiveness remains to be established. See source evidence report instead of old contradictory deployment statements.
+- Website foundation was previously deployed; current local dashboard/backend parity is unverified. No full-MVP or live payment completion claim.
+- Current task completes the payment-first architecture/UX/API/sandbox/serial-plan specification. PG00 implementation started; see docs/evidence/PG00/README.md. All acceptance gates remain open.
 
 Priority: P0 = required for the full first public release. Previously deferred features are now P0. A Spike resolves feasibility for a required feature; it does not remove that feature from launch. Every completed item must link its change, relevant checks, and staging/provider/device evidence. A green mock test does not count as a live provider test. The previous 8–12 week estimate and small-pilot budget are superseded; full-scope estimates require access checks and measured progress.
 
@@ -37,13 +39,13 @@ G0-2 blocks provider-verified payment claims; G0-3/G0-7 block the relevant publi
 | D01 | Semantic design tokens, typography, components and responsive shell | F01 | Guide-matching Ink & Bone light/dark palette, Bengali glyphs, keyboard states, desktop/mobile layouts; sample data labelled |
 | D02 | Theme and EN/BN infrastructure, switchers and translation catalog | D01 | Four theme-locale combinations, persistence/system changes, SSR without flash, preserved routes/forms, complete keys and locale-safe amounts/time |
 | F02 | PostgreSQL migrations and tenant schema | F01 | Up migrations work on empty and prior schema; composite FK tests |
-| F03 | Managed auth, membership/RBAC, admin MFA boundary | F02 | Expired/revoked identity, removed member and unauthorized role tests |
+| F03 | Existing identity hardening, Go session/member/capability validation, admin MFA boundary | F02 | Expired/revoked identity, removed member and unauthorized role tests |
 | F04 | RLS and tenant-scoped repositories/jobs | F03 | Three-tenant negative tests through runtime DB roles |
 | F05 | Entitlements, configuration switches and workspace UI | F04,D02 | A-only/B-only/both/off checked server-side, queued work rechecks permissions; localized shell and theme tokens |
 | F06 | Durable ingress, River queues, outbox and observability | F04 | Commit/rollback/crash tests; correlation IDs without PII |
 | C01 | Catalog variants and CSV preview/import | F05 | Invalid row errors, idempotent retry, immutable SKU ownership |
 | C02 | Orders, price snapshot, stock reservations | C01,F06 | Concurrent last-item orders, cancellation/expiry release, no negative available stock |
-| P01 | Payment request API and checkout | C02 | Expected sender number, receiving account/method, amount and time window recorded; no customer TrxID field; standalone and order-linked requests |
+| P01 | Payment request API and checkout | F05,F06; C02 only for order-linked flow | Expected sender number, receiving account/method, amount and time window recorded; no customer TrxID field; standalone and order-linked requests |
 | P02 | Automatic receipt verification, additional provider callbacks and reconciliation | P01,F06 | Unique sender/time/amount/account/method match auto-verifies; duplicate/wrong-sender/out-of-window/collision tests; gateway adapter access isolated to X07 |
 | P03 | Partial advance, COD due, verified/exception UI | P02 | Successful phone verification automatically allocates and confirms; method visible; no routine merchant approval |
 | P04 | Merchant API keys and signed outbound webhooks | P02 | Key revoke/rotate; HMAC timestamp; retry/replay; SSRF and idempotency tests |
@@ -55,7 +57,7 @@ G0-2 blocks provider-verified payment claims; G0-3/G0-7 block the relevant publi
 | A05 | Handover, practice/live/off, versioned configuration | A04 | Mid-generation takeover cancels send; disputes require explicit release |
 | A06 | AI evaluation harness | A04,A05 | ≥150 cases; recorded quality/cost results; release thresholds from master plan |
 | B01 | Prepaid service-credit ledger and usage reservations | F06,P02,A04 | Concurrent balance checks; retry settles once; adjustment by compensating entry |
-| B02 | B subscription invoices and entitlement lifecycle | B01,F05 | Verified renewal only; expiry/grace; in-flight payment and shipment complete |
+| B02 | B subscription invoices and entitlement lifecycle | F05,P02; B01 only for combined AI-credit billing | Verified renewal only; expiry/grace; in-flight payment and shipment complete |
 | T01 | Basic Telegram physical-goods adapter | P04,C02 | Webhook secret validation, scoped token, physical order/payment flow; no digital-goods bypass |
 | O01 | Admin exceptions, support audit and replay tools | P03,C03,A05 | Least privilege, reason/expiry, all actions audited |
 | O02 | Data export/deletion and retention | O01 | Only requested tenant exported/deleted; required financial retention and backup expiry explained |
@@ -77,7 +79,7 @@ These packages implement the prior P1 list and remaining reference capabilities.
 | X05 | Multiwarehouse, richer order states/returns/exchanges/refunds, coupons, picking/QR/bulk operations | C02,C03,P03 | Stock/transfer concurrency, invoice totals, authorization, partial batch failures, recorded financial reversals |
 | X06 | All four couriers and WooCommerce/Shopify/Sheets/Excel/CSV/Daraz connectors | C01,C03,G0-4,G0-7 | Each capability documented; live sync/booking, conflict/dedup/retry/return/settlement; authorized Daraz access or explicit blocker |
 | X07 | Named payment methods/gateways: direct merchant APIs where available, SSLCOMMERZ/AamarPay, bank import | P02,P04,G0-2 | Per-provider live validation/refund/query evidence; no unrelated personal TrxID lookup assumption; credentials isolated |
-| X08 | Android receipt bridge, parser registry, device health and automatic verification | P03,G0-6,F06 | Real device/receipt tests; actual payer number/time/amount/account match; no TrxID submission, opt-in acceptance step or routine manual approval; offline/replay/collision checks and automatic confirmation/webhook |
+| X08 | Android receipt bridge, parser registry, device health and automatic verification | P01,G0-6,F06; P02/P03 for final matching acceptance | Real device/receipt tests; actual payer number/time/amount/account match; no TrxID submission, opt-in acceptance step or routine manual approval; offline/replay/collision checks and automatic confirmation/webhook |
 | X09 | Agency/multi-brand permissions, consolidated credits, client budgets, pricing/trials/volume rules | F05,B01,B02 | Atomic credit ownership/charging, tenant access constraints, trial abuse and plan transition tests |
 | X10 | Calendar/resource booking and Telegram digital subscriptions/Stars | T01,P03,X04,G0-7 | No slot oversell, advance/cancel/reminder flow, Stars success/refund/paysupport and membership expiry |
 | X11 | Analytics, customer/courier history, return-risk assistance and reporting | X04,X05,X06 | Reconciled metric definitions, permitted data, measured predictive quality or visible data blocker; no fabricated risk score |
@@ -155,14 +157,70 @@ Error envelope: stable code, safe human message, correlation ID; never SQL/provi
 | Design/readability | All required features reachable; correct tokens, Bengali glyphs, translation keys, numbers/time, focus/keyboard/mobile/zoom states; no decorative template clutter |
 | Outbound messaging window closed | Message blocked or approved allowed template used |
 
-## Build sequence within the full first release
+## Build sequence — payment-first execution authority
 
-1. Foundations, D01/D02 design/theme/locale infrastructure and one end-to-end slice establish patterns and integration contracts.
-2. Implement the complete required commerce/payment/channel inventory, including X01–X14.
-3. Verify each S-ID, run internal alpha/device/provider tests, then the full controlled cohort.
-4. Launch publicly only when the complete inventory passes or the user explicitly changes scope. No currently listed feature is deferred to P1.
+Latest user sequence, 2026-10-11: Phase 1 fully running payment product including sandbox/testing/developer/API docs; Phase 2 full Android app + inbox; Phase 3 remaining full dual-service MVP. PG/AN/FM items refine the older F/P/C/A/X package inventory; they do not create a competing architecture or remove any S-ID.
 
-A dedicated vector database, Redis, Kubernetes, custom ML service or microservice extraction requires a documented bottleneck and operational owner; customer count alone is not the trigger.
+All items below **proposed/open** at this design checkpoint. Existing source is credited in [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md). Next item **PG00**. Agent reads [handoff](AGENT-HANDOFF.md) and records evidence under docs/evidence/<ID>/README.md. Do not mark dependencies accepted merely because a route builds.
+
+### Phase 1 — Complete payment gateway
+
+| Order / ID | Deliverable | Depends on | Existing packages / scope | Acceptance |
+|---|---|---|---|---|
+| 00 / PG00 | Reconcile source/status; clean reproducible builds, toolchain, local PostgreSQL/services, effective CI and secret checks | Baseline | F01, S45 | Whole lint/build/Go compile pass; active CI confirmed; DB/service local startup reproducible; preserve existing changes and applied migrations |
+| 01 / PG01 | Existing auth hardening, Go session/member/capability boundary, admin MFA, workspace/env schema and RLS | PG00 | F02,F03,F04, S02,S04,S45 | Revoked/disabled/member removed; three-tenant runtime-role tests; missing context/connection rollback; cross-env denial, admin boundary |
+| 02 / PG02 | Complete D01/D02, separate product/business/environment switching, shell/components/translation | PG01 | D01,D02,F05, S03,S05,S46 | UX control placement; authorized deep links/last page; four locale-theme views, OS/cross-tab sync, mobile/keyboard/no lost drafts |
+| 03 / PG03 | Contract-first payment API skeleton; sandbox/live isolation; scoped hashed keys/rotation; onboarding | PG02 | P04,F05, S05,S34,S45 | OpenAPI security/enums/errors; same routes with separate sandbox credentials/DB/queues; wrong key/env blocked; once-visible secret |
+| 04 / PG04 | Financial schema, immutable attempts/evidence/payments/allocations; idempotency, River/outbox/durable ingress | PG03 | F02,F06,P02, S31,S32,S34 | Empty/prior migration tests; FK/unique/amount invariants, atomic commit/rollback/job enqueue, crash recovery |
+| 05 / PG05 | Standalone/linked payment-intent API, public checkout, payer+route lock, expiry/resume/cancel | PG04 | P01,P03, S32,S33,S34 | No catalog prerequisite standalone; exact amount/window; actual payer; no TrxID/screenshot/approval; spoofed return fails; overlapping attempt conflict |
+| 06 / PG06 | Minimal signed Kotlin receipt bridge, parser registry, device enrollment/source binding/health/offline | PG05,G0-6 | X08, S31 | Real consented samples/devices; SMS/notification capture route and full payer/time available; Keystore/signature fixtures, dual-SIM/revoke/reboot/offline; no OTP/unrelated SMS |
+| 07 / PG07 | Automatic matching/payment confirmation and allocation/reconciliation reason engine | PG06 | P02,P03,X08, S32 | Five-field unique match auto-verifies atomically; concurrent workers/dedup/masked sender/time boundary/late/cancel/amount/direction tests; exact advance |
+| 08 / PG08 | Signed webhooks, safe endpoints, retry/query/replay/rotation, receipt notice and merchant E2E | PG07 | P04,F06, S34,S45 | Durable event+job; consumer valid raw-body HMAC + event dedup; wrong signature/env/replay/order/SSRF tests; failed webhook doesn't undo paid |
+| 09 / PG09 | Functional Payments/Requests/Incoming/detail/event/device/account dashboard pages | PG08 | D01,P03,O01, S03,S31,S32,S45,S46 | Real queries/actions, verification comparison/provenance, independent timestamps, role masking, all UI states; no manual mark-paid |
+| 10 / PG10 | Payment links/custom fields, invoices/customers/import-export and public receipt | PG09 | P01,P03,O02, S30,S32,S34,S41 | Per-visitor intents, server totals/issued snapshot, due/advance; contact not payer; immutable paid status; private uploads/import/CSV export; real share/print flow |
+| 11 / PG11 | Refund authorization/execution and unknown-outcome recovery; exception/statement/settlement reconciliation | PG10 | P03,O01,O02,X07, S28,S32,S33,S45 | Refund cap/races/native or independently evidenced assisted route; no fake completion; source reprocess without ignoring matching rules; history retained |
+| 12 / PG12 | Required native payment adapters and payment-only store/custom bot integrations | PG11,G0-2 | X07,P04,payment subset X06/T01, S33,S34,S38 | Per-provider permitted account capability matrix; native sandbox/live callback/query/refund where supported; phone core does not depend on these credentials; payment-only integration smoke evidence |
+| 13 / PG13 | Reports/payment-service subscription, team/grants/settings/notifications/help/legal/status/pricing | PG12 | B02,O01,O02,L01, payment/shared S01,S04,S05,S40,S41,S44,S45,S46 | Reconciled metrics, real authorized saves/invites/support, verified renewal/expiry accepted events continue; distinct merchant/SaaS funds; truthful public claims |
+| 14 / PG14 | Complete bilingual developer hub, generated API docs, quickstart/SDK examples/sandbox scenario harness | PG13 | P04,O04,L01, S34,S45,S46 | Clean-account quickstart executed; TS/Go/PHP/Python webhook examples checked; full schemas/generated client drift/conformance; named sandbox cases and clean reset |
+| 15 / PG15 | Full failure/security/load/design suite; staging/API-worker hosting/monitoring; backups/restore/rollback runbooks | PG14,G0-5 | O03, payment subset O04, S45,S46 | System targets measured, real DB race/crash tests, four UI combinations, timed restore/keys/reconciliation, active alerts and healthy API/worker readiness |
+| 16 / PG16 | Real-device/provider controlled paid cohort and release evidence | PG15,G0-6,G0-2 | Payment subset L02, S31–S34,S45 | bKash/Nagad/Rocket evidence/source matrix, required adapter evidence; 7–14 day log; true auto-confirm+signed consumer webhook, duplicates once, documented exceptions/operator response |
+| 17 / PG17 | Payment-service production release review and verified deployment | PG16 | Payment phase gate | All phase-1 items accepted, no money/auth/tenant release blocker, docs live match API, production smoke/rollback/support status; released capabilities listed, no full dual-MVP claim |
+
+Early G0-2/G0-5/G0-6 preparation proceeds when input exists; live-account actions still belong to account owner. No artificial dependency of phone matching on official gateway credentials. If a serial item has an external blocked part, record it and advance only dependency-independent subwork; retain release gate as open.
+
+**Phase 1 completion means a usable payment product**, not just a dashboard or sandbox demo. Full warehouse/inventory/courier/AI work is not prerequisite for standalone intents. Linked commerce functionality not yet implemented must remain explicit, not fabricated. A payment chip/order reference is not proof of a running OMS.
+
+### Phase 2 — Full Android app with inbox management
+
+| ID | Deliverable | Depends on | Packages / scope | Acceptance |
+|---|---|---|---|---|
+| AN01 | Go conversation/message/contact/assignment APIs, website chat and approved Messenger transport, notifications | PG17,G0-3 | A01,A02,F06, S06,S10,S12,S13 | Real inbound/outbound, dedup/echo/delivery, session/tenant/search, messaging policy/reconnect, external user test |
+| AN02 | Full human web inbox, assignment/notes/tags/saved replies/snooze/resolve/tickets and ownership boundary | AN01 | A05 boundary,X04 subset, S12,S13,S21,S25 | Takeover/queued send race, drafts/status/search/history, explicit release, snooze timers and live updates |
+| AN03 | React Native Android app shell/payment operations, secure mobile auth, reused Kotlin bridge, push/deep links | AN02 | X12, S31,S42,S46 | Same financial backend, product switch/tab UX, permission/role/token revoke, no offline success/secret leakage |
+| AN04 | Android inbox management and offline sync parity | AN03 | X12,X04, S12,S13,S21,S25,S42 | Human reply/assignment/notes/snooze/ticket history, queued send cancellation, reconnect window checks, duplicate send prevention |
+| AN05 | Android release/device validation and operational docs | AN04,G0-7 | X12,O04 subset | Real OS/OEM/network/reboot/keyboard/theme/locale/push tests, signed build/distribution, no bridge evidence regression |
+
+Phase 2 delivers human inbox and connected channel foundation. Full AI/campaign/media/other channel features remain required in phase 3; do not claim these from an inbox shell. Existing phone bridge is reused, not rewritten after payment launch.
+
+### Phase 3 — Remaining full-MVP inventory
+
+| ID | Sequential group | Dependencies / evidence |
+|---|---|---|
+| FM01 | Full commerce/catalog/variants/warehouse/stock/order/coupons/packing/QR/returns, all four couriers, store/file sync | C01,C02,C03,X05,X06 and G0-4/G0-7; inventory races, real permitted courier/store/settlement evidence |
+| FM02 | Remaining official channels/comments/WhatsApp/Instagram/Telegram, AI knowledge/Agent Desk/assistant/handover, image/voice/web calls | A03–A06,X01–X03,T01; provider review, held-out quality/cost and adversarial/native-policy tests |
+| FM03 | Full CRM/leads/campaigns/follow-up/tickets/reviews, booking/Stars, agency/credits/billing, reporting/risk/feedback | X04,X09–X11,X14,B01,B02; timer/consent/money/slot/agency correctness and permitted data |
+| FM04 | iOS/PWA/Chrome extension and remaining client capabilities | X12,X13; secure distribution, actual device/extension tests; iOS management not Android receipt capture |
+| FM05 | Full S01–S46 coverage audit, all-theme/locale/accessibility/security/recovery/device/channel/load/economics checks, full cohort and dual-MVP release | All remaining packages including O04,L01,L02; no silently omitted item, real evidence or explicit user scope decision |
+
+FM groups are serial work bundles; split into bounded endpoint/screen/provider tasks before coding. Scope matrix in [MVP-FEATURE-SCOPE.md](MVP-FEATURE-SCOPE.md) identifies phase overlap; shared/partial scope is not accepted until full row passes.
+
+### Required evidence per item
+
+Store docs/evidence/<ID>/README.md: item/S-IDs; change/commit; environments; commands/results; real DB/API assertions; redacted screenshots; simulation/provider-sandbox/device/live transaction labels; remaining external inputs; next step. Update [status](IMPLEMENTATION-STATUS.md) and this backlog. Never include connection strings, receipt PII, API secrets or pairing tokens.
+
+Phase-1 money gate: zero false verified/duplicate allocation in defined negative/race tests; merchant webhook consumer deduplicates; real unique receipt confirms without customer TrxID or routine approval; no pending provider timeout mislabeled failed/succeeded. Documentation quickstart, restore and production smoke must be executed, not just written.
+
+A dedicated vector database, Redis, Kubernetes, custom ML service or service extraction requires documented bottleneck and operational owner. No fixed elapsed completion date from unmeasured agent estimates.
 
 ## Decision record index to create during implementation
 
@@ -177,5 +235,27 @@ A dedicated vector database, Redis, Kubernetes, custom ML service or microservic
 - ADR-009: Full feature launch inventory, provider capability blockers and revised estimates.
 - ADR-010: Native apps, Android bridge, extension and channel-specific capability boundaries.
 - ADR-011: Shared minimal design tokens, personal theme preference and complete EN/BN localization.
+- ADR-012: Existing identity hardening, Go session/mobile boundaries and control-plane versus financial DB projections.
+- ADR-013: Payment-first delivery, sandbox/live isolation, minimal bridge before full Android app, API/event compatibility.
 
 These are planned records, not links to files that already exist.
+
+## Current work evidence — product separation and references, 2026-10-11
+
+Scope: D01/D02, S03/S46 UI foundation; research for payment/phone verification contracts. No financial engine, external provider or first-release feature is marked complete by this checkpoint.
+
+- Read-only signed-in AiPraktor audit retained under `docs/research`; ZiniPay merchant navigation/forms inspected and recorded in `ZINIPAY-DASHBOARD-REFERENCE.md`. Inspection does not prove provider actions work.
+- PipraPay core source pinned to `021ecd302a0dc3316383933ef3aa405be9271404`; diagnosis and SHA-256 source manifest recorded. Upstream PHP/installer/plugins were not executed or vendored. TrxID-dependent checkout, missing five-field request matching, concurrency and webhook-state findings inform our independent Go implementation.
+- Local changes: separate product routes and overview content, server-side entitlement/section guards, authorized legacy redirects, grouped bilingual icon navigation, searchable sidebar, product/business selectors, theme/locale controls and native mobile drawer. Module-specific tabs and table schemas are UI scaffolding; backend/domain actions remain open, including team/settings views.
+- Scope inventory is unchanged. All routes still require real data, authorized mutations, error/loading/detail states and acceptance evidence. No mock rows or financial success are presented as live data. No deployment claimed.
+- Verification results and browser limitations are recorded in `research/DASHBOARD-FOUNDATION-CHECKPOINT.md`; D01/D02 remain in progress pending full rendered and accessibility checks.
+
+### Paymently browser research, 2026-10-11
+
+[Paymently audit](research/PAYMENTLY-BROWSER-AUDIT.bn.md): all 13 enabled internal main-menu destinations, profile, settings/report subpages and key forms inspected; 75 redacted snapshots, 37 merchant paths plus 2 linked documentation paths. Theme preview restored to System. No financial/provider/device action submitted and no product feature marked complete. Reference helps D01/D02, S03/S46 operational UI; five-field auto-verification remains unchanged. Account is empty/Free, so actual transaction, paid-plan and provider behaviour remain unverified. No implementation/deployment changes made for this audit.
+
+### Payment-first system/UX planning checkpoint — 2026-10-11
+
+Planning scope: phase-1 payment delivery design, S03/S31–S34/S42/S45/S46 and full inventory traceability. Added payment architecture, every-menu UX, API/sandbox/developer-doc specification, source-based status and agent handoff; synchronized master/scope/design/backlog/AGENTS/README. No product implementation/deploy in this checkpoint.
+
+Validation: local Markdown links resolve, code fences paired, authoritative inventory retains all 46 S-IDs, PG00–PG17 sequence ordered and present; tracked diff whitespace clean. Architecture references official PostgreSQL/River/Android/Play/Render/SSLCOMMERZ docs; account-specific provider capability still needs real evidence. Existing frontend changes preserved. Next execution PG00.

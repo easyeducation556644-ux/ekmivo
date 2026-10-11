@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { landingCopy, type LandingLocale } from "../../lib/landing-content";
 import { FeatureVisual } from "./feature-visual";
@@ -10,31 +10,41 @@ function SectionHeading({eyebrow,title,lead}:{eyebrow:string;title:string;lead?:
  return <div className="v3-section-heading" data-reveal><Eyebrow>{eyebrow}</Eyebrow><h2>{title}</h2>{lead&&<p>{lead}</p>}</div>;
 }
 
+function subscribeReducedMotion(onChange: () => void) {
+ const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+ media.addEventListener("change", onChange);
+ return () => media.removeEventListener("change", onChange);
+}
+function getReducedMotion() {
+ return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+function getServerReducedMotion() { return true; }
 export function MarketingExperience({locale}:{locale:LandingLocale}) {
  const t=landingCopy[locale];
  const [heroIndex,setHeroIndex]=useState(0);
  const [playing,setPlaying]=useState(true);
+ const reduceMotion=useSyncExternalStore(subscribeReducedMotion,getReducedMotion,getServerReducedMotion);
+ const autoplay=playing&&!reduceMotion;
  const [story,setStory]=useState(0);
  const [service,setService]=useState(2);
  const [scenario,setScenario]=useState(0);
  const [solution,setSolution]=useState(0);
 
  useEffect(()=>{
-   if(!playing)return;
+   if(!autoplay)return;
    const timer=window.setInterval(()=>setHeroIndex(prev=>(prev+1)%4),4100);
    return ()=>window.clearInterval(timer);
- },[playing]);
+ },[autoplay]);
 
  useEffect(()=>{
-   const reduceMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-   if(reduceMotion){setPlaying(false);return;}
+   if(reduceMotion)return;
    const visibleObserver=new IntersectionObserver(entries=>{
      for(const entry of entries)if(entry.isIntersecting){entry.target.classList.add("is-visible");visibleObserver.unobserve(entry.target);}
    },{threshold:.07,rootMargin:"0px 0px -25px 0px"});
    document.querySelectorAll(".v3 [data-reveal]").forEach(el=>visibleObserver.observe(el));
    document.documentElement.classList.add("v3-motion-ready");
    return ()=>{visibleObserver.disconnect();document.documentElement.classList.remove("v3-motion-ready");};
- },[]);
+ },[reduceMotion]);
 
  useEffect(()=>{
   const chapters=document.querySelectorAll(".v3-story-step");
@@ -75,7 +85,7 @@ export function MarketingExperience({locale}:{locale:LandingLocale}) {
        </div>
       </div>
       <div className="v3-floating-badge v3-badge-right"><span className="v3-badge-check">✓</span><div><small>CONNECTED WORKFLOW</small><strong>{hero.stage}</strong></div></div>
-      <div className="v3-demo-controls"><div className="v3-progress-dots">{t.heroPhases.map((s,i)=><button type="button" key={s.stage} className={i===heroIndex?"is-active":""} onClick={()=>setHeroIndex(i)} aria-label={`${t.step} ${i+1}: ${s.title}`} aria-pressed={i===heroIndex}/>)}</div><button type="button" className="v3-play-toggle" aria-label={playing?t.pause:t.play} onClick={()=>setPlaying(v=>!v)}>{playing?"Ⅱ":"▶"} <span>{playing?t.pause:t.play}</span></button></div>
+      <div className="v3-demo-controls"><div className="v3-progress-dots">{t.heroPhases.map((s,i)=><button type="button" key={s.stage} className={i===heroIndex?"is-active":""} onClick={()=>setHeroIndex(i)} aria-label={`${t.step} ${i+1}: ${s.title}`} aria-pressed={i===heroIndex}/>)}</div><button type="button" className="v3-play-toggle" disabled={reduceMotion} aria-label={autoplay?t.pause:t.play} onClick={()=>setPlaying(v=>!v)}>{autoplay?"Ⅱ":"▶"} <span>{autoplay?t.pause:t.play}</span></button></div>
      </div>
     </div>
     <div className="v3-hero-bottom v3-wrap"><span>01 / 22 — EKMIVO</span><span>{t.sampleCaption}</span><a href="#workflow" aria-label={t.watch}>SCROLL TO EXPLORE ↓</a></div>
@@ -126,7 +136,7 @@ export function MarketingExperience({locale}:{locale:LandingLocale}) {
     <div className="v3-wrap">
      <SectionHeading eyebrow={t.aiTag} title={t.aiTitle} lead={t.aiLead}/>
      <div className="v3-feature-list">
-      {t.featuresAI.map((feature,i)=><article className="v3-feature-row" key={feature.id} data-reveal>
+      {t.featuresAI.map(feature=><article className="v3-feature-row" key={feature.id} data-reveal>
        <div className="v3-feature-copy"><span className="v3-feature-number">{feature.tag}</span><h3>{feature.title}</h3><p>{feature.body}</p><ul>{feature.points.map(point=><li key={point}><span>↗</span>{point}</li>)}</ul></div>
        <FeatureVisual kind={feature.id} chips={feature.chips} locale={locale}/>
       </article>)}

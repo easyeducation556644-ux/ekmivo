@@ -1,5 +1,5 @@
 "use client";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { createWorkspaceAction } from "../actions/account";
 import { emptyState, type FormErrorState } from "../lib/server/validation";
@@ -17,8 +17,6 @@ function Submit({locale}:{locale:Locale}){
 export function WorkspaceOnboarding({locale}:{locale:Locale}){
  const [mode,setMode]=useState<"ai"|"commerce"|"both">("both");
  const [state,action]=useActionState<FormErrorState,FormData>(createWorkspaceAction.bind(null,locale),emptyState);
- const [toast,setToast]=useState("");
- useEffect(()=>{if(state.status==="error")setToast(state.message)},[state]);
  return <section className="ek-onboard" aria-labelledby="setup-title">
   <div className="ek-page-kicker">01 / WORKSPACE SETUP</div>
   <h1 id="setup-title">{locale==="bn"?"ব্যবসার ওয়ার্কস্পেস তৈরি করুন।":"Create your workspace."}</h1>
@@ -42,6 +40,5 @@ export function WorkspaceOnboarding({locale}:{locale:Locale}){
    <Submit locale={locale}/>
   </form>
   <p className="ek-onboard-note">{locale==="bn"?"সেবা বেছে নেওয়া মানে কোনো পেইড সাবস্ক্রিপশন সক্রিয় করা নয়।":"Choosing a service does not activate a paid subscription or live provider integration."}</p>
-  {toast&&<div className="ek-toast" role="alert"><strong>{locale==="bn"?"অনুরোধ ব্যর্থ হয়েছে":"Request failed"}</strong><p>{toast}</p><button type="button" onClick={()=>setToast("")} aria-label="Dismiss">×</button></div>}
  </section>;
 }

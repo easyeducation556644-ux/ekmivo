@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { loginAction, registerAction } from "../actions/account";
 import { emptyState, type FormErrorState } from "../lib/server/validation";
@@ -21,8 +21,6 @@ export function AuthForm({locale,mode}:{locale:Locale;mode:"login"|"register"}){
  const action=mode==="login"?loginAction.bind(null,locale):registerAction.bind(null,locale);
  const [state,formAction]=useActionState<FormErrorState,FormData>(action,emptyState);
  const [show,setShow]=useState(false);
- const [toast,setToast]=useState("");
- useEffect(()=>{if(state.status==="error")setToast(state.message);},[state]);
  return <main className="auth-main ek-auth-main"><div className="auth-shell">
   <div className="auth-intro"><p className="eyebrow"><span className="eyebrow-line"/>EKMIVO / ACCOUNT</p><h1>{p.title}</h1><p>{p.subtitle}</p>
    <div className="ek-auth-benefits"><span>01 / AI COMMUNICATION</span><span>02 / COMMERCE & PAYMENTS</span><span>03 / WORKSPACE CONTROL</span></div>
@@ -44,6 +42,5 @@ export function AuthForm({locale,mode}:{locale:Locale;mode:"login"|"register"}){
   </div>
   <Link className="auth-back" href={`/${locale}`}>← {t.back}</Link>
  </div>
- {toast&&<div className="ek-toast" role="alert"><span>{t.error}</span><p>{toast}</p><button type="button" onClick={()=>setToast("")} aria-label="Dismiss">×</button></div>}
  </main>;
 }

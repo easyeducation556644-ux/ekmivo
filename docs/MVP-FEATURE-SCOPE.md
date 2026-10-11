@@ -1,6 +1,6 @@
 # First-release feature inventory
 
-Revision 4, 2026-10-10. User decisions: **সব feature MVP-তে থাকবে। Payment verification হবে automatic: time + sender number + amount + receiving account/method; customer TrxID submission বা routine merchant approval নয়। Minimal design, light/dark mode এবং EN/BN switcher-ও required।** Status: requirements/design specifications only; application capabilities have not been implemented yet.
+Revision 5, 2026-10-11. Latest build order: payment gateway first, then full Android app/inbox, then remaining full dual-service MVP. User decisions: **সব feature MVP-তে থাকবে। Payment verification হবে automatic: time + sender number + amount + receiving account/method; customer TrxID submission বা routine merchant approval নয়। Minimal design, light/dark mode এবং EN/BN switcher-ও required।** Status: full capability inventory; foundation source is partially implemented. No financial feature is accepted as live. See [actual progress](IMPLEMENTATION-STATUS.md).
 
 Agent main plan: [DUAL-SAAS-MVP-PLAN.bn.md](./DUAL-SAAS-MVP-PLAN.bn.md)। Design authority: [DESIGN-SYSTEM.md](./DESIGN-SYSTEM.md)।
 
@@ -14,7 +14,7 @@ Sources: supplied competitor analysis (MD), dual-service architecture (PDF), mar
 |---|---|---|---|
 | S01 | Public site, separate service/pricing pages, demo, signup, help/FAQ, support widget, privacy/terms/deletion/status; MD/HTML/PDF | Claims match actual services; sample demo labelled; accessible/mobile flow | L01 |
 | S02 | Public / merchant / platform-admin surfaces; HTML/PDF | Separate permissions; tenant users cannot access cross-tenant admin | F03,F05,O01 |
-| S03 | A-only, B-only, combined, service switching; PDF | Both work independently; disabling one preserves data and in-flight financial work | F05,B02 |
+| S03 | A-only, B-only, combined, service switching; PDF and user correction 2026-10-11 | Separate AI and payment dashboards, grouped icon navigation and clear bilingual labels; modern product switch keeps the business, business switch keeps the enabled product; both work independently; disabling one preserves data and in-flight financial work | D02,F05,B02 |
 | S04 | Multi-brand/workspace/agency, invitations, per-page/assigned-chat roles, shared agency credit with per-client limits; MD/PDF | Cross-client isolation and atomic usage allocation; auditable agency access | F04,X09 |
 | S05 | Self-serve/resumable onboarding, connection status, practice/live/off, trial and migration tools; all references | Resume without duplicate import; actual external-account tests; no instant-approval promise | F05,A02,L01,X06 |
 | S06 | Messenger; MD/TXT/HTML | Inbound/outbound text/media/cards, permitted receipt/status messaging, reconnect, human takeover | A02,A05 |
@@ -45,7 +45,7 @@ Sources: supplied competitor analysis (MD), dual-service architecture (PDF), mar
 | S31 | Android SMS/notification bridge, bKash/Nagad/Rocket receipt parsers, device health/offline recovery; HTML/PDF | Real consented samples/devices; parser versions, dedup, source-account binding, no OTP collection | G0-6,X08 |
 | S32 | Automatic payment verification, incoming/pending split view, partial advance/COD/refund/reconciliation; HTML and user's explicit correction | Exact time + sender number + amount + receiving account/method match automatically verifies/confirms; no customer TrxID or routine merchant approval; dedup and exception handling | P02,P03,X08 |
 | S33 | Official merchant/gateway adapters, hosted checkout: bKash/Nagad/Rocket options, SSLCOMMERZ/AamarPay, bank evidence/import; PDF/HTML | Per-provider access/capability agreement; API-backed versus device/manual proof explicit; no invented personal-account lookup | G0-2,X07 |
-| S34 | Developer payment API, merchant website/own bot integration, signed webhook/replay, SDK examples; HTML | Idempotency, scoped key rotation, signature test, server-side status verification | P04,T01 |
+| S34 | Developer payment API, merchant website/own bot integration, signed webhook/replay, SDK examples; HTML and latest user request | Isolated sandbox/live, executable bilingual quickstart, generated API reference, tested SDK/signature examples, idempotency/scoped key rotation/replay/status verification | P04,T01,PG03,PG08,PG14 |
 | S35 | Steadfast, Pathao, RedX, eCourier booking/status/bulk/returns/COD reconciliation; MD/PDF | Each has documented capability and real account smoke test; no blind retry | G0-4,C03,X06 |
 | S36 | Delivery updates, ratings and post-delivery review requests; MD/TXT/PDF | Accurate provider status, consent/window enforcement, no duplicate notification or fabricated arrival date | X04,X06 |
 | S37 | Customer order/courier history and return-risk assistance; MD/TXT/PDF | Permitted data only; explainable factors; held-out evaluation where predicting; insufficient data shown as unknown | X11 |
@@ -58,6 +58,25 @@ Sources: supplied competitor analysis (MD), dual-service architecture (PDF), mar
 | S44 | In-product text/voice feature requests, status tracking, help and migration assistance surfaces; TXT/MD | Feedback records/status, attachment consent, support contact and export/import guide | X14,L01 |
 | S45 | Security, audit, admin incidents/replay, backups/restore, retention/export/deletion, cost/health monitoring; MD/PDF | Tenant security, disaster recovery and incident evidence; all added storage/jobs included | O01,O02,O03,O04 |
 | S46 | Minimal shared design system, Light/Dark/System, full EN/BN switcher; explicit user request | All surfaces readable in four theme-locale combinations, personal preference persistence, no flash/lost drafts, full translations/formatting, keyboard/mobile checks; all other features preserved | D01,D02,O04 |
+
+## Payment-first phase mapping — same full-MVP scope
+
+Latest user sequencing 2026-10-11: Phase 1 payment product running with sandbox/test/developer docs; Phase 2 full Android/inbox; Phase 3 remaining full dual-service MVP. Timing below is implementation order, not a scope removal or whole-row completion claim.
+
+| Scope IDs | Phase coverage |
+|---|---|
+| S01–S05 | Phase 1 payment public/shared surfaces, signup/business/product/sandbox onboarding and access; full AI/agency onboarding in phases 2–3 |
+| S06,S10,S12,S13,S21,S25 | Phase 2 live website/Messenger human inbox and Android management foundation; full modality/AI/ticket coverage phase 3 |
+| S07–S09,S11,S14–S20,S22–S24 | Phase 3 remaining channels/Stars/AI/media/voice/Agent Desk/leads/campaign capabilities; generic merchant/custom bot payment API already phase 1 |
+| S26–S30 | Full commerce phase 3; invoice/public payment receipt and financial refund subset phase 1 |
+| S31–S34 | Phase 1 core phone bridge/auto-verification/receiving/API/sandbox; advanced commerce-linked COD/shipping and managed-channel integration coverage retained phase 3 |
+| S35–S39 | Phase 3 couriers/full store sync/risk/booking; required payment-only adapter/store capability subset phase 1 |
+| S40–S41 | Phase 1 payment-service subscription/reporting; AI prepaid/agency/all-product analytics phase 3 |
+| S42 | Minimal receiving bridge phase 1; full Android payment/inbox phase 2; iOS/PWA/full remaining client tasks phase 3 |
+| S43–S44 | Phase 3 extension/full voice-feedback; payment help/text support/docs phase 1 |
+| S45–S46 | Required at every phase gate; full cross-product/client coverage final phase |
+
+All 46 S-IDs are covered; overlapping items remain open until complete acceptance. Exact sequence [backlog](IMPLEMENTATION-BACKLOG.md); [status](IMPLEMENTATION-STATUS.md) distinguishes local code from verified operations.
 
 ## Completion rules
 

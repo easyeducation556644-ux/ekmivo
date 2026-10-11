@@ -1,6 +1,6 @@
 # Ekmivo
 
-Ekmivo is a dual-service SaaS under active development. The first public release is defined by the [canonical plan](docs/DUAL-SAAS-MVP-PLAN.bn.md) and [46-item feature scope](docs/MVP-FEATURE-SCOPE.md). The current runnable web app is an honest product introduction and design foundation; business workflows are not live yet.
+Ekmivo is a dual-service SaaS under active development. The first public release is defined by the [canonical plan](docs/DUAL-SAAS-MVP-PLAN.bn.md) and [46-item feature scope](docs/MVP-FEATURE-SCOPE.md). The current source contains public web, auth/workspace and partial separate-dashboard foundation; financial workflows are not live. Latest order: complete payment gateway with sandbox/testing/developer docs, then full Android/inbox, then remaining full MVP. Start at [agent handoff](docs/AGENT-HANDOFF.md); exact sequence is in the [backlog](docs/IMPLEMENTATION-BACKLOG.md) and evidence in [status](docs/IMPLEMENTATION-STATUS.md).
 
 ## Repository
 
@@ -18,7 +18,7 @@ Ekmivo is a dual-service SaaS under active development. The first public release
 
 ## Local development
 
-Requirements: Node.js 24 and Go 1.27. PostgreSQL is not wired yet; the Neon connection will be supplied later as a server-side secret.
+Scaffold toolchains: Node.js 24 and Go 1.27; inspect/pin actual versions in PG00. Existing Next.js auth has server-side PostgreSQL connection/migration source; the Go API has no database-backed readiness or financial schema yet. Configure credentials through server-side secrets; never print or commit database URLs.
 
 ```powershell
 cd apps/web

@@ -1,34 +1,25 @@
 import Link from "next/link";
 import { AppShell } from "./app-shell";
-import { type User, type Workspace } from "../lib/server/auth";
-import { sections, type SectionKey, allowedSection } from "../lib/dashboard-sections";
-type Locale="bn"|"en";
-export function EmptyState({locale,title,description}:{locale:Locale;title:string;description:string}){
- return <div className="ek-empty"><div className="ek-empty-icon" aria-hidden="true">◫</div><h2>{title}</h2><p>{description}</p><small>{locale==="bn"?"লাইভ ডেটা সংযুক্ত হলে এখানে দেখা যাবে। নমুনা লেনদেন দেখানো হচ্ছে না।":"Connect real integrations to populate this view. No simulated financial data is shown."}</small></div>;
+import { DashboardIcon as Icon } from "./dashboard-icon";
+import { DashboardModule } from "./dashboard-module";
+import type { User, Workspace } from "../lib/server/auth";
+import { sections, type SectionKey } from "../lib/dashboard-sections";
+import { dashboardHref, defaultService, serviceNames, type Locale, type Service } from "../lib/dashboard-navigation";
+import { moduleViews } from "../lib/dashboard-views";
+export function EmptyState({title,description}:{locale:Locale;title:string;description:string}) {
+ return <div className="ds-empty"><h2>{title}</h2><p>{description}</p></div>;
 }
-export async function DashboardContent({locale,user,workspace,section}:{locale:Locale;user:User;workspace:Workspace;section:SectionKey}){
- const detail=sections[section];
- const base=`/${locale}/w/${workspace.id}`;
- return <AppShell locale={locale} user={user} workspace={workspace} section={section}>
-  <div className="ek-content">
-   <div className="ek-content-heading"><div><p className="ek-page-kicker">WORKSPACE / {workspace.mode.toUpperCase()} · {workspace.role.toUpperCase()}</p><h1>{detail[locale]}</h1><p>{detail.detail[locale]}</p></div></div>
-   {section==="overview"?<>
-    {!user.verified&&<div className="ek-notice" role="status">{locale==="bn"?"ইমেইল verification এখনো সেটআপ হয়নি। Provider credentials যোগ হলে account verification চালু করতে হবে; live payment processing নিষ্ক্রিয় রাখুন।":"Email verification is not configured yet. Connect an email provider before enabling live payment processing."}</div>}
-    <div className="ek-kpi-grid">
-     {[
-      {en:"Conversations",bn:"কথোপকথন"},
-      {en:"Orders",bn:"অর্ডার"},
-      {en:"Payment requests",bn:"পেমেন্ট রিকোয়েস্ট"},
-      {en:"Needs attention",bn:"দেখা প্রয়োজন"}
-     ].map(item=><article className="ek-kpi-card" key={item.en}><span>{item[locale]}</span><strong>—</strong><small>{locale==="bn"?"তথ্য এখনো নেই":"No data yet"}</small></article>)}
-    </div>
-    <div className="ek-panel"><div className="ek-panel-head"><h2>{locale==="bn"?"শুরু করার ধাপ":"Getting started"}</h2><span>01 / SETUP</span></div>
-     <div className="ek-next-grid">
-      {(["inbox","payments","settings","team"] as SectionKey[]).filter(k=>allowedSection(k,workspace.mode)).map((k,i)=><Link key={k} href={`${base}/${k}`}><span>{String(i+1).padStart(2,"0")}</span><strong>{sections[k][locale]}</strong><small>{sections[k].detail[locale]}</small><span className="ek-next-arrow">↗</span></Link>)}
-     </div>
-    </div>
-    <EmptyState locale={locale} title={locale==="bn"?"সাম্প্রতিক কার্যক্রম নেই":"No recent activity"} description={locale==="bn"?"বাস্তব সেবা সংযুক্ত হলে কার্যক্রম, মেসেজ, অর্ডার ও পেমেন্ট এখানে আসবে।":"Your real conversations, orders and payments will appear after services are connected."}/>
-   </>:<EmptyState locale={locale} title={detail[locale]} description={detail.detail[locale]}/>}
-  </div>
+export async function DashboardContent({locale,user,workspace,section,service=defaultService(workspace.mode)}:{locale:Locale;user:User;workspace:Workspace;section:SectionKey;service?:Service}) {
+ const bn=locale==="bn",detail=sections[section];
+ const steps:SectionKey[]=service==="ai"?["channels","knowledge","ai-agent","inbox"]:["gateways","devices","requests","webhooks"];
+ const metrics=service==="ai"?[["Conversations","কথোপকথন"],["Waiting for reply","উত্তরের অপেক্ষায়"],["New leads","নতুন লিড"],["AI usage","AI ব্যবহার"]]:[["Verified volume","যাচাইকৃত পেমেন্ট"],["Pending requests","অপেক্ষমাণ রিকোয়েস্ট"],["Unmatched receipts","না মেলা পেমেন্ট"],["Device health","ডিভাইসের অবস্থা"]];
+ return <AppShell locale={locale} user={user} workspace={workspace} section={section} service={service}>
+  <div className="ds-page-heading"><div><p className="ds-eyebrow">{serviceNames[service][locale]}</p><h1>{section==="overview"?(bn?"আপনার কাজের সারসংক্ষেপ":"Your working overview"):detail[locale]}</h1><p>{section==="overview"?(service==="ai"?(bn?"গ্রাহকের মেসেজ, AI ও বিক্রয়ের অগ্রগতি এক জায়গায়।":"Conversations, your AI and sales progress in one place."):(bn?"পেমেন্ট যাচাই, টাকা গ্রহণের মাধ্যম ও ডিভাইসের অবস্থা।":"Payment verification, receiving accounts and device health.")):detail.detail[locale]}</p></div></div>
+  {section==="overview"?<>
+   <div className="ds-metrics">{metrics.map(([en,bengali])=><article key={en}><span>{bn?bengali:en}</span><strong>—</strong><small>{bn?"ডেটার উৎস সংযুক্ত হয়নি":"Data source not connected"}</small></article>)}</div>
+   <section className="ds-panel"><div className="ds-panel-heading"><h2>{bn?"শুরু করার ধাপ":"Set up your workspace"}</h2><span>{bn?"৪টি ধাপ":"4 steps"}</span></div><div className="ds-setup-grid">{steps.map((key,index)=><Link key={key} href={dashboardHref(locale,workspace.id,service,key)}><span className="ds-step-number">0{index+1}</span><Icon name={key}/><strong>{sections[key][locale]}</strong><p>{sections[key].detail[locale]}</p><span className="ds-text-link">{bn?"দেখুন":"Open"}<Icon name="arrow"/></span></Link>)}</div></section>
+   {service==="payments"&&<section className="ds-verification-summary"><Icon name="shield"/><div><h2>{bn?"স্বয়ংক্রিয় পেমেন্ট যাচাই":"Automatic payment verification"}</h2><p>{bn?"প্রকৃত sender number, লেনদেনের সময়, amount, receiving account ও method একসঙ্গে মেলানো হবে। একটিমাত্র বৈধ match হলে confirmation ও merchant webhook পাঠানো হবে।":"Match actual sender number, transaction time, amount, receiving account and method. A single valid match confirms payment and dispatches the merchant webhook."}</p><small>{bn?"Verification engine এখনো সংযুক্ত হয়নি।":"Verification engine is not connected yet."}</small></div></section>}
+   <section className="ds-panel"><div className="ds-panel-heading"><h2>{bn?"সাম্প্রতিক কার্যক্রম":"Recent activity"}</h2></div><EmptyState locale={locale} title={bn?"এখনো কার্যক্রম নেই":"No activity yet"} description={bn?"সেবা সংযুক্ত হলে এই dashboard-এর কার্যক্রম এখানে দেখা যাবে।":"Activity for this product appears here after its services are connected."}/></section>
+  </>:moduleViews[section]?<DashboardModule locale={locale} service={service} workspaceId={workspace.id} section={section} view={moduleViews[section]!}/>:<section className="ds-panel"><EmptyState locale={locale} title={detail[locale]} description={bn?"এই অংশের backend কাজ চলছে। কোনো পরিবর্তন সংরক্ষণ করা হচ্ছে না।":"This module's backend is in development. Changes cannot be saved yet."}/></section>}
  </AppShell>;
 }

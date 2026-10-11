@@ -1,6 +1,6 @@
 # Ekmivo design system
 
-Version 4 · 2026-10-11 · Ink & Bone (Option F) with complete light/dark visual semantics.
+Version 5 · 2026-10-11 · Same Ink & Bone palette; payment-first product/environment UX specification.
 
 **Selected direction (V4 palette, V3 page structure): Ink & Bone — restrained monochrome, off-white/light surfaces, graphite typography and crisp charcoal actions; dark mode uses layered near-black surfaces and bone-white text/actions.** Hind Siliguri is the typeface for Bengali and English. The public site is product-led and motion-forward: animated hero workspace, customer-journey chapters, AI and Commerce deep dives, and an interactive evidence-matching explanation. Product workspaces remain information-led and accessible. V3 is a marketing implementation milestone, not a claim that business integrations are live.
 
@@ -62,7 +62,7 @@ Bengali conjuncts and vowel marks must not clip. Bengali text has no forced uppe
 
 Desktop application: sidebar 232px, header min-height 64px, content gutter 32px, page max-width 1440px. Settings/forms max-width 720px. Inbox and wide operations tables may use the full available width.
 
-For the **public site**, use the shared floating/scrolling header described in section 1; login and registration keep it. For the **authenticated application**, header order: workspace selector → context/service selector → page tools → `EN / বাংলা` → theme control → notifications/profile. Theme and language remain discoverable, not hidden solely inside account settings. On narrow screens move workspace/context into the navigation drawer and keep a compact language and theme control visible in the header.
+For the **public site**, keep the shared floating/scrolling header. For the **application**, business selector sits at the sidebar top; header order is product selector → payment Sandbox/Live selector → record search → EN/বাংলা → theme → notifications/profile. Narrow screens use the drawer for business/navigation; product/environment and compact locale/theme stay discoverable. Exact controls and responsive behavior are in [PRODUCT-UX-SPEC.bn.md](PRODUCT-UX-SPEC.bn.md).
 
 | Width | Layout |
 |---|---|
@@ -134,20 +134,17 @@ This is a seed glossary, not the complete translation catalog. Avoid literal tra
 
 ## 8. Navigation preserves the full feature set
 
-Do not put 46 top-level items in the sidebar. Group capabilities and use local tabs/filters inside each workspace:
+Two independent product trees replace a mixed AI/Commerce sidebar. [PRODUCT-UX-SPEC.bn.md](PRODUCT-UX-SPEC.bn.md) gives every menu, tab, detail, CTA, permission and failure state; it elaborates this design guide.
 
-| Navigation group | Screens/capabilities | Scope mapping |
+| Product | Groups | Key coverage |
 |---|---|---|
-| Today | Work queue, exceptions, recent activity, selected business metrics | S12, S25, S32, S41 |
-| Conversations | Unified inbox, channel/comments, contacts/timeline, leads, follow-up, campaigns, tickets | S06–S17, S21–S25, S36 |
-| AI setup | Agent Desk, knowledge, draft/test/publish, unanswered questions, assistant settings | S14–S20, S22 |
-| Commerce | Orders, product/customer pages, catalog, inventory/locations, coupons, picking/packing, shipping, returns | S18, S26–S30, S35, S37–S38 |
-| Payments | Requests, incoming transactions, automatically verified records, exceptions, refunds, receiving accounts, phone sync | S31–S34 |
-| Services | Calendar, slots/resources, booking requests, advances/reminders, digital memberships | S11, S39 |
-| Workspace | Connections, team/agency, billing/usage, reports/export, developer API/webhooks, preferences, help/feedback | S03–S05, S33–S34, S38, S40–S41, S44–S46 |
-| Public/admin/client surfaces | Marketing/help/checkout, platform admin, Android/iOS/PWA, extension | S01–S02, S42–S45 |
+| Payment gateway | Overview; Payments; Receiving & verification; Integrations & events; Commerce; Workspace | Financial workflow/API/device/checkout first; full commerce remains inventory scope |
+| AI workspace | Overview; Customer conversations; Sales & growth; Your AI; Connections; Workspace | Human inbox, channels, AI/knowledge/CRM/booking; phased implementation, no feature removed |
+| Separate surfaces | Public checkout/docs; platform admin; Android/iOS/PWA/extension | Appropriate shells/capability, same semantic tokens and terminology |
 
-Entitlements and roles determine access; hiding a navigation item does not grant or enforce permission. Preserve A-only, B-only and combined journeys. Users with access to a capability can find it through its navigation group and a searchable navigation menu. Feature switches during development do not count as shipped functionality.
+Business selector sidebar top; product selector header first; payment Sandbox/Live next to product; search then language/theme/notifications/profile. Icons always with clear familiar labels. No 46 ungrouped top-level items.
+
+Authorization server-side; navigation visibility not security or completion. Build states explicit; users can find authorized capability via menu/search. Shared contact/catalog references do not duplicate data.
 
 ## 9. Core components
 
@@ -221,4 +218,14 @@ Use semantic controls, visible keyboard focus, skip navigation, meaningful landm
 5. Apply components across all scope rows. Do not simplify away channels, voice, booking, agency, mobile or other required functionality to make a cleaner screenshot.
 6. Before release: theme persistence/system switching, language persistence/routing, form preservation, complete translation keys, correct numbers/time, no customer TrxID step, full S-ID coverage.
 
-Current Ink & Bone verification: semantic palette and all marketing surfaces are implemented and source changes committed. Token contrast must be regenerated and latest Vercel build rechecked for this palette update. Visual rendering, accessibility, interaction and physical-device audits remain open; this is not evidence of live provider integrations. Authentication is not connected; login and registration forms disclose that credentials are not submitted or saved.
+Current source includes Ink & Bone public pages, self-hosted font and partial theme/locale/dashboard components; existing auth/workspace/recovery source is present. D01/D02, complete visual/accessibility audits and functional financial routes remain open. Previous statements that account forms intentionally never submit are superseded by auth source; current deployment and live mail/security behavior need evidence. See [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md).
+
+## Separate product dashboards — user correction, 2026-10-11
+
+Operational shell has a grouped icon sidebar, compact sticky header, current-business selector, navigation search, product switch and theme/language controls. The sidebar scrolls independently; mobile uses a modal drawer with Escape, focus containment and a labelled close action. Monochrome semantic tokens and Hind Siliguri remain the visual foundation.
+
+AI groups: Overview; Customer conversations; Sales & growth; Your AI; Connections; Workspace. Payment groups: Overview; Payments; Receiving sources; Commerce; Integrations & events; Workspace. These two trees supersede a single mixed AI/Commerce sidebar. Shared objects appear in the relevant product context without duplicating their storage.
+
+The product switch presents both products with an icon, clear name, one-line purpose, current selection and entitlement state. It switches product within the same business. A business switch keeps the current product if enabled, otherwise opens that business's available product. Never present unavailable products as working links. Overview metrics are product-specific; unconnected data is shown as unavailable, never fake revenue or zero activity.
+
+Every route requires its own domain view, actual data service, authorized actions and applicable provider evidence. Tabs, tables and empty states alone are not completion. Light/dark, EN/BN, mobile and keyboard verification remain required before this shell is called production-ready.

@@ -1,12 +1,12 @@
 # Dual SaaS MVP: প্রোডাক্ট ও বাস্তবায়ন পরিকল্পনা
 
-তারিখ: ১০ অক্টোবর ২০২৬। Revision 5, implementation checkpoint ১১ অক্টোবর: সব feature প্রথম public MVP-তে; payment verification স্বয়ংক্রিয়; V3 motion-first landing-এর জন্য Option F Ink & Bone minimal palette এবং পূর্ণ Light/Dark/System ও EN/BN switcher নির্ধারিত। Repository scaffold ও public web foundation বাস্তবায়ন শুরু হয়েছে; পূর্ণ MVP এখনো তৈরি হয়নি। Working project name: Ekmivo; এটি চূড়ান্ত brand decision নয়।
+Revision 6 · ১১ অক্টোবর ২০২৬। Latest sequence: **Phase 1 payment gateway completely running, sandbox/testing/developer/API docs-সহ; phase 2 full Android app ও inbox; phase 3 remaining full dual-service MVP।** সব listed feature full public MVP-তে থাকবে। Automatic five-field phone verification, separate product dashboards, Ink & Bone/Hind Siliguri, Light/Dark/System ও complete EN/BN অপরিবর্তিত। Foundation source আছে; financial engine implemented নয়। Working name: Ekmivo।
 
 **Agent-এর মূল implementation plan এই ফাইল।** Entry instructions: [AGENTS.md](../AGENTS.md)। UI বানানোর আগে [DESIGN-SYSTEM.md](./DESIGN-SYSTEM.md) এবং [design/tokens.css](./design/tokens.css) অনুসরণ করতে হবে। Feature completeness-এর জন্য [MVP-FEATURE-SCOPE.md](./MVP-FEATURE-SCOPE.md), কাজের ক্রমের জন্য [IMPLEMENTATION-BACKLOG.md](./IMPLEMENTATION-BACKLOG.md)।
 
 **সিদ্ধান্ত: Next.js + TypeScript frontend, Go backend, PostgreSQL + pgvector database, এবং PostgreSQL-ভিত্তিক River jobs। একই platform-এ AI Communication Hub ও Commerce Operations/Payments—দুইটি স্বাধীনভাবে ব্যবহারযোগ্য paid service।**
 
-আপনার Go + PostgreSQL প্রস্তাবই এই প্রকল্পের জন্য আমার পছন্দ। PDF-এর microservices পরিকল্পনার বদলে modular monolith থাকবে। ব্যবহারকারীর নতুন সিদ্ধান্ত অনুযায়ী feature scope আর ছোট করা হচ্ছে না: চারটি reference-এর user-facing capabilities এবং আগের deferred features একই public release-এর অন্তর্ভুক্ত। পূর্ণ feature inventory: [MVP-FEATURE-SCOPE.md](./MVP-FEATURE-SCOPE.md)। Build ধাপে ধাপে; public launch সব launch gate পাস করার পরে।
+আপনার Go + PostgreSQL প্রস্তাবই এই প্রকল্পের জন্য আমার পছন্দ। PDF-এর microservices পরিকল্পনার বদলে modular monolith থাকবে। ব্যবহারকারীর নতুন সিদ্ধান্ত অনুযায়ী feature scope আর ছোট করা হচ্ছে না: চারটি reference-এর user-facing capabilities এবং আগের deferred features একই public release-এর অন্তর্ভুক্ত। পূর্ণ feature inventory: [MVP-FEATURE-SCOPE.md](./MVP-FEATURE-SCOPE.md)। Build এখন payment-first। Payment-service production milestone তার own gate পাস করবে; complete dual-service public MVP সব inventory gate পাস করার পরে।
 
 Implementation করবে Codex, একজন coding collaborator হিসেবে। আপনি product owner ও account owner। অন্য developer ধরা হয়নি। তবে production incident-এর ব্যবসায়িক সিদ্ধান্ত, provider approval, বাস্তব ফোনে পরীক্ষা ও customer support-এর জন্য একজন দায়িত্বশীল মানুষ প্রয়োজন; সেটি শুধু code generation দিয়ে প্রতিস্থাপন হয় না।
 
@@ -90,7 +90,7 @@ Go নিজে থেকে database correctness, low AI cost বা high secur
 | SQL | PostgreSQL, pgx, sqlc, versioned SQL migrations | explicit transaction ও generated typed query code |
 | Search | PostgreSQL text/trigram search + pgvector | FAQ/product retrieval; বাংলা quality আলাদা test |
 | Jobs | River on PostgreSQL, আলাদা payment ও AI worker queues | durable retry, transaction-এর সঙ্গে job enqueue |
-| Auth | Clerk managed identity; workspace membership/RBAC নিজস্ব DB-তে | password/session lifecycle outsource; authorization নিজের নিয়ন্ত্রণে |
+| Auth | Existing self-hosted scrypt + opaque PostgreSQL session, security hardening; Go validates session/member/capabilities | Source-এর identity preserve; Clerk implemented নয়; migration requires explicit ADR |
 | AI | Go provider interface, initial OpenRouter adapter; approved primary + fallback model | model change business logic থেকে আলাদা |
 | Storage | S3-compatible private object storage | images, attachments, exports; short-lived signed URLs |
 | Live UI | SSE events; normal HTTP mutations; reconnect/refetch | inbox/order update, সহজ operational model |
@@ -104,7 +104,7 @@ Next.js business/payment logic-এর দ্বিতীয় backend হবে �
 
 River transaction-এর মধ্যে job insert করতে পারে, ফলে business write সফল কিন্তু job হারিয়ে যাওয়ার gap কমে। sqlc SQL থেকে typed code তৈরি করে; pgvector একই PostgreSQL-এ vector search দেয়। [River](https://riverqueue.com/docs/transactional-enqueueing), [sqlc](https://sqlc.dev/), [pgvector](https://github.com/pgvector/pgvector)
 
-Clerk-এর Go SDK আছে, এবং Next.js Node/Docker-এ self-host করা যায়; frontend hosting Vercel-এ বাধ্যতামূলক নয়। [Clerk Go SDK](https://clerk.com/docs/reference/go/overview), [Next.js deployment](https://nextjs.org/docs/app/getting-started/deploying)
+Existing Next.js identity source preserve করে Go session validation/authorization implement হবে। Financial backend persistent container-এ, web Vercel-এ; detailed boundary [payment system design](PAYMENT-SYSTEM-DESIGN.bn.md)। Clerk কোনো implemented dependency নয়।
 
 ## ৫. Architecture ও ownership
 
@@ -151,7 +151,7 @@ backend/internal/ai/         retrieval, tools, evals, provider adapters
 backend/internal/commerce/   orders, stock, payments, fulfilment
 backend/internal/billing/    SaaS invoices, usage ledger
 backend/internal/integrations/
-backend/db/migrations/
+infra/migrations/
 backend/db/queries/
 contracts/openapi.yaml
 tests/e2e/
@@ -282,7 +282,7 @@ Pipeline: authenticated inbound event → normalized message → short debounce 
 |---|---|
 | Independent services পেতে microservices চাই | Entitlement ও module interface দিয়েই MVP separation সম্ভব |
 | Official WhatsApp = 100% safe / ban-free | Official integration + policy compliance; account restriction এখনও সম্ভব |
-| AI-ই payment approve করবে | Provider verification ও deterministic rules approval করবে |
+| AI-ই payment approve করবে | Trusted receipt/provider evidence + deterministic five-field rules automatically verify; AI paid status mutate করবে না |
 | Amount-only SMS match যথেষ্ট | সময় + প্রকৃত sender number + amount + receiving account + method মিলিয়ে unique request স্বয়ংক্রিয় verify; duplicate/ambiguous event exception |
 | Native mobile সবক্ষেত্রে একই permission পাবে | Android/iOS merchant apps first release-এ; device receipt reader supported Android path-এ, iOS parity প্রতিশ্রুতি নেই |
 | Delivery-এর ২৪ ঘণ্টা পরে review message সবসময় যাবে | Send-time channel eligibility/consent/template check; না হলে suppress |
@@ -301,13 +301,13 @@ Visual/interaction authority: [DESIGN-SYSTEM.md](./DESIGN-SYSTEM.md)। Palette 
 
 Public pages: Home, AI service, Operations/Payments service, pricing, interactive/sample demo, integration docs, support, privacy/terms/data deletion, status। Unsupported channel বা unverified performance landing page-এ থাকবে না।
 
-Merchant app: workspace/service switch → Today overview → Inbox → AI setup/knowledge → Catalog → Orders → Payments → Shipments → Integrations → Team → Billing → Settings। Entitlement অনুযায়ী navigation ছোট হবে। বাংলা default, English option, mobile-first forms ও readable money/status labels।
+Merchant app-এ **দুই separate product tree**: Payment gateway এবং AI workspace। Business selector sidebar top; product selector header left; payment Sandbox/Live তার পাশে; header right search, EN/বাংলা, theme, notifications/profile। প্রত্যেক menu/detail/button-এর পূর্ণ contract [PRODUCT-UX-SPEC.bn.md](PRODUCT-UX-SPEC.bn.md)-তে। Entitlement server-side; বাংলা default, readable mobile money/status।
 
 Payment view-তে Pending / Verified / Exceptions / Refunded tabs; detail-এ sender number, amount, receiving account, method, transaction time, auto-verification time ও webhook history। Successful phone match সরাসরি Verified হবে; customer TrxID entry বা merchant approval screen স্বাভাবিক flow-তে থাকবে না।
 
 Admin surface-এ tenant health, failed jobs, exceptions, billing adjustments, support access request, audit, feature switches থাকবে। Admin chat browsing default নয়; reason, expiry ও audit সহ minimum support access। Admin-এর আলাদা route, MFA, authorization এবং stronger session policy।
 
-Onboarding: service নির্বাচন → workspace → catalog sample/import → channel/payment/courier প্রাসঙ্গিক connection → test journey → live checklist। Draft progress save হবে। “১০ মিনিট” কেবল account approvals ও data প্রস্তুত হওয়ার পর measured setup target; end-to-end onboarding promise নয়।
+Payment-first onboarding: account/workspace → Payment product → sandbox request/test webhook → receiving account/device source → real test → live checklist। Standalone payment-এ catalog/Meta/LLM লাগে না। AI/commerce onboarding পরে সংশ্লিষ্ট channel/catalog/courier setup ব্যবহার করবে। Draft progress save হবে। “১০ মিনিট” কেবল account approvals ও data প্রস্তুত হওয়ার পর measured setup target; end-to-end onboarding promise নয়।
 
 ## ১২. Security, deployment ও recovery
 
@@ -356,24 +356,23 @@ Metrics: webhook ack time, oldest queue job, send failure, payment verification 
 
 `Break-even merchants = fixed monthly operating cost / average monthly contribution per merchant`। Customer payment gross volume revenue নয়। লক্ষ্য: variable contribution positive, target ≥৫০% before fixed cost; customer support ও acquisition ধরার পরে পুনরায় viability হিসাব।
 
-## ১৪. Implementation roadmap: এক coding agent
+## ১৪. Implementation roadmap: payment-first, এক coding agent
 
-আগের **৮–১২ সপ্তাহের estimate প্রত্যাহার করা হলো**: সেটি ছোট scope-এর জন্য ছিল। Full inventory decomposition, access feasibility ও প্রথম working slice-এর measured progress দিয়ে নতুন estimate হবে। একই public launch হলেও implementation dependencies অনুযায়ী sequential milestones থাকবে।
+Latest user instruction, ২০২৬-১০-১১: **আগে payment gateway সম্পূর্ণ running, sandbox/testing/developer docs/API docs-সহ; তারপর full Android app ও inbox management।** এটি কাজের ক্রম বদলেছে; সব listed features full dual-service public MVP-র requirement হিসেবে থাকছে। Payment-live milestone-কে complete dual-service MVP বলা যাবে না।
 
-| ধাপ | Deliverable | Exit gate |
+| Phase | ফলাফল | Exit gate |
 |---|---|---|
-| 0 | সব integration contract, permissions, OS feasibility, feature traceability | সব launch dependency দৃশ্যমান; unsupported capability decision |
-| 1 | Go/web/mobile/extension foundation, design tokens/components, Light/Dark/System + EN/BN, identity, tenant/RBAC, CI | isolation/contract এবং চার theme-locale combination-এর checks |
-| 2 | catalog → chat → order → payment, Android evidence path | end-to-end slice, duplicate/race/fraud tests |
-| 3 | complete orders, stock/warehouse, payments, সব courier/connectors | প্রত্যেক connector live evidence, হিসাব/state tests |
-| 4 | সব channel, image/voice/web calls, assistant, campaign/CRM/tickets | modality/channel quality ও policy gates |
-| 5 | booking, Stars, agency, native apps, extension, analytics/feedback | full feature inventory walkthrough |
-| 6 | hardening, device tests, recovery, cost/load, controlled cohort | সব inventory item done, approved scope change ছাড়া বাদ নেই |
-| 7 | full public MVP launch | release evidence complete; launch decision |
+| 1 — Payment gateway | Shared prerequisites; complete payment product/checkout/financial operations, minimal receipt bridge, API/webhooks, sandbox, developer docs, native payment integrations, operations | Backlog PG00–PG17 accepted; real-device unique match → auto-confirm → signed merchant webhook, docs quickstart + failure/security/restore tests, controlled paid cohort |
+| 2 — Android + inbox | Go/web human inbox/channel APIs এবং full Android merchant app; same payment backend/bridge, push/offline/assignment/takeover | AN01–AN05 accepted; real website/Messenger inbox and Android payment flow; channel approvals/device evidence |
+| 3 — Full dual-service MVP | Remaining full AI/channels/media/voice, commerce/couriers/stores, booking/Stars/agency, iOS/PWA/extension, analytics/feedback | FM01–FM05 and all S01–S46 complete; full dual-service release evidence |
 
-Meta/provider/store review ও Android bridge feasibility ধাপ ০-তেই শুরু। কোনো required integration আটকে থাকলে full launch-ও blocked থাকবে; internal alpha দিয়ে implementation এগোতে পারবে।
+Phase 1-এ tiny receiving-phone bridge প্রয়োজন: ফোনের evidence ছাড়া real phone auto-verification চালানো যাবে না। পূর্ণ mobile merchant/inbox UI phase 2-তে; parser/matcher Go-তে একবারই থাকবে। Official extra gateway account ফোনের matching engine implementation-এর prerequisite নয়।
 
-প্রতিটি কাজ: acceptance লিখব → ছোট change → relevant automated checks → staging/demo → evidence ও remaining issue update। প্রতিদিন বড় scope বদল নয়; milestone শেষে backlog reprioritize। কোনো autonomous future work বা নিরবচ্ছিন্ন on-call উপস্থিতি এই document থেকে ধরে নেওয়া যাবে না।
+**Exact execution order এবং item dependencies [IMPLEMENTATION-BACKLOG.md](IMPLEMENTATION-BACKLOG.md)-তে।** Architecture detail [PAYMENT-SYSTEM-DESIGN.bn.md](PAYMENT-SYSTEM-DESIGN.bn.md); menu/button/screen contract [PRODUCT-UX-SPEC.bn.md](PRODUCT-UX-SPEC.bn.md); API/sandbox/docs [PAYMENT-API-AND-SANDBOX.md](PAYMENT-API-AND-SANDBOX.md); actual progress [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md)। New agent handoff [AGENT-HANDOFF.md](AGENT-HANDOFF.md)।
+
+আগের ৮–১২ সপ্তাহ full-scope estimate নয়। বর্তমান measured accepted work এবং external-account feasibility ছাড়া fixed launch date বা all-in budget নেই। Single agent serially কাজ করবে; next dependency-ready item, implementation → checks → staging/provider/device evidence → status update। Mock/UI/health check live financial evidence নয়।
+
+Account/device/provider/hosting inputs early resolve; বাধা থাকলে item blocked ও next independent work explicit। কোনো required capability silently later release-এ নয়। Phase 1 payment production milestone-এ শুধু accepted payment claims; full MVP label সব feature gate-এর পরে।
 
 ## ১৫. Launch acceptance ও business measurement
 
@@ -415,10 +414,16 @@ Pilot success measures: প্রথম successful workflow-এ activation time,
 
 ## ১৭. আপনার কাজ ও আমার কাজ
 
-**আমার implementation দায়িত্ব:** code, schema/migration, UI, provider adapter, tests, documentation, deploy configuration, observability setup ও verification evidence তৈরি। প্রথম বাস্তবায়ন checkpoint: repository structure, Go entry points এবং bilingual/theme-capable public web foundation GitHub-এ push ও Vercel-এ deploy হয়েছে। ব্যবসায়িক API, database, provider integration এবং পূর্ণ dashboard এখনো বাস্তবায়িত নয়; বিস্তারিত [backlog evidence](./IMPLEMENTATION-BACKLOG.md)।
+**আমার implementation দায়িত্ব:** code, schema/migration, UI, provider adapter, tests, documentation, deploy configuration, observability setup ও verification evidence তৈরি। প্রথম বাস্তবায়ন checkpoint: repository structure, Go entry points এবং bilingual/theme-capable public web foundation GitHub-এ push ও Vercel-এ deploy হয়েছে। Auth/workspace migration ও source foundation যোগ হয়েছে; Go financial API/schema, matching, provider integration এবং functional dashboard এখনো open। Latest evidence [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md); earlier checkpoints historical।
 
 **আপনার প্রয়োজনীয় input/action:** brand/domain ownership, business/merchant documents, payment/courier/Meta accounts, budget ceiling, billing account, বাস্তব sample catalog, privacy/terms-এর business approval, test phone ও pilot merchant access, customer support/incident contact। Secret সাধারণ chat/file-এ নয়, approved secret channel-এ দিতে হবে।
 
 বর্তমান baseline: [full feature inventory](./MVP-FEATURE-SCOPE.md) first launch-এ; Go/PostgreSQL modular core; মূল phone-based automatic verification, customer TrxID ও routine approval ছাড়া; additional provider connectors; managed deployment। ২৫-workspace text workload কেবল initial load fixture; full modality/connector mix দিয়ে capacity budget নতুন করে মাপতে হবে। টাকা খরচ/contract/provider account action-এর আগে বাস্তব offer ও setting review করতে হবে।
 
-পরবর্তী engineering কাজ: [IMPLEMENTATION-BACKLOG.md](./IMPLEMENTATION-BACKLOG.md)-এর G0, তারপর tenant-safe foundation এবং প্রথম combined vertical slice।
+পরবর্তী engineering কাজ: [backlog](IMPLEMENTATION-BACKLOG.md)-এর **PG00** থেকে payment-first serial sequence। G0-এর payment/phone/hosting inputs early check; AI combined slice দিয়ে payment priority বদলানো নয়।
+
+## Customer dashboard clarification — 2026-10-11
+
+Latest user correction: AI bot and payment gateway require separate dashboards, with a modern product switch. A combined workspace still has two distinct navigation trees, overview metrics and task contexts. Product switching preserves the selected business; switching businesses preserves the product where it is enabled. Shared catalog/membership remain common domain data. Canonical routes are `/{locale}/w/{workspaceId}/ai/{section}` and `/{locale}/w/{workspaceId}/payments/{section}`; old links redirect after authorization. Every listed first-release capability remains required; UI route availability is not functional completion.
+
+Reference findings: [AiPraktor inventory](research/AIPRAKTOR-UI-INVENTORY.md), [ZiniPay reference](research/ZINIPAY-DASHBOARD-REFERENCE.md), [PipraPay core diagnosis](research/PIPRAPAY-CORE-DIAGNOSIS.bn.md). PipraPay's reviewed TrxID-based checkout does not replace the user-selected automatic phone matching path. No upstream code has been included in our runtime.
