@@ -104,3 +104,4 @@ async function run(){
  console.log("PG01 PASS: 3 tenants x 2 environments; FORCE RLS; missing context; removed/disabled/viewer; cross-env; rollback/pool cleanup");
 }
 try{await run();}catch(e){console.error("PG01 FAIL:",e instanceof Error?e.message.replace(/postgres(?:ql)?:\/\/[^\s]+/g,"[redacted]"):"unknown");process.exitCode=1;}finally{await sql.end({timeout:3});}
+if(!process.exitCode)await import("./pg01-recovery-schema-smoke.mjs");

@@ -1,6 +1,7 @@
 "use client";
 import { useActionState } from "react";
 import { beginAdminMfaAction,confirmAdminMfaAction,type MfaActionState } from "../actions/admin-mfa";
+import { MfaSecurityControls } from "./mfa-security-controls";
 
 const initial:MfaActionState={status:"idle",message:""};
 export function AdminMfaForm({locale,ready}:{locale:"bn"|"en";ready:boolean}){
@@ -29,5 +30,6 @@ export function AdminMfaForm({locale,ready}:{locale:"bn"|"en";ready:boolean}){
    <button className="ek-action" type="submit" disabled={!ready||pendingConfirm}>{pendingConfirm?"…":locale==="bn"?"যাচাই করে অ্যাডমিনে যাও":"Verify and open admin"} ↗</button>
    {check.status!=="idle"&&<p className={check.status==="error"?"ek-form-error":"ek-verify-help"} role="status">{check.message}</p>}
   </form>
+ <MfaSecurityControls locale={locale} recovery/>
  </div>;
 }

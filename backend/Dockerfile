@@ -1,7 +1,9 @@
 FROM golang:1.27.0-alpine AS build
 WORKDIR /src
-COPY go.mod ./
+COPY go.mod go.sum ./
 COPY cmd ./cmd
+COPY internal ./internal
+RUN go mod download
 RUN CGO_ENABLED=0 go build -trimpath -o /out/api ./cmd/api && \
     CGO_ENABLED=0 go build -trimpath -o /out/worker ./cmd/worker
 

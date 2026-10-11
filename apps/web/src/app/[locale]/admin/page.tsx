@@ -57,7 +57,7 @@ export default async function PlatformAdmin({params}:{params:Promise<{locale:str
      {audit.length===0?<p>{locale==="bn"?"এখনো কোনো পরিবর্তন হয়নি।":"No changes yet."}</p>:<ul className="ek-audit-list">{audit.map((entry,i)=><li key={i}><strong>{String(entry.action)}</strong><span>{String(entry.description)}</span><small>{new Date(entry.occurred_at).toLocaleString(locale==="bn"?"bn-BD":"en-US")}</small></li>)}</ul>}
     </div>
    </section>}
-   <div className="ek-admin-actions"><Link href={"/"+locale+"/workspaces"}>← {locale==="bn"?"ওয়ার্কস্পেসে ফিরুন":"Back to workspaces"}</Link><form action={logoutAction.bind(null,locale)}><button type="submit">{locale==="bn"?"লগ আউট":"Sign out"}</button></form></div>
+   <div className="ek-admin-actions"><Link href={`/${locale}/admin/security`}>{locale==="bn"?"MFA ও recovery codes":"MFA & recovery codes"}</Link><Link href={"/"+locale+"/workspaces"}>← {locale==="bn"?"ওয়ার্কস্পেসে ফিরুন":"Back to workspaces"}</Link><form action={logoutAction.bind(null,locale)}><button type="submit">{locale==="bn"?"লগ আউট":"Sign out"}</button></form></div>
   </div>
  </main>;
 }
