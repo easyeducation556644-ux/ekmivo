@@ -946,6 +946,20 @@ try{
     "pending","PG07 did not defer when checkout held intent lock");
   });
   same(await pg07Match(blockedObservation),"matched","PG07 did not retry after checkout released lock");
+  // Actual least-privileged River worker login may call only the signed
+  // matcher function; it can never forge a payment by direct table INSERT.
+  const pg07Worker=postgres(ds("ekmivo_pg04_sandbox",
+   "ekmivo_financial_worker_sandbox","pg04-sandbox-worker-only"),{max:1,prepare:false});
+  try {
+   const workerFixture=await pg07Attempt();
+   const workerObservation=await pg07Receipt(workerFixture);
+   same(await pg07Match(workerObservation,pg07Version,pg07Worker),
+    "matched","PG07 restricted worker could not process authorized receipt");
+   await reject(pg07Worker,()=>pg07Worker.unsafe(
+    "INSERT INTO financial_payments(workspace_id,environment,attempt_id,observation_id,verified_amount_minor,verification_method,policy_version) "+
+    "VALUES($1::uuid,'sandbox',$2::uuid,$3::uuid,5500,'sandbox_fixture',1)",
+    [pg07WS,workerFixture.attempt,workerObservation]),"42501");
+  } finally {await pg07Worker.end({timeout:3})}
   const competing=await pg07Attempt();
   const candidate=await pg07Receipt(competing);
   const outcomes=await Promise.all([
