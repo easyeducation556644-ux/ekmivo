@@ -53,7 +53,7 @@ func main() {
 	var previousUntil time.Time
 	if previous := os.Getenv("EKMIVO_PREVIOUS_WEBHOOK_SECRET"); previous != "" {
 		until, e := time.Parse(time.RFC3339, os.Getenv("EKMIVO_PREVIOUS_SECRET_UNTIL"))
-		if e != nil || !time.Now().Before(until) {
+		if e != nil || !time.Now().Before(until) || len(previous) < 32 {
 			log.Fatal("previous key requires a future overlap expiry")
 		}
 		previousUntil = until
@@ -91,7 +91,7 @@ func main() {
 			return
 		}
 		var payload event
-		if json.Unmarshal(raw, &payload) != nil || payload.ID != eventID || payload.DeliveryID != r.Header.Get("X-Ekmivo-Delivery-ID") || !uuid.MatchString(payload.ID) || !uuid.MatchString(payload.Data.PaymentID) || payload.Environment != realm || payload.Workspace != workspace || payload.Version != 1 || payload.Type != "payment.verified" || payload.Data.Status != "verified" || payload.Data.Currency != "BDT" {
+		if json.Unmarshal(raw, &payload) != nil || payload.ID != eventID || payload.DeliveryID != r.Header.Get("X-Ekmivo-Delivery-ID") || !uuid.MatchString(payload.ID) || !uuid.MatchString(payload.DeliveryID) || !uuid.MatchString(payload.Data.PaymentID) || len(payload.Data.Reference)<1 || len(payload.Data.Reference)>128 || payload.Data.Amount<=0 || payload.Environment != realm || payload.Workspace != workspace || payload.Version != 1 || payload.Type != "payment.verified" || payload.Data.Status != "verified" || payload.Data.Currency != "BDT" {
 			http.Error(w, "event scope rejected", 400)
 			return
 		}
