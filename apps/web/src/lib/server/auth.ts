@@ -28,7 +28,7 @@ export async function passwordMatches(password: string, stored: string) {
  const bits = stored.split(":");
  const salt = bits.length===3 && bits[0]==="scrypt-v1" && /^[a-f0-9]{48}$/.test(bits[1]) ? bits[1] : "0".repeat(48);
  const expected = bits.length===3 && /^[a-f0-9]{128}$/.test(bits[2]) ? Buffer.from(bits[2],"hex") : Buffer.alloc(64);
- const calculated = await scrypt(password,Buffer.from(salt,"hex"),64,{N:16384,r:8,p:1}) as Buffer;
+ const calculated = await derive(password,Buffer.from(salt,"hex"));
  return timingSafeEqual(calculated,expected) && salt!=="0".repeat(48);
 }
 export async function createSession(userId: string) {
