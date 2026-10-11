@@ -42,6 +42,8 @@ export async function setPlatformRoleAction(localeParam:string,_previous:AdminAc
  try{
   const result=await database().begin(async tx=>{
    await tx`SELECT pg_advisory_xact_lock(5101482)`;
+   const actor=await tx`SELECT role FROM platform_administrators WHERE user_id=${admin.user.id}::uuid FOR UPDATE`;
+   if(!actor.length||actor[0].role!=="super_admin")return false;
    const target=await tx`SELECT id,email_verified_at,disabled_at FROM app_users WHERE id=${id}::uuid FOR UPDATE`;
    if(!target.length||!target[0].email_verified_at||target[0].disabled_at)return false;
    if(role==="remove"){
