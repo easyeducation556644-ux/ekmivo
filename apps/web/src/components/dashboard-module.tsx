@@ -2,12 +2,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import { DashboardIcon as Icon } from "./dashboard-icon";
-import { dashboardHref, type Locale, type Service } from "../lib/dashboard-navigation";
+import { dashboardHref, type Locale, type Service, type PaymentEnvironment } from "../lib/dashboard-navigation";
 import { sections, type SectionKey } from "../lib/dashboard-sections";
 import type { ModuleView } from "../lib/dashboard-views";
-export function DashboardModule({locale,service,workspaceId,section,view}:{locale:Locale;service:Service;workspaceId:string;section:SectionKey;view:ModuleView}) {
+export function DashboardModule({locale,service,workspaceId,section,view,environment="sandbox"}:{locale:Locale;service:Service;workspaceId:string;section:SectionKey;view:ModuleView;environment?:PaymentEnvironment}) {
  const [tab,setTab]=useState(0),bn=locale==="bn";
- const next=dashboardHref(locale,workspaceId,service,view.next);
+ const next=dashboardHref(locale,workspaceId,service,view.next,environment);
  return <section className="ds-panel ds-module">
   <div className="ds-tabs" role="tablist" aria-label={sections[section][locale]}>{view.tabs.map((item,index)=><button type="button" role="tab" key={item.en} id={`module-tab-${index}`} aria-selected={tab===index} aria-controls="module-panel" tabIndex={tab===index?0:-1} onClick={()=>setTab(index)} onKeyDown={event=>{if(["ArrowRight","ArrowLeft","Home","End"].includes(event.key)){event.preventDefault();const target=event.key==="Home"?0:event.key==="End"?view.tabs.length-1:(tab+(event.key==="ArrowRight"?1:-1)+view.tabs.length)%view.tabs.length;setTab(target);document.getElementById(`module-tab-${target}`)?.focus();}}}>{item[locale]}</button>)}</div>
   <div id="module-panel" role="tabpanel" aria-labelledby={`module-tab-${tab}`} tabIndex={0}>
