@@ -480,7 +480,14 @@ CREATE FUNCTION pg09_read(w uuid,e text,resource text,resource_id uuid,cursor_id
    (now() AT TIME ZONE 'Asia/Dhaka')::date - interval '6 days',
    (now() AT TIME ZONE 'Asia/Dhaka')::date,
    interval '1 day') AS g(day))));
- ELSIF resource='devices' THEN SELECT coalesce(jsonb_agg(to_jsonb(t)),'[]'::jsonb) INTO result FROM (SELECT id,name,account_id,source,binding,parser_id,created_at,claimed_at,revoked_at,heartbeat_at,permission_ok,backlog,overflow_count,last_queue_error,model,app_version,CASE WHEN resource_id IS NOT NULL THEN pg06_history(id) ELSE NULL END AS recent_receipts FROM pg06_devices WHERE workspace_id=w AND environment=e AND (resource_id IS NULL OR id=resource_id) AND (search_filter IS NULL OR strpos(lower(name),lower(search_filter))>0 OR strpos(lower(model),lower(search_filter))>0) AND (cursor_id IS NULL OR (created_at,id)<(cursor_ts,cursor_id)) ORDER BY created_at DESC,id DESC LIMIT 50)t;
+ ELSIF resource='devices' THEN SELECT coalesce(jsonb_agg(to_jsonb(t)),'[]'::jsonb) INTO result FROM (SELECT id,name,account_id,source,binding,parser_id,created_at,claimed_at,revoked_at,heartbeat_at,permission_ok,backlog,overflow_count,last_queue_error,model,app_version,CASE WHEN resource_id IS NOT NULL THEN
+  (SELECT coalesce(jsonb_agg(to_jsonb(h)),'[]'::jsonb) FROM (
+   SELECT t.event_id,t.observed_at,t.received_at,t.parse_reason,
+    coalesce(rr.status,'invalid') AS status,rr.reason
+   FROM pg06_transport t LEFT JOIN pg07_receipt_results rr ON rr.observation_id=t.observation_id
+   WHERE t.device_id=pg06_devices.id AND t.workspace_id=w AND t.environment=e
+   ORDER BY t.received_at DESC,t.id DESC LIMIT 50
+  ) h) ELSE NULL END AS recent_receipts FROM pg06_devices WHERE workspace_id=w AND environment=e AND (resource_id IS NULL OR id=resource_id) AND (search_filter IS NULL OR strpos(lower(name),lower(search_filter))>0 OR strpos(lower(model),lower(search_filter))>0) AND (cursor_id IS NULL OR (created_at,id)<(cursor_ts,cursor_id)) ORDER BY created_at DESC,id DESC LIMIT 50)t;
  ELSIF resource='gateways' THEN SELECT coalesce(jsonb_agg(to_jsonb(t)),'[]'::jsonb) INTO result FROM (SELECT a.id,a.method,a.display_suffix,a.created_at,c.disabled_at,CASE WHEN c.account_id IS NULL THEN 'sandbox_fixture' WHEN c.disabled_at IS NOT NULL THEN 'disabled' WHEN EXISTS(SELECT 1 FROM pg06_devices d WHERE d.account_id=a.id AND d.revoked_at IS NULL AND d.permission_ok AND d.heartbeat_at>now()-interval '5 minutes') THEN 'receiving_source_online' ELSE 'source_binding_required' END AS source_status,
   (SELECT max(t.received_at) FROM pg06_transport t JOIN pg06_devices dev ON dev.id=t.device_id WHERE dev.account_id=a.id AND t.workspace_id=w AND t.environment=e) AS last_receipt_at
   FROM financial_receiving_accounts a LEFT JOIN pg06_account_configuration c ON c.account_id=a.id WHERE a.workspace_id=w AND a.environment=e AND (resource_id IS NULL OR a.id=resource_id) AND (search_filter IS NULL OR strpos(lower(a.method),lower(search_filter))>0 OR strpos(a.display_suffix,search_filter)>0) AND (cursor_id IS NULL OR (a.created_at,a.id)<(cursor_ts,cursor_id)) ORDER BY a.created_at DESC,a.id DESC LIMIT 50)t;
