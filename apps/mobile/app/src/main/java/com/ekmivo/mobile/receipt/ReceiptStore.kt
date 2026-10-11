@@ -31,15 +31,32 @@ class ReceiptStore(context: Context): SQLiteOpenHelper(context, "receipt-outbox.
   }.generateKey()
  }
  fun enrollment():JSONObject?=preferences.getString("enrollment",null)?.let{JSONObject(it)}
- fun saveEnrollment(value:JSONObject){preferences.edit().putString("enrollment",value.toString()).putBoolean("consented",true).putBoolean("paused",false).commit()}
+ // Server consumes pairing only once. Keep the reply for confirmation after
+ // rotation/process death; pending enrollment never turns on collection.
+ fun pendingEnrollment():JSONObject?=preferences.getString("pending_enrollment",null)?.let{JSONObject(it)}
+ fun savePendingEnrollment(value:JSONObject){check(preferences.edit().putString("pending_enrollment",value.toString()).commit())}
+ fun saveEnrollment(value:JSONObject){
+  check(preferences.edit().putString("enrollment",value.toString()).remove("pending_enrollment")
+   .putBoolean("consented",true).putBoolean("paused",false).commit())
+ }
+ fun overflowCount():Long=preferences.getLong("overflow_count",0)
  fun enabled()=preferences.getBoolean("consented",false)&&!preferences.getBoolean("paused",false)&&enrollment()!=null
  fun pause(){preferences.edit().putBoolean("paused",true).commit()}
  fun disconnect(){preferences.edit().clear().commit();writableDatabase.delete("pending",null,null);AndroidKeystoreSigner("ekmivo-receipt-device").forgetEnrollmentKey()}
  fun count():Int=readableDatabase.rawQuery("SELECT count(*) FROM pending",null).use{it.moveToFirst();it.getInt(0)}
  fun enqueue(body:JSONObject):Boolean {
-  if(!enabled()||count()>=500)return false
+  if(!enabled())return false
   val database=writableDatabase;database.beginTransaction()
   try {
+   // Check within the write transaction so concurrent receivers cannot
+   // overfill the outbox. Record rejected receipts without retaining their text.
+   val full=database.rawQuery("SELECT count(*) FROM pending",null).use{it.moveToFirst();it.getInt(0)>=500}
+   if(full){
+    database.setTransactionSuccessful()
+    // No amount/payer/message content in health; an operator can see loss.
+    preferences.edit().putLong("overflow_count",(overflowCount()+1).coerceAtMost(Long.MAX_VALUE)).commit()
+    return false
+   }
    database.execSQL("UPDATE sequence_counter SET value=value+1 WHERE singleton=1")
    val sequence=database.rawQuery("SELECT value FROM sequence_counter WHERE singleton=1",null).use{it.moveToFirst();it.getLong(0)}
    body.put("sequence",sequence)
