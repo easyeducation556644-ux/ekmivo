@@ -27,7 +27,7 @@ export function AccountActions({locale,name:initialName,accountId}:{locale:Local
  const restore=()=>{
   try{
    const value=window.sessionStorage.getItem(key);
-   if(value===null||value.length<2||value.length>100){throw Error("no valid draft");}
+   if(value===null||value.length>100){throw Error("no valid draft");}
    setName(value);
    setDraftMessage(bn?"এই ট্যাবের ড্রাফট ফিরিয়ে আনা হয়েছে।":"Restored the saved draft in this tab.");
   }catch{setDraftMessage(bn?"এই ট্যাবে কোনো বৈধ ড্রাফট পাওয়া যায়নি।":"No valid draft is available in this tab.");}
@@ -104,6 +104,7 @@ export function AccountActions({locale,name:initialName,accountId}:{locale:Local
   <dialog ref={dialog} className="ek-onboard-leave" aria-label={bn?"অসম্পূর্ণ প্রোফাইল":"Unsaved profile"} onClose={()=>setPendingUrl("")}>
    <h2>{bn?"অসম্পূর্ণ প্রোফাইল পরিবর্তন":"Unsaved profile changes"}</h2>
    <p>{bn?"সার্ভারে এখনো নাম সংরক্ষিত হয়নি। এই ট্যাবে ড্রাফট রাখবে, বাতিল করবে, নাকি এখানেই থাকবে?":"The name is not saved on the server. Keep a draft in this tab, discard it, or stay."}</p>
+   {draftMessage&&<p role="alert" className="ek-form-error">{draftMessage}</p>}
    <div className="ek-onboard-leave-actions">
     <button type="button" onClick={()=>leave("save")}>{bn?"ড্রাফট রেখে যান":"Save draft & leave"}</button>
     <button type="button" onClick={()=>leave("discard")}>{bn?"বাতিল করে যান":"Discard & leave"}</button>
