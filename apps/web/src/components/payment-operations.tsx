@@ -34,7 +34,7 @@ export function PaymentOperations({locale,workspaceId,userId,environment,resourc
  const confirmDialog=useRef<HTMLDialogElement>(null);
  useEffect(()=>{const dialog=confirmDialog.current;if(!dialog)return;if(confirm&&!dialog.open){dialog.showModal();dialog.querySelector<HTMLButtonElement>("button:last-of-type")?.focus()}else if(!confirm&&dialog.open)dialog.close()},[confirm]);
  const draftKey=`ekmivo:operations:${userId}:${workspaceId}:${environment}:${resource}`;
- useEffect(()=>{try{const raw=sessionStorage.getItem(filterKey);if(raw){const parsed=JSON.parse(raw);if(parsed&&["status","account","method","from","to"].every(k=>typeof parsed[k]==="string"))setQueryFilters(parsed)}}catch{/* no stored filter */}},[filterKey]);
+ useEffect(()=>{let current=true;void Promise.resolve().then(()=>{if(!current)return;try{const raw=sessionStorage.getItem(filterKey);if(raw){const parsed=JSON.parse(raw);if(parsed&&["status","account","method","from","to"].every(k=>typeof parsed[k]==="string"))setQueryFilters(parsed)}}catch{/* no stored filter */}});return()=>{current=false}},[filterKey]);
  useEffect(()=>{try{sessionStorage.setItem(filterKey,JSON.stringify(queryFilters))}catch{/* private-mode storage may be unavailable */}},[filterKey,queryFilters]);
  const endpoint=useCallback((kind:string,id?:string,action?:string)=>{
   const parameters=new URLSearchParams({environment});if(kind===resource&&!detailId&&!action)for(const [key,value] of Object.entries(queryFilters)){if(value)parameters.set(key,key==="from"||key==="to"?new Date(value).toISOString():value)}
