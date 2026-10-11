@@ -93,7 +93,11 @@ func (r *Repository) Authenticate(ctx context.Context,token string)(Principal,er
  s.mfa_verified_at
  FROM auth_sessions s JOIN app_users u ON u.id=s.user_id
  WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now()
- AND u.disabled_at IS NULL LIMIT 1`,hash).
+ AND u.disabled_at IS NULL
+ AND (u.email_verified_at IS NOT NULL OR NOT EXISTS (
+  SELECT 1 FROM platform_auth_settings f
+  WHERE f.singleton=true AND f.email_verification_enabled=true
+ )) LIMIT 1`,hash).
  Scan(&u.SessionID,&u.UserID,&u.Email,&u.EmailVerified,&u.MFAVerifiedAt)
  if errors.Is(err,sql.ErrNoRows){return Principal{},ErrUnauthorized}
  if err!=nil{return Principal{},ErrUnavailable}

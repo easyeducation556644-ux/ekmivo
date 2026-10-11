@@ -87,6 +87,12 @@ func TestPostgresSessionMembershipAndEnvironment(t *testing.T){
  if _,err=repo.AuthorizeWorkspace(ctx,principal,workspaces[0],Live,PaymentsManage);!errors.Is(err,ErrForbidden){t.Fatalf("viewer managed payment: %v",err)}
  _,err=admin.ExecContext(ctx,"DELETE FROM workspace_members WHERE workspace_id=$1::uuid AND user_id=$2::uuid",workspaces[0],ids[0]);if err!=nil{t.Fatal(err)}
  if _,err=repo.AuthorizeWorkspace(ctx,principal,workspaces[0],Live,PaymentsRead);!errors.Is(err,ErrForbidden){t.Fatalf("removed member accessed: %v",err)}
+ // A platform-wide email verification toggle must be authoritative in Go too.
+ _,err=admin.ExecContext(ctx,"UPDATE platform_auth_settings SET email_verification_enabled=true WHERE singleton=true");if err!=nil{t.Fatal(err)}
+ if _,err=repo.Authenticate(ctx,token);!errors.Is(err,ErrUnauthorized){t.Fatalf("unverified session accessed Go while verification enabled: %v",err)}
+ _,err=admin.ExecContext(ctx,"UPDATE app_users SET email_verified_at=now() WHERE id=$1::uuid",ids[0]);if err!=nil{t.Fatal(err)}
+ if _,err=repo.Authenticate(ctx,token);err!=nil{t.Fatalf("verified identity denied: %v",err)}
+ _,err=admin.ExecContext(ctx,"UPDATE platform_auth_settings SET email_verification_enabled=false WHERE singleton=true");if err!=nil{t.Fatal(err)}
  _,err=admin.ExecContext(ctx,"UPDATE app_users SET disabled_at=now() WHERE id=$1::uuid",ids[0]);if err!=nil{t.Fatal(err)}
  if _,err=repo.Authenticate(ctx,token);!errors.Is(err,ErrUnauthorized){t.Fatalf("disabled user retained session: %v",err)}
  _,err=admin.ExecContext(ctx,"UPDATE app_users SET disabled_at=NULL WHERE id=$1::uuid",ids[0]);if err!=nil{t.Fatal(err)}

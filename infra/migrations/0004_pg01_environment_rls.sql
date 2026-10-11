@@ -56,6 +56,7 @@ GRANT SELECT (id,user_id,token_hash,expires_at,revoked_at,mfa_verified_at) ON au
 GRANT SELECT (workspace_id,user_id,role) ON workspace_members TO ekmivo_financial_runtime;
 GRANT SELECT (id,service_mode) ON workspaces TO ekmivo_financial_runtime;
 GRANT SELECT (user_id,role) ON platform_administrators TO ekmivo_financial_runtime;
+GRANT SELECT (singleton,email_verification_enabled) ON platform_auth_settings TO ekmivo_financial_runtime;
 GRANT SELECT (user_id,confirmed_at) ON platform_admin_mfa TO ekmivo_financial_runtime;
 GRANT SELECT ON workspace_environments,workspace_environment_settings TO ekmivo_financial_runtime;
 GRANT UPDATE (checkout_expiry_minutes,updated_at)
