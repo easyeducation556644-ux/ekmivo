@@ -278,3 +278,7 @@ An opt-in native intake security foundation now exists in `apps/mobile/.../recei
 
 ### CI evidence for receipt security source
 Tests passed for Android receipt completeness and Kotlin/Go P-256 canonical request verification helpers in [run 38115889313](https://github.com/masharzy/ekmivo/actions/runs/38115889313). These protect future device ingress but do not deliver PG06/PG07; the sequential money/security release gates remain open.
+
+### PG01 implementation checkpoint — source/DB tested; acceptance OPEN
+
+PG00 accepted. PG01 scope F02/F03/F04, S02/S04/S45: Go opaque session/member/role checks, platform TOTP MFA and additive workspace/environment FORCE RLS were coded and reviewed. [GitHub Actions run 38117671893](https://github.com/masharzy/ekmivo/actions/runs/38117671893) passed Go/web/isolated PostgreSQL/Kotlin CI. Production Neon `0003`/ `0004` additive schema applied; restricted SQL-created `ekmivo_financial_runtime` role verified, default Neon API role rejected as elevated. **PG01 not accepted** pending real owner TOTP enrollment/confirmation and production Go runtime role query smoke/deployment. No PG02 work started. See [PG01 evidence](evidence/PG01/README.md); PG06 Kotlin signer/field validation remains partial, not real receipt collection.

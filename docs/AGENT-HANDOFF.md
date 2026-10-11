@@ -14,7 +14,7 @@ Updated 2026-10-11. Single canonical implementation plan: **[DUAL-SAAS-MVP-PLAN.
 
 ## Start point and constraints
 
-Next dependency-ready task: **PG00**. Existing foundation and local dashboard changes must be preserved. Inspect current source before treating any recorded check/deployment as current. Do not reset working tree, copy competitor source, or rebuild a parallel architecture.
+Current execution task: **PG01 (in progress, not accepted)**. PG00 CI baseline passed. Do not start PG02 until all PG01 gates pass. Existing foundation and local dashboard changes must be preserved. Inspect current source before treating any recorded check/deployment as current. Do not reset working tree, copy competitor source, or rebuild a parallel architecture.
 
 Priority: fully running payment product with sandbox/testing/developer/API docs. Minimal receipt collection is part of the **same native Kotlin/Jetpack Compose Android application** in phase 1 for live phone auto-verification; full merchant Android/inbox UI follows in phase 2. No React Native, Flutter or separate receipt bridge app. Full AI/commerce/other client features remain full-MVP requirements in phase 3.
 
@@ -59,3 +59,7 @@ Complete dependency-ready work, run relevant checks, record evidence and
 update repo docs after each accepted item. Identify external blockers
 without inventing provider/device success or silently omitting features.
 ~~~
+
+## PG01 handoff checkpoint
+
+Additive migrations `0003_pg01_admin_mfa.sql` and `0004_pg01_environment_rls.sql` have been applied to Ekmivo production Neon (existing 0001/0002 preserved). New `ekmivo_financial_runtime` role was created using restricted PostgreSQL SQL and verified **not** to be superuser, BYPASSRLS, CREATEROLE, CREATEDB, schema CREATE, table owner or `neon_superuser` member. The earlier Neon API-generated `ekmivo_runtime` is **elevated and unused**; never configure services with it. Removing that unused role requires explicit owner approval. No secret or connection string is in Git. MFA AES encryption key is stored in encrypted Vercel production env; user must enroll via `/bn/admin/mfa` or `/en/admin/mfa` with current password and authenticator. The real Go service is not yet hosted; `/readyz` stays 503. GitHub CI tests isolated 3-tenant/2-environment RLS, session revocation, disabled users, role changes, email-verification enforcement, TOTP vectors and Go integration. Live user MFA and production runtime-role query need acceptance before PG02.

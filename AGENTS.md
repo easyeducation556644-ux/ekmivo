@@ -31,4 +31,8 @@ The user's latest explicit instruction takes precedence. Within the documents, t
 
 Take the next dependency-ready work item. Record the item and scope IDs, concrete changes, relevant checks and unresolved dependencies. Planned work, mock provider output and sample screens are not evidence of a live integration. Do not mark incomplete tasks done or claim an untested capability.
 
-Current repository status: partial web/auth/dashboard foundation; financial engine/API/worker/bridge/sandbox not implemented. Latest evidence is docs/IMPLEMENTATION-STATUS.md. Next dependency-ready execution item PG00; D01/D02 remain open and complete before financial page styling. This planning revision does not implement/deploy a gateway.
+Current repository status: partial web/auth/dashboard foundation; financial engine/API/worker/bridge/sandbox not implemented. Latest evidence is docs/IMPLEMENTATION-STATUS.md. PG00 CI accepted. PG01 is in progress with Go authz, admin TOTP, applied additive migrations 0003/0004 and production least-privileged role verified. PG01 acceptance remains OPEN until live admin MFA and authorized Go runtime checks; PG02 must not start until PG01 passes. D01/D02 remain open.
+
+## Latest owner execution constraint — 2026-10-11
+
+Keep Android entirely Kotlin/Jetpack Compose, but **stop Android UI expansion**. Follow payment-first PG01, PG02, ... serially; only advance after each item's acceptance evidence is complete. PG06 Android signer/structural validation and AN03 debug APK remain **partial source evidence**, not real receipt collection/payment or Android release acceptance. Never silently mark PG06/AN03 complete.
