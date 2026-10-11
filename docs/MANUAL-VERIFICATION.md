@@ -41,6 +41,15 @@
 - **Automated:** navigation/route/env/translation contracts, web lint/TypeScript/build and server authorization tests. See CI; results/commit recorded in PG02 evidence.
 - **Acceptance state:** IN PROGRESS. Do not call financial lists or dashboard complete without real PG03–PG09 APIs.
 
+### PG02 additional live account/product checks (new functional controls)
+
+- [ ] In `/{locale}/workspaces` as owner/admin, enable/disable AI and Payments independently, including Both Off. Confirm business remains visible and disabled workspace shows a real access/setup explanation. Try an editor/viewer or removed member — changes must be denied.
+- [ ] Observe product state after refresh, browser back and a second browser. For a disabled payment product, its protected deep link and Go authorization must deny; re-enabling should recover allowed UI without activating real payments.
+- [ ] Verify audit entries for enabled/disabled toggles (authorized operator view), no duplicate record for an idempotent unchanged request, and correct actor/business attribution.
+- [ ] Open `/{locale}/account`; update name with real backend, refresh and verify persistence. Sign into another browser and use “Revoke other sessions”; first browser should lose access and current session must remain active. Confirm no guessed IP/device labels.
+- [ ] In new workspace onboarding, fill an incomplete business name and service choice: Save draft, Restore, Discard; internal navigation shows Save/Discard/Stay. Test separate accounts on same browser do **not** restore each other's draft; nothing is submitted merely by saving local draft.
+- **Automation passed:** [CI 38122484845](https://github.com/masharzy/ekmivo/actions/runs/38122484845), Go/Next/Android and isolated PostgreSQL product/account isolation. Production Neon 0005 applied; Render `61105edf` startup PASS. Manual browser results pending.
+
 ## PG03 — Contract and scoped API credentials
 
 - [ ] On owner-owned sandbox, issue API key, copy **once**, refresh to confirm raw key cannot be viewed again; rotate and revoke, old key blocked, new key works.
