@@ -13,3 +13,7 @@ Acceptance: OPEN. New migration 0014 is not applied; no live verification or dep
 Operational real API/UI source exists but has not been tested with logged-in browser, real isolated records, roles and EN/BN/theme responsive view. UUID-desc pagination is not chronological. Exports/refund/public receipt/full invoice depend on later PGs and must remain unavailable.
 
 Automated verification: source-authored tests/CI invocation are not PASS until a completed exact-commit run is recorded in the audit. New migration 0014 is NOT APPLIED. Real handset/provider/merchant payment, notices and deployment are NOT TESTED. Acceptance: **OPEN**.
+
+## PG06-focused CI source context — 2026-10-11
+
+The exact-source CI 38158507367 at 8aaf240 passed Next build/lint/typecheck and 0014 isolated installation. This is NOT authenticated real-record/role/browser coverage of PG09 screens, actions, responsive EN/BN, theme or stable time cursors. PG09 acceptance OPEN; see ../PG06-PG09-AUDIT.md.
