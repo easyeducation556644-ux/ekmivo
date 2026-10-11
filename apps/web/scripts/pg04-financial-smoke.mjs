@@ -875,6 +875,12 @@ try{
   const attempt=await pg07Attempt();
   const evidence=await pg07Receipt(attempt,change);
   same(await pg07Match(evidence),"unmatched","PG07 "+scenario+" unexpectedly verified");
+  const resolution=(await pg07DB.unsafe(
+   "SELECT reason FROM pg07_receipt_results WHERE observation_id=$1::uuid",[evidence]))[0].reason;
+  if(scenario==="amount_under")same(resolution,"partial_amount_requires_reconciliation",
+   "PG07 partial funds were misclassified as paid or routine no-match");
+  if(scenario==="amount_over")same(resolution,"excess_amount_requires_reconciliation",
+   "PG07 excess funds were misclassified as paid or routine no-match");
   same((await pg07DB.unsafe(
    "SELECT count(*)::int n FROM financial_payments WHERE observation_id=$1::uuid",[evidence]))[0].n,
    0,"PG07 "+scenario+" mutated funds");
