@@ -268,3 +268,20 @@
 @media(max-width:520px){.ds-topbar{align-items:flex-start;flex-direction:column}.ds-topbar-leading,.ds-topbar-tools{width:100%;justify-content:space-between}.ds-topbar .select-control{max-width:115px}.ds-global-search-button{min-width:44px}.ds-service-picker summary strong{max-width:145px}.ds-env-banner{display:block}.ds-env-banner span,.ds-env-banner a{display:block;margin-top:4px}}
 @media(max-width:355px){.ds-service-picker summary strong{max-width:122px}.ds-environment-picker select{padding:6px 5px}.ds-topbar-tools{gap:3px}.ds-topbar .select-control{max-width:96px;padding-inline:6px 18px}}
 @media(prefers-reduced-motion:reduce){.ds-service-menu,.ds-search-dialog,.ds-navigation-progress{animation:none;transition:none}}
+
+/* Server authorization/loading/error states from the PG02 navigation contract. */
+.ds-route-loading,.ds-route-error{min-height:65svh;background:var(--color-canvas);color:var(--color-text);display:flex;flex-direction:column;justify-content:center;padding:clamp(24px,6vw,80px);max-width:980px;margin-inline:auto}
+.ds-loading-brand{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:40px}
+.ds-loading-brand strong{font-size:26px;letter-spacing:-.05em}
+.ds-loading-brand strong span{color:var(--color-text-secondary)}
+.ds-loading-brand>span,.ds-route-loading p{color:var(--color-text-secondary);font-size:13px;line-height:1.7}
+.ds-loading-skeleton{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.ds-loading-skeleton span{height:145px;border:1px solid var(--color-border);border-radius:10px;background:var(--color-surface)}
+.ds-loading-skeleton span:before{content:"";display:block;height:11px;width:50%;background:var(--color-canvas);margin:20px;border-radius:4px}
+.ds-route-loading p{margin-top:28px}
+.ds-route-error{max-width:650px}
+.ds-error-eyebrow{font-size:11px;letter-spacing:.11em;color:var(--color-text-muted)}
+.ds-route-error h1{margin:18px 0;font-size:clamp(28px,3vw,42px)}
+.ds-route-error p{color:var(--color-text-secondary);line-height:1.7;max-width:550px}
+.ds-route-retry{align-self:flex-start;margin-top:16px;min-height:44px;padding:10px 20px;border:1px solid var(--color-control-border);background:var(--color-primary);color:var(--color-on-primary);border-radius:7px;font-weight:600}
+@media(max-width:540px){.ds-loading-skeleton{grid-template-columns:repeat(2,minmax(0,1fr))}.ds-loading-skeleton span{height:96px}}
