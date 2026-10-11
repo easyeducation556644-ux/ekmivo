@@ -153,6 +153,7 @@ jobs:
         run: |
           go test ./...
           go test -race ./internal/checkout
+          go vet ./...
       - name: Go HTTP server smoke
         working-directory: backend
         run: |
