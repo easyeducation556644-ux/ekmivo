@@ -64,6 +64,21 @@ func TestPostgresSessionMembershipAndEnvironment(t *testing.T){
  if err!=nil{t.Fatal(err)}
  principal,err:=repo.Authenticate(ctx,token)
  if err!=nil||principal.UserID!=ids[0]{t.Fatalf("auth failed: %v",err)}
+ if _,err=repo.AuthorizePlatform(ctx,principal,true);!errors.Is(err,ErrForbidden){t.Fatalf("workspace owner gained platform admin privileges: %v",err)}
+ _,err=admin.ExecContext(ctx,"INSERT INTO platform_administrators(user_id,role) VALUES ($1::uuid,'super_admin')",ids[0]);if err!=nil{t.Fatal(err)}
+ _,err=admin.ExecContext(ctx,"INSERT INTO platform_admin_mfa(user_id,secret_ciphertext,confirmed_at) VALUES ($1::uuid,'sealed-test-fixture',now())",ids[0]);if err!=nil{t.Fatal(err)}
+ if _,err=repo.AuthorizePlatform(ctx,principal,true);!errors.Is(err,ErrMFANeeded){t.Fatalf("platform admin without recent MFA was authorized: %v",err)}
+ _,err=admin.ExecContext(ctx,"UPDATE auth_sessions SET mfa_verified_at=now() WHERE token_hash=$1",hex.EncodeToString(hash[:]));if err!=nil{t.Fatal(err)}
+ principal,err=repo.Authenticate(ctx,token);if err!=nil{t.Fatal(err)}
+ if role,err:=repo.AuthorizePlatform(ctx,principal,true);err!=nil||role!="super_admin"{t.Fatalf("fresh MFA platform admin was rejected: %v",err)}
+ _,err=admin.ExecContext(ctx,"UPDATE auth_sessions SET mfa_verified_at=now()-interval '13 hours' WHERE token_hash=$1",hex.EncodeToString(hash[:]));if err!=nil{t.Fatal(err)}
+ principal,err=repo.Authenticate(ctx,token);if err!=nil{t.Fatal(err)}
+ if _,err=repo.AuthorizePlatform(ctx,principal,true);!errors.Is(err,ErrMFANeeded){t.Fatalf("stale MFA session was authorized: %v",err)}
+ _,err=admin.ExecContext(ctx,"UPDATE auth_sessions SET mfa_verified_at=now() WHERE token_hash=$1",hex.EncodeToString(hash[:]));if err!=nil{t.Fatal(err)}
+ _,err=admin.ExecContext(ctx,"UPDATE platform_administrators SET role='support' WHERE user_id=$1::uuid",ids[0]);if err!=nil{t.Fatal(err)}
+ principal,err=repo.Authenticate(ctx,token);if err!=nil{t.Fatal(err)}
+ if _,err=repo.AuthorizePlatform(ctx,principal,true);!errors.Is(err,ErrForbidden){t.Fatalf("support gained super admin capability: %v",err)}
+ _,err=admin.ExecContext(ctx,"UPDATE platform_administrators SET role='super_admin' WHERE user_id=$1::uuid",ids[0]);if err!=nil{t.Fatal(err)}
  if _,err=repo.AuthorizeWorkspace(ctx,principal,workspaces[0],Sandbox,PaymentsRead);err!=nil{t.Fatalf("own sandbox denied: %v",err)}
  if _,err=repo.AuthorizeWorkspace(ctx,principal,workspaces[0],Live,PaymentsRead);err!=nil{t.Fatalf("own live denied: %v",err)}
  if _,err=repo.AuthorizeWorkspace(ctx,principal,workspaces[1],Live,PaymentsRead);!errors.Is(err,ErrForbidden){t.Fatalf("other tenant accessed: %v",err)}
@@ -72,6 +87,9 @@ func TestPostgresSessionMembershipAndEnvironment(t *testing.T){
  if _,err=repo.AuthorizeWorkspace(ctx,principal,workspaces[0],Live,PaymentsManage);!errors.Is(err,ErrForbidden){t.Fatalf("viewer managed payment: %v",err)}
  _,err=admin.ExecContext(ctx,"DELETE FROM workspace_members WHERE workspace_id=$1::uuid AND user_id=$2::uuid",workspaces[0],ids[0]);if err!=nil{t.Fatal(err)}
  if _,err=repo.AuthorizeWorkspace(ctx,principal,workspaces[0],Live,PaymentsRead);!errors.Is(err,ErrForbidden){t.Fatalf("removed member accessed: %v",err)}
+ _,err=admin.ExecContext(ctx,"UPDATE app_users SET disabled_at=now() WHERE id=$1::uuid",ids[0]);if err!=nil{t.Fatal(err)}
+ if _,err=repo.Authenticate(ctx,token);!errors.Is(err,ErrUnauthorized){t.Fatalf("disabled user retained session: %v",err)}
+ _,err=admin.ExecContext(ctx,"UPDATE app_users SET disabled_at=NULL WHERE id=$1::uuid",ids[0]);if err!=nil{t.Fatal(err)}
  _,err=admin.ExecContext(ctx,"UPDATE auth_sessions SET revoked_at=now() WHERE token_hash=$1",hex.EncodeToString(hash[:]));if err!=nil{t.Fatal(err)}
  if _,err=repo.Authenticate(ctx,token);!errors.Is(err,ErrUnauthorized){t.Fatalf("revoked session accepted: %v",err)}
 }
