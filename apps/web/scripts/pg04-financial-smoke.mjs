@@ -1237,6 +1237,8 @@ try{
    "SELECT pg09_action($1::uuid,'sandbox',$2,$3::uuid,$4,$5::jsonb,$6) AS data",
    [pg07WS,resource,id,action,JSON.stringify(payload),secret]))[0].data;
  });
+ const pg09RenamePayload=JSON.stringify({name:"PG09 renamed fictional handset"});
+ same((await pg07DB.unsafe("SELECT $1::jsonb->>'name' AS value",[pg09RenamePayload]))[0].value,"PG09 renamed fictional handset","PG09 name JSON parameter was not encoded correctly");
  same((await pg09Action("devices",device,"rename",{name:"PG09 renamed fictional handset"})).updated,true,
   "PG09 device rename operation unavailable");
  same((await pg09Read("devices",device)).items[0].name,"PG09 renamed fictional handset",
