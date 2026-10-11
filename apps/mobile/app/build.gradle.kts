@@ -1,0 +1,71 @@
+plugins {
+ id("com.android.application")
+ id("org.jetbrains.kotlin.android")
+ id("org.jetbrains.kotlin.plugin.compose")
+}
+
+android {
+ namespace = "com.ekmivo.mobile"
+ compileSdk = 35
+ defaultConfig {
+  applicationId = "com.ekmivo.mobile"
+  minSdk = 26
+  targetSdk = 35
+  versionCode = 1
+  versionName = "0.1.0"
+  testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+  // Public origin only: never embed credentials or a payment authority in a mobile binary.
+  buildConfigField("String", "API_BASE_URL",
+    "\"" + (providers.gradleProperty("ekmivoApiBaseUrl").orElse("").get().trimEnd('/')) + "\"")
+ }
+ buildTypes {
+  release {
+   isMinifyEnabled = true
+   isShrinkResources = true
+   proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+  }
+ }
+ buildFeatures {
+  compose = true
+  buildConfig = true
+ }
+ compileOptions {
+  sourceCompatibility = JavaVersion.VERSION_17
+  targetCompatibility = JavaVersion.VERSION_17
+ }
+ kotlinOptions { jvmTarget = "17" }
+}
+
+val fontNames = mapOf(
+ "HindSiliguri-Regular.ttf" to "hind_siliguri_regular.ttf",
+ "HindSiliguri-Medium.ttf" to "hind_siliguri_medium.ttf",
+ "HindSiliguri-SemiBold.ttf" to "hind_siliguri_semibold.ttf",
+ "HindSiliguri-Bold.ttf" to "hind_siliguri_bold.ttf",
+)
+val stageHindSiliguri by tasks.registering(Copy::class) {
+ from(file("../../web/src/fonts"))
+ include(*fontNames.keys.toTypedArray())
+ rename { original -> fontNames[original] ?: original }
+ into(layout.buildDirectory.dir("generated/native-fonts/res/font"))
+ includeEmptyDirs = false
+}
+android.sourceSets.getByName("main").res.srcDir(layout.buildDirectory.dir("generated/native-fonts/res"))
+tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Resources") }.configureEach {
+ dependsOn(stageHindSiliguri)
+}
+
+dependencies {
+ implementation(platform("androidx.compose:compose-bom:2024.12.01"))
+ implementation("androidx.compose.ui:ui")
+ implementation("androidx.compose.ui:ui-tooling-preview")
+ implementation("androidx.compose.foundation:foundation")
+ implementation("androidx.compose.material3:material3")
+ implementation("androidx.compose.material:material-icons-extended")
+ implementation("androidx.core:core-ktx:1.15.0")
+ implementation("androidx.activity:activity-compose:1.9.3")
+ implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+ implementation("androidx.datastore:datastore-preferences:1.1.1")
+ implementation("com.squareup.okhttp3:okhttp:4.12.0")
+ debugImplementation("androidx.compose.ui:ui-tooling")
+ testImplementation("junit:junit:4.13.2")
+}
