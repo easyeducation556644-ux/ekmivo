@@ -1264,6 +1264,8 @@ try{
   "PG09 reprocess incorrectly marked funds as verified");
  same((await pg09Action("devices",device,"revoke")).updated,true,"PG09 device revoke not persisted");
  ok((await pg09Read("devices",device)).items[0].revoked_at,"PG09 revoked device still shows active");
+ ok((await pg09Read("devices",device)).items[0].recent_receipts.length>=2,
+  "PG09 revoked-device history was silently destroyed in dashboard");
  const audits=(await pg07DB.unsafe(
   "SELECT count(*)::int n FROM pg09_audit WHERE workspace_id=$1::uuid AND environment='sandbox' "+
   "AND resource IN ('devices','gateways','webhooks','incoming')",[pg07WS]))[0].n;
