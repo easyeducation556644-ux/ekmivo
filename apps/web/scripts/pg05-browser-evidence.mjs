@@ -129,6 +129,11 @@ export async function runPG05Browser({control,goOrigin,tenant,sessions,token,exp
    record(`public checkout ${width}px ${locale} ${theme}: real data, theme, locale, keyboard, no overflow`);
    await c.close();
   }
+  // PG09 UI-only coverage uses this genuine logged-in Next shell and real
+  // owner/viewer sessions, but stubs PG09 HTTP operations responses.
+  // Actual PG09 SQL correctness is exercised independently in pg04 smoke.
+  const {runPG09Browser}=await import("./pg09-browser-evidence.mjs");
+  await runPG09Browser({origin,browser,tenant,sessions});
   await mkdir("test-results/pg05",{recursive:true});
   await writeFile("test-results/pg05/browser-results.json",JSON.stringify({classification:"isolated real DB/Go/Next browser evidence; no provider or deployment acceptance",results},null,2));
  }catch(error){await mkdir("test-results/pg05",{recursive:true});await writeFile("test-results/pg05/failure.txt",String(error)+"\n"+logs);throw error}
