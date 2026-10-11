@@ -158,7 +158,9 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
        const next=event.target.value as PaymentEnvironment;
        if(!paymentContext?.availableEnvironments.includes(next))return;
        try{window.localStorage.setItem(environmentKey(workspace.id),next);}catch{/* Explicit URL is authoritative for navigation. */}
-       goTo(workspace.id,service,next,"overview");
+       // Environment-scoped record IDs and list filters never carry across:
+       // this URL selects only the corresponding section in the other realm.
+       goTo(workspace.id,service,next,section);
       }}>
        {(["sandbox","live"] as PaymentEnvironment[]).map(item=><option key={item} value={item} disabled={!paymentContext?.availableEnvironments.includes(item)}>{item==="sandbox"?"Sandbox":"Live"}</option>)}
       </select>
