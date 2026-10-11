@@ -27,6 +27,7 @@ const hmac=()=>randomBytes(32).toString("hex");
 const rollback=Symbol("PG04_ROLLBACK");
 const controls=[];
 const dbs={};
+let pg09Auth=null;
 try{
  // The already-migrated control database must remain untouched; finance owns
  // neither app_users nor merchant secrets nor control memberships.
@@ -359,6 +360,7 @@ try{
     VALUES(${userId}::uuid,${sessionHash},now()+interval '1 hour')`;
    sessions[role]=opaque;
   }
+  pg09Auth={sessions:{...sessions},tokenSecret,payerSecret};
   const child=spawn(apiBin,[],{cwd:goCwd,env:{
     ...process.env,PORT:String(port),GO_WEB_ORIGIN:origin,
     EKMIVO_REQUIRE_AUTHZ:"true",
@@ -1284,6 +1286,87 @@ try{
  ok(dRows.items.length>=1&&dRows.items.every(x=>x.endpoint_id===pg07Endpoint),
   "PG09 webhook detail deliveries are not scoped by endpoint");
  console.log("PG09 isolated source-backed UI contracts PASS: chronological UUID-tie keyset pages, filters, scoped list/detail, audit-safe incoming comparison, overview and webhook correlation (FICTIONAL SANDBOX ONLY)");
+
+
+ // PG09 HTTP: genuine Go API + restricted authz/finance/control DB roles
+ // against the disposable PG06-PG09 finance migration. NOT a provider test.
+ ok(pg09Auth&&pg09Auth.sessions.owner&&pg09Auth.sessions.viewer,
+  "PG09 genuine session precondition absent");
+ const apiTestBin="/tmp/ekmivo-pg09-ci-api-"+process.pid;
+ execFileSync("go",["build","-o",apiTestBin,"./cmd/api"],{
+  cwd:new URL("../../../backend/",import.meta.url),stdio:"inherit",timeout:120000
+ });
+ const apiTestPort=17888,apiTestOrigin="http://127.0.0.1:"+apiTestPort;
+ const apiProcess=spawn(apiTestBin,[],{cwd:new URL("../../../backend/",import.meta.url),env:{
+  ...process.env,PORT:String(apiTestPort),GO_WEB_ORIGIN:apiTestOrigin,EKMIVO_REQUIRE_AUTHZ:"true",
+  AUTHZ_DATABASE_URL:ds(source.pathname.slice(1),"ekmivo_financial_runtime","pg01-ci-only-password"),
+  PG05_SANDBOX_DATABASE_URL:ds("ekmivo_pg04_sandbox","ekmivo_finance_reader_sandbox","pg04-sandbox-reader-only"),
+  PG05_TOKEN_SECRET:pg09Auth.tokenSecret,PG05_PAYER_SECRET:pg09Auth.payerSecret,
+  PG06_PIPELINE_ENABLED:"true",PG06_PARSER_RULES_JSON:"[]",
+  PG06_ENCRYPTION_KEY_HEX:Buffer.alloc(32,88).toString("hex"),
+  PG06_CONTROL_PROJECTION_URL:ds(source.pathname.slice(1),"ekmivo_financial_projection_operator","pg04-control-projection-only")
+ },stdio:["ignore","pipe","pipe"]});
+ let apiOutput="";
+ for(const stream of [apiProcess.stdout,apiProcess.stderr])stream.on("data",chunk=>{apiOutput=(apiOutput+String(chunk)).slice(-4000)});
+ try{
+  let ready=false;
+  for(let i=0;i<115;i++){
+   if(apiProcess.exitCode!==null)throw Error("PG09 Go process exited: "+apiOutput);
+   try{const res=await fetch(apiTestOrigin+"/healthz",{signal:AbortSignal.timeout(600)});
+    if(res.status===200){ready=true;break}}catch{}
+   await new Promise(resolve=>setTimeout(resolve,170));
+  }
+  ok(ready,"PG09 actual Go with pipeline failed startup: "+apiOutput);
+  const route=apiTestOrigin+"/v1/workspaces/"+pg07WS+"/operations/";
+  const head=role=>({Cookie:"ekmivo-session="+pg09Auth.sessions[role],Origin:apiTestOrigin,"Content-Type":"application/json"});
+  const none=await fetch(route+"payments?environment=sandbox");
+  same(none.status,401,"PG09 real HTTP exposes finance without authentication");
+  const owner=await fetch(route+"payments?environment=sandbox",{headers:head("owner")});
+  same(owner.status,200,"PG09 genuine owner HTTP payment list denied");
+  const ownerItems=(await owner.json()).items;
+  ok(ownerItems.some(x=>x.id===complete[0].id),"PG09 actual HTTP did not return fixture payment");
+  const viewer=await fetch(route+"payments?environment=sandbox",{headers:head("viewer")});
+  same(viewer.status,200,"PG09 genuine read-only viewer cannot read scoped finance");
+  const editor=await fetch(route+"payments?environment=sandbox",{headers:head("editor")});
+  same(editor.status,200,"PG09 editor cannot read scoped finance");
+  const routeSearch=await fetch(route+"payments?environment=sandbox&q="+encodeURIComponent(paymentDetail.items[0].merchant_reference),{headers:head("owner")});
+  same(routeSearch.status,200,"PG09 bounded real HTTP server search unavailable");
+  ok((await routeSearch.json()).items.some(x=>x.id===complete[0].id),
+   "PG09 API search failed to filter source financial DB");
+  const deniedWorkspace=await fetch(apiTestOrigin+"/v1/workspaces/"+randomUUID()+"/operations/payments?environment=sandbox",
+   {headers:head("owner")});
+  ok([403,404].includes(deniedWorkspace.status),"PG09 different workspace was readable through session");
+  const deniedLive=await fetch(route+"payments?environment=live",{headers:head("owner")});
+  same(deniedLive.status,503,"PG09 unconfigured live realm silently read sandbox data");
+  const forbiddenViewer=await fetch(route+"webhooks/"+pg07Endpoint+"/disable?environment=sandbox",{
+   method:"POST",headers:head("viewer"),body:"{}"});
+  same(forbiddenViewer.status,403,"PG09 viewer could disable webhook over real Go API");
+  const forbiddenEditor=await fetch(route+"webhooks/"+pg07Endpoint+"/disable?environment=sandbox",{
+   method:"POST",headers:head("editor"),body:"{}"});
+  same(forbiddenEditor.status,403,"PG09 editor could mutate protected webhook");
+  const ownerEndpoint=await fetch(route+"webhooks?environment=sandbox",{
+   method:"POST",headers:head("owner"),body:JSON.stringify({url:"https://example.invalid/pg09-ci-http"})});
+  same(ownerEndpoint.status,200,"PG09 owner cannot create HTTPS endpoint over real API");
+  const created=await ownerEndpoint.json();
+  ok(created.id&&typeof created.signing_secret==="string"&&created.signing_secret.length>=32,
+   "PG09 creation did not return once-visible signing secret");
+  const ownerRead=await fetch(route+"webhooks/"+created.id+"?environment=sandbox",{headers:head("owner")});
+  same(ownerRead.status,200,"PG09 created webhook not queryable");
+  const readBody=await ownerRead.json();
+  same(readBody.items[0].id,created.id,"PG09 created webhook detail was not persisted");
+  same("signing_secret" in readBody,false,"PG09 GET re-exposed once-visible signing secret");
+  const changed=await fetch(route+"webhooks/"+created.id+"/disable?environment=sandbox",{
+   method:"POST",headers:head("owner"),body:"{}"});
+  same(changed.status,200,"PG09 authenticated owner cannot disable endpoint");
+  const disabledState=await fetch(route+"webhooks/"+created.id+"?environment=sandbox",{headers:head("owner")});
+  same((await disabledState.json()).items[0].active,false,
+   "PG09 successful mutation did not reflect in real database detail");
+  console.log("PG09 REAL GO HTTP PASS: owner/viewer/editor sessions, restricted finance, query and create/disable endpoint, server search, once-visible signing secret, no live fallback (SYNTHETIC DB ONLY)");
+ }finally{
+  apiProcess.kill("SIGTERM");
+  await Promise.race([new Promise(resolve=>apiProcess.once("close",resolve)),new Promise(resolve=>setTimeout(resolve,4000))]);
+  if(apiProcess.exitCode===null)apiProcess.kill("SIGKILL");
+ }
 
  const controlEmpty=await admin`SELECT to_regclass('public.payment_intents') IS NULL AS no_payments`;
  ok(controlEmpty[0].no_payments,"financial tables leaked into control DB");
