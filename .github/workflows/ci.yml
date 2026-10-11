@@ -64,6 +64,9 @@ jobs:
       - name: RFC6238 TOTP and replay vectors
         working-directory: apps/web
         run: node scripts/pg01-mfa-smoke.mjs
+      - name: PG02 product and environment navigation contracts
+        working-directory: apps/web
+        run: node scripts/pg02-navigation-smoke.mjs
       - name: TypeScript compile
         working-directory: apps/web
         run: npx tsc --noEmit
