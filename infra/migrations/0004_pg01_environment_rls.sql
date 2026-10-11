@@ -32,7 +32,7 @@ INSERT INTO workspace_environment_settings(workspace_id,environment)
 -- Seed both logical contexts when a workspace is created; they are NOT
 -- claims that payment providers or live financial operations are enabled.
 CREATE OR REPLACE FUNCTION seed_workspace_environments() RETURNS trigger
-LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
 BEGIN
  INSERT INTO workspace_environments(workspace_id,environment)
  VALUES(NEW.id,'sandbox'),(NEW.id,'live') ON CONFLICT DO NOTHING;
@@ -40,7 +40,7 @@ BEGIN
  VALUES(NEW.id,'sandbox'),(NEW.id,'live') ON CONFLICT DO NOTHING;
  RETURN NEW;
 END
-$;
+$$;
 CREATE TRIGGER workspace_environment_seed_after_insert
  AFTER INSERT ON workspaces FOR EACH ROW EXECUTE FUNCTION seed_workspace_environments();
 
