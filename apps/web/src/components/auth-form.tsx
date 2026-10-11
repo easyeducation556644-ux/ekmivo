@@ -39,6 +39,7 @@ export function AuthForm({locale,mode}:{locale:Locale;mode:"login"|"register"}){
     <Submit label={p.submit} loading={t.pending}/>
    </form>
    <div className="auth-switch"><span>{p.bottom}</span> <Link href={`/${locale}/${mode==="login"?"register":"login"}`}>{p.swap} ↗</Link></div>
+   {mode==="login"&&<Link className="ek-forgot-link" href={"/"+locale+"/forgot-password"}>{locale==="bn"?"পাসওয়ার্ড ভুলে গেছেন?":"Forgot password?"} →</Link>}
    <small className="ek-auth-disclaimer">{t.privacy}</small>
   </div>
   <Link className="auth-back" href={`/${locale}`}>← {t.back}</Link>
