@@ -93,4 +93,7 @@ GitHub Actions `Foundation CI` run [38114530626](https://github.com/masharzy/ekm
 
 
 ### AN03 Kotlin source checkpoint (unaccepted)
-`apps/mobile` now contains an actual Gradle/Kotlin/Jetpack Compose Android implementation with Ink & Bone Material3 colors, Hind Siliguri sourced from the existing web fonts, BN/EN copy, DataStore appearance/language preferences, animated merchant navigation, payment/inbox empty states and a real Go HTTP health/readiness probe. No receipt/SMS permissions are requested. A native CI job has been added; Android compiler/Gradle verification is ongoing, and real APK/device/performance/auth/payment behavior has not been asserted. All AN03/PG06/full inbox release gates remain open.
+`apps/mobile` now contains an actual Gradle/Kotlin/Jetpack Compose Android implementation with Ink & Bone Material3 colors, Hind Siliguri sourced from the existing web fonts, BN/EN copy, DataStore appearance/language preferences, animated merchant navigation, payment/inbox empty states and a real Go HTTP health/readiness probe. No receipt/SMS permissions are requested. A native CI job has passed on run 38115451816: Android debug APK assembly and unit tests (artifact 11693123111); web/Go/PostgreSQL tests also passed. Real Android device/performance/auth/payment behavior remains untested. All AN03/PG06/full inbox release gates remain open.
+
+### Kotlin build CI accepted (source only)
+Workflow: https://github.com/masharzy/ekmivo/actions/runs/38115451816 — success on b8247408; Kotlin/Compose assembled and unit-tested APK artifact 11693123111. No real-device benchmark, auth, inbox or receipt tests; PG06 and AN03 remain open.

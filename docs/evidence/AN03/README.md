@@ -17,3 +17,9 @@ Status: **source in progress**, full AN03 remains blocked by the payment and hum
 
 ## Completion gate still open
 AN03 requires real mobile auth, authorized navigation/deep-links, Go API integration, push, failure/offline recovery, integrated receipt collector, and explicit security evidence. AN04/AN05/full Android inbox continue after backend/PG17 sequence.
+
+## First native build verification — 2026-10-11
+
+**PASS (source/CI only).** The full workflow [38115451816](https://github.com/masharzy/ekmivo/actions/runs/38115451816), commit `b8247408f0029a68bbc9cc467964c447f53b5a41`, completed successfully: native `:app:assembleDebug` and `:app:testDebugUnitTest` with JDK 17 / SDK 35 / Gradle 8.9; web lint/TypeScript/build; Go tests, actual HTTP health/503 readiness smoke and API/worker compile; PostgreSQL 17 isolated migration and rollback tests.
+
+The [`ekmivo-kotlin-debug` APK artifact](https://github.com/masharzy/ekmivo/actions/runs/38115451816/artifacts/11693123111) was uploaded (GitHub Actions ZIP, ~17 MB compressed). This is a **debug foundation** build, not a signed production release or proof of smooth animations on device. Android preview devices and all receipt collection/payment/inbox integration acceptance remain OPEN.

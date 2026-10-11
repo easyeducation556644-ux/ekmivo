@@ -32,3 +32,5 @@ Never put service credentials in Gradle properties or the APK. The app only chec
 - Network timeouts and explicit Unconfigured/Checking/Unreachable/NotReady/Ready HTTP status; no misleading paid states.
 
 **Not yet built:** merchant login token handoff/authorization, business/product/environment switch, real Go payment/inbox/domain endpoints, notification/receipt capture, background delivery, FCM, device tests, macrobenchmark, Play release, and full 1:1 production chat-app interaction fidelity. AN03 stays open until all phase-2 gates pass.
+
+First verified native debug APK: [Actions artifact 11693123111](https://github.com/masharzy/ekmivo/actions/runs/38115451816/artifacts/11693123111), from successful CI run 38115451816. Download the ZIP from GitHub Actions and extract `app-debug.apk`. Debug APK is an installable developer build, not production-signed and not a working payment gateway.

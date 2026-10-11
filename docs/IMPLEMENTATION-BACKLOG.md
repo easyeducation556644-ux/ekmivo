@@ -268,3 +268,6 @@ PG00 foundation evidence accepted in [PG00 evidence](evidence/PG00/README.md) vi
 
 ### Native Kotlin source preparation
 Owner selected native Kotlin + Compose (ADR-0001). A runnable app source foundation is being prepared under `apps/mobile` ahead of PG06/AN03; this is an early native toolchain/design dependency check, **not** an acceptance bypass for PG01–PG05. Recording runnable source or an assembled APK must not be mistaken for a real receipt bridge, live merchant payment, inbox or full AN03 phase gate. See `docs/evidence/AN03/README.md`.
+
+### Native compile checkpoint
+Kotlin/Compose debug assemble and unit tests succeeded in [Actions run 38115451816](https://github.com/masharzy/ekmivo/actions/runs/38115451816) (artifact 11693123111). It is **not** PG06/AN03 acceptance or real-device smoothness evidence; dependencies remain in the serial PG schedule.
