@@ -1,7 +1,8 @@
 "use client";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { profileInitial,saveDisplayName,revokeOtherSessions } from "../actions/profile";
+import { saveDisplayName,revokeOtherSessions,type ProfileActionState } from "../actions/profile";
+const profileInitial:ProfileActionState={status:"idle",message:""};
 
 type Locale="bn"|"en";
 function Submit({label}:{label:string}){

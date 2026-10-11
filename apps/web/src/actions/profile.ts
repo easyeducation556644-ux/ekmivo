@@ -7,7 +7,6 @@ import { database } from "../lib/server/db";
 import { asText, validatedName, safeLocale } from "../lib/server/validation";
 
 export type ProfileActionState={status:"idle"|"error"|"success";message:string};
-export const profileInitial:ProfileActionState={status:"idle",message:""};
 
 export async function saveDisplayName(localeRaw:string,_previous:ProfileActionState,form:FormData):Promise<ProfileActionState>{
  const locale=safeLocale(localeRaw),actor=await requireUser(locale);
