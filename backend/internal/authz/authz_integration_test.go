@@ -26,7 +26,7 @@ func TestPostgresSessionMembershipAndEnvironment(t *testing.T){
  defer db.Close()
  ctx,cancel:=context.WithTimeout(context.Background(),20*time.Second);defer cancel()
  repo:=Repository{DB:db}
- if err=repo.ValidateRuntimeRole(ctx);err!=nil{t.Fatal(err)}
+ if err=repo.ProbeReadOnlyBoundary(ctx);err!=nil{t.Fatal(err)}
  adminURL:=os.Getenv("PG00_TEST_DATABASE_URL")
  if adminURL==""{t.Fatal("PG01 integration requires isolated admin fixture database")}
  admin,err:=sql.Open("pgx",adminURL)
