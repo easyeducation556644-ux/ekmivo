@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { randomBytes, createHash, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { database } from "./db";
+import { verificationEnabled } from "./email";
 
 function derive(password: string, salt: Buffer): Promise<Buffer> {
  return new Promise((resolve,reject)=>{
@@ -59,6 +60,7 @@ export async function currentUser():Promise<User|null> {
 export async function requireUser(locale:"bn"|"en"):Promise<User> {
  const u=await currentUser();
  if(!u)redirect(`/${locale}/login`);
+ if(!u.verified && await verificationEnabled())redirect(`/${locale}/verify-email`);
  return u;
 }
 export async function workspacesFor(userId:string):Promise<Workspace[]>{
