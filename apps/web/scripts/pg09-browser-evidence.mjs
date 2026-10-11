@@ -43,7 +43,7 @@ export async function runPG09Browser({origin,browser,tenant,sessions}){
    const part=url.pathname.split("/operations/")[1]||"";
    const [resource,id,action]=part.split("/");
    calls.push({resource,method:request.method(),status:url.searchParams.get("status"),
-    environment:url.searchParams.get("environment"),id,action});
+    environment:url.searchParams.get("environment"),q:url.searchParams.get("q"),id,action});
    if(offlineSource&&resource==="payments")return route.fulfill({status:503,contentType:"application/json",body:JSON.stringify({error:{code:"PIPELINE_SOURCE_UNAVAILABLE"}})});
    if(request.method()==="POST"){
     if(resource==="webhooks"&&action==="rotate")webhook.rotation_pending=true;
@@ -71,6 +71,10 @@ export async function runPG09Browser({origin,browser,tenant,sessions}){
   await page.waitForFunction(()=>new URLSearchParams(location.search).get("env")==="sandbox");
   assert.ok(calls.some(c=>c.resource==="payments"&&c.status==="verified"),
    "PG09 server filter was not forwarded to Go gateway");
+  await page.getByLabel("Search all records (server-side)").fill("PG09-FAKE");
+  await page.waitForResponse(response=>response.url().includes("/operations/payments")&&response.url().includes("q=PG09-FAKE"));
+  assert.ok(calls.some(c=>c.resource==="payments"&&c.q==="PG09-FAKE"),
+   "PG09 global scoped search was not forwarded to Go API");
   assert.equal(await page.getByRole("button",{name:/mark.*paid|approve payment/i}).count(),0);
   passed("authenticated owner UI lists synthetic source data with server filter and no mark-paid");
   await page.getByRole("link",{name:/1d7c6c81/}).first().click();
