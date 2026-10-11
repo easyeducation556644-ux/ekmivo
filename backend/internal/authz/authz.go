@@ -158,7 +158,7 @@ func (r *Repository) AuthorizePlatform(ctx context.Context,principal Principal,s
  if errors.Is(err,sql.ErrNoRows){return "",ErrForbidden}
  if err!=nil{return "",ErrUnavailable}
  if superOnly&&role!="super_admin"{return "",ErrForbidden}
- if !confirmed||!principal.MFAVerifiedAt.Valid||time.Since(principal.MFAVerifiedAt.Time)>12*time.Hour||time.Since(principal.MFAVerifiedAt.Time)<-time.Minute{
+ if !confirmed||!principal.MFAVerifiedAt.Valid||time.Since(principal.MFAVerifiedAt.Time)>12*time.Hour||time.Since(principal.MFAVerifiedAt.Time) < -time.Minute{
   return "",ErrMFANeeded
  }
  return role,nil
