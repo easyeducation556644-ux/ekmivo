@@ -2,11 +2,12 @@ import Link from "next/link";
 import { logoutAction } from "../actions/account";
 import { type User, type Workspace, workspacesFor, isPlatformAdmin } from "../lib/server/auth";
 import { sections,groupOrder,allowedSection,type SectionKey } from "../lib/dashboard-sections";
+import { verificationEnabled } from "../lib/server/email";
 type Locale="bn"|"en";
 const groupNames={en:{common:"Workspace",ai:"AI Communication",commerce:"Commerce & Payments"},bn:{common:"ওয়ার্কস্পেস",ai:"AI যোগাযোগ",commerce:"কমার্স ও পেমেন্ট"}} as const;
 export async function AppShell({locale,user,workspace,section,children}:{locale:Locale;user:User;workspace:Workspace;section:SectionKey;children:React.ReactNode}){
  const spaces=await workspacesFor(user.id);
- const platformAdmin=user.verified&&await isPlatformAdmin(user.id);
+ const platformAdmin=(user.verified || !(await verificationEnabled())) && await isPlatformAdmin(user.id);
  const base=`/${locale}/w/${workspace.id}`;
  return <main className="ek-dashboard">
   <aside className="ek-sidebar">
