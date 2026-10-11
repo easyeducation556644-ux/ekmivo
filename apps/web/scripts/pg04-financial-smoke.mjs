@@ -680,6 +680,40 @@ try{
   await Promise.race([new Promise(resolve=>second.child.once("close",resolve)),sleep(5000)]);
   if(second.child.exitCode===null)second.child.kill("SIGKILL");
  }
+
+ // PG06-PG09: source-matched 0014 migration, both disposable realms only.
+ // This executes AFTER the PG04/PG05 regressions, never on an owner DB.
+ const pg06Env={...pg05Env,PG06_ALLOW_MIGRATION:"true",
+  PG06_PIPELINE_MIGRATION_FILE:new URL("../../../infra/migrations/0014_pg06_pg09_receipt_pipeline.sql",import.meta.url).pathname};
+ for(let pass=0;pass<2;pass++){
+  execFileSync("go",["run","./cmd/financial-migrate"],{
+   cwd:new URL("../../../backend/",import.meta.url),stdio:"inherit",env:pg06Env,timeout:100000
+  });
+ }
+ for(const realm of names){
+  const row=(await dbs[realm].unsafe(
+   "SELECT to_regprocedure('pg07_match(uuid,bigint)') IS NOT NULL AS matching, "+
+   "to_regprocedure('pg08_claim(uuid,bigint)') IS NOT NULL AS delivery, "+
+   "to_regprocedure('pg09_read(uuid,text,text,uuid,uuid,text,uuid,text,timestamptz,timestamptz)') IS NOT NULL AS dashboard"))[0];
+  ok(row.matching&&row.delivery&&row.dashboard,"PG06-09 missing functions in "+realm);
+  const policies=await dbs[realm].unsafe(
+   "SELECT count(*)::int n FROM pg_class WHERE relname IN ('pg06_devices','pg06_transport','pg07_receipt_results','pg08_endpoints','pg07_events','pg08_deliveries','pg09_audit','pg06_account_configuration') "+
+   "AND relrowsecurity AND relforcerowsecurity");
+  same(policies[0].n,8,"PG06-09 FORCE RLS missing in "+realm);
+  const restricted=postgres(ds("ekmivo_pg04_"+realm,"ekmivo_finance_reader_"+realm,"pg04-"+realm+"-reader-only"),{max:1,prepare:false});
+  try{
+   await reject(restricted,()=>restricted.unsafe("SELECT * FROM pg06_transport"),"42501");
+   await reject(restricted,()=>restricted.unsafe(
+    "SELECT pg09_read('00000000-0000-0000-0000-000000000000'::uuid,$1,'payments',NULL,NULL)",
+    [realm]),"42501");
+  }finally{await restricted.end({timeout:3})}
+ }
+ const controlPipeline=(await admin.unsafe(
+  "SELECT to_regclass('public.pg06_transport') IS NULL AS no_receipt_tables, "+
+  "to_regprocedure('pg07_match(uuid,bigint)') IS NULL AS no_matcher"))[0];
+ ok(controlPipeline.no_receipt_tables&&controlPipeline.no_matcher,"PG06-09 leaked finance schema into control");
+ console.log("PG06-09 0014 migration: disposable dual-realm replay, grants, FORCE RLS and control isolation PASS");
+
  const controlEmpty=await admin`SELECT to_regclass('public.payment_intents') IS NULL AS no_payments`;
  ok(controlEmpty[0].no_payments,"financial tables leaked into control DB");
  console.log(`PG04 isolated finance+River PASS: ${count} assertions; 2 DBs, no shared auth, registry, realm/cross-role isolation, PGX River rollback/idempotency`);
