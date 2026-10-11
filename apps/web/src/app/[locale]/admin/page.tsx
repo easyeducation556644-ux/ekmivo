@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireUser } from "../../../lib/server/auth";
-import { verifiedAdmin, platformSettings } from "../../../lib/server/platform-admin";
+import { verifiedAdmin, platformSettings, platformRole } from "../../../lib/server/platform-admin";
+import { sessionMfaValid } from "../../../lib/server/mfa";
 import { mailReady } from "../../../lib/server/email";
 import { database } from "../../../lib/server/db";
 import { VerificationSettings, RoleControls } from "../../../components/admin-controls";
@@ -15,6 +16,8 @@ const adminFeatures={
 export default async function PlatformAdmin({params}:{params:Promise<{locale:string}>}){
  const {locale:raw}=await params,locale=raw==="en"?"en":"bn";
  const user=await requireUser(locale);
+ const role=await platformRole(user.id);
+ if(role && !await sessionMfaValid(user.id))redirect(`/${locale}/admin/mfa`);
  const admin=await verifiedAdmin();
  if(!admin || admin.user.id!==user.id)notFound();
  const isSuper=admin.role==="super_admin";
