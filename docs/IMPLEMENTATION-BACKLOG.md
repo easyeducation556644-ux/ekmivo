@@ -271,3 +271,7 @@ Owner selected native Kotlin + Compose (ADR-0001). A runnable app source foundat
 
 ### Native compile checkpoint
 Kotlin/Compose debug assemble and unit tests succeeded in [Actions run 38115451816](https://github.com/masharzy/ekmivo/actions/runs/38115451816) (artifact 11693123111). It is **not** PG06/AN03 acceptance or real-device smoothness evidence; dependencies remain in the serial PG schedule.
+
+
+### PG06 source safety check (not accepted)
+An opt-in native intake security foundation now exists in `apps/mobile/.../receipt` with non-authoritative evidence field validation and Android Keystore P-256 request signing; Go `internal/deviceevidence` supplies signature/timestamp verification. Neither structural completeness nor a device signature proves a payment. Real Android permission, enrollment/binding, approved parser samples, Go server ingestion, offline recovery, receipt matching and live-device tests remain mandatory in PG06/PG07/PG16. See [PG06 evidence](evidence/PG06/README.md).

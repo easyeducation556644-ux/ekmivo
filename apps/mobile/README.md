@@ -34,3 +34,7 @@ Never put service credentials in Gradle properties or the APK. The app only chec
 **Not yet built:** merchant login token handoff/authorization, business/product/environment switch, real Go payment/inbox/domain endpoints, notification/receipt capture, background delivery, FCM, device tests, macrobenchmark, Play release, and full 1:1 production chat-app interaction fidelity. AN03 stays open until all phase-2 gates pass.
 
 First verified native debug APK: [Actions artifact 11693123111](https://github.com/masharzy/ekmivo/actions/runs/38115451816/artifacts/11693123111), from successful CI run 38115451816. Download the ZIP from GitHub Actions and extract `app-debug.apk`. Debug APK is an installable developer build, not production-signed and not a working payment gateway.
+
+
+### Native receipt security foundation (not a collector)
+`receipt/EvidenceGate.kt` rejects incomplete/ambiguous amount, actual-payer, time, incoming direction and source-binding fields. `AndroidKeystoreSigner.kt` creates a non-exportable P-256 key *only when enrollment is invoked*; `DeviceSignature.kt` canonicalizes the exact raw HTTP body. Go `internal/deviceevidence` has matching P-256 DER verification and transport replay freshness helpers. None of these helpers reads notifications, starts a background service or marks money paid. PG06 remains open until real authorized device/receipt tests.

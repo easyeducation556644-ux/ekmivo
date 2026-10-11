@@ -97,3 +97,7 @@ GitHub Actions `Foundation CI` run [38114530626](https://github.com/masharzy/ekm
 
 ### Kotlin build CI accepted (source only)
 Workflow: https://github.com/masharzy/ekmivo/actions/runs/38115451816 — success on b8247408; Kotlin/Compose assembled and unit-tested APK artifact 11693123111. No real-device benchmark, auth, inbox or receipt tests; PG06 and AN03 remain open.
+
+
+### PG06 native receipt evidence security helpers (source-only, unaccepted)
+Kotlin `receipt/EvidenceGate.kt` implements strict *submission completeness* checks for full payer number, exact amount, original transaction time, enrolled receiving-source binding, method and incoming direction; masked/omitted evidence stays incomplete. `AndroidKeystoreSigner.kt` can generate/sign with P-256 private keys bound to the Android Keystore after enrollment. `DeviceSignature.kt` canonicalizes method/path/transport timestamp/event ID/SHA-256(raw body), and Go `backend/internal/deviceevidence/signature.go` verifies X.509 P-256 DER signatures and transport timestamp freshness. Relevant unit tests added. No collector/permission, device enrollment, actual receipt, payment matcher, webhook or sandbox is integrated; **PG06 remains OPEN**.
