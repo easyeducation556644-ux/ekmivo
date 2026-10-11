@@ -17,7 +17,13 @@ object ReceiptCapture {
    if(!store.enabled()||text.toByteArray(Charsets.UTF_8).size>6000||source!=enrollment.optString("source")||binding!=enrollment.optString("binding"))return
    // Filter before persistence: approved incoming whole-message expressions
    // exclude unrelated notifications, personal messages and OTPs.
-   val pattern=enrollment.optString("capture_pattern");if(pattern.isEmpty()||!Regex(pattern).matches(text))return
+   val pattern=enrollment.optString("capture_pattern")
+   if(pattern.isEmpty()||pattern.length>2048)return
+   val approved=try { Regex(pattern).matches(text) } catch(_:IllegalArgumentException) {
+    store.setQueueError("INVALID_CAPTURE_RULE")
+    false
+   }
+   if(!approved)return
    if(store.enqueue(JSONObject().put("enrollment_id",enrollment.getString("id")).put("environment",enrollment.getString("environment")).put("source",source).put("binding",binding).put("kind",kind).put("evidence",text).put("observed_at",Instant.now().toString()))) ReceiptSyncWorker.schedule(context)
   }
  }
