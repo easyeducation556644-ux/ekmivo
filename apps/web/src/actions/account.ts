@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { mailReady, sendCode, verificationEnabled } from "../lib/server/email";
 import { database } from "../lib/server/db";
 import { createSession, currentUser, hashToken, passwordHash, passwordMatches, revokeSession } from "../lib/server/auth";
 import { asText, strongPassword, validEmail, validatedName, type FormErrorState, safeLocale } from "../lib/server/validation";
@@ -27,15 +28,22 @@ export async function registerAction(localeParam:string,_previous:FormErrorState
  if(password!==confirm)fields.confirm=locale==="bn"?"পাসওয়ার্ড দুটি মিলছে না।":"Passwords don't match.";
  if(Object.keys(fields).length)return fail(t.invalid,fields);
  let created=false;
+ let verify=false;
  try {
+  verify=await verificationEnabled();
+  if(verify&&!mailReady())return fail(locale==="bn"?"ইমেইল সেবা কনফিগার করা হয়নি।":"Email verification is unavailable. Please try again later.");
   const hash=await passwordHash(password as string);
   const rows=await database()`INSERT INTO app_users (display_name,email,password_hash)
    VALUES (${name},${email},${hash}) ON CONFLICT (email) DO NOTHING RETURNING id`;
   if(!rows.length)return fail(t.duplicate,{email:t.duplicate});
   created=true;
   await createSession(String(rows[0].id));
- } catch(e){report("register",e);return fail(created?t.generic:t.generic);}
- redirect(`/${locale}/workspaces`);
+  if(verify){
+   try{await sendCode(String(rows[0].id),email,"verify_email");}
+   catch(e){report("send initial verification email",e);}
+  }
+ } catch(e){report("register",e);return fail(t.generic);}
+ redirect(verify?`/${locale}/verify-email`:`/${locale}/workspaces`);
 }
 
 export async function loginAction(localeParam:string,_previous:FormErrorState,form:FormData):Promise<FormErrorState>{
@@ -61,7 +69,15 @@ export async function loginAction(localeParam:string,_previous:FormErrorState,fo
   }
   await database()`DELETE FROM auth_attempts WHERE key_hash=${key}`;
   await createSession(String(users[0].id));
- } catch(e){report("login",e);return fail(t.generic);}
+  const verify=await verificationEnabled();
+  if(verify){
+   const status=await database()`SELECT email_verified_at FROM app_users WHERE id=${users[0].id}::uuid`;
+   if(status.length&&!status[0].email_verified_at)redirect(`/${locale}/verify-email`);
+  }
+ } catch(e){
+  if(e && typeof e==="object" && "digest" in e && String(e.digest).startsWith("NEXT_REDIRECT"))throw e;
+  report("login",e);return fail(t.generic);
+ }
  redirect(`/${locale}/workspaces`);
 }
 
@@ -88,6 +104,6 @@ export async function createWorkspaceAction(localeParam:string,_previous:FormErr
 
 export async function logoutAction(localeParam:string){
  const locale=safeLocale(localeParam);
- try{await revokeSession();}catch(e){report("logout",e);(await import("next/headers")).cookies().then(jar=>jar.delete("ekmivo-session"));}
+ try{await revokeSession();}catch(e){report("logout",e);(await cookies()).delete("ekmivo-session");}
  redirect(`/${locale}/login`);
 }
