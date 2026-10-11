@@ -40,6 +40,9 @@ class ReceiptStore(context: Context): SQLiteOpenHelper(context, "receipt-outbox.
    .putBoolean("consented",true).putBoolean("paused",false).commit())
  }
  fun overflowCount():Long=preferences.getLong("overflow_count",0)
+ // Operational reason codes only. Do not persist server error bodies or OTPs.
+ fun queueError():String=preferences.getString("queue_error","")?:""
+ fun setQueueError(code:String){require(code.matches(Regex("[A-Z0-9_]{0,64}")));preferences.edit().putString("queue_error",code).commit()}
  fun enabled()=preferences.getBoolean("consented",false)&&!preferences.getBoolean("paused",false)&&enrollment()!=null
  fun pause(){preferences.edit().putBoolean("paused",true).commit()}
  fun disconnect(){preferences.edit().clear().commit();writableDatabase.delete("pending",null,null);AndroidKeystoreSigner("ekmivo-receipt-device").forgetEnrollmentKey()}
