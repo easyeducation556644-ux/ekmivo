@@ -448,7 +448,7 @@ CREATE FUNCTION pg07_candidates(w uuid,e text,observation uuid) RETURNS jsonb LA
 $$;
 REVOKE ALL ON FUNCTION pg07_candidates(uuid,text,uuid) FROM PUBLIC;
 
-CREATE FUNCTION pg09_read(w uuid,e text,resource text,resource_id uuid,cursor_id uuid,status_filter text DEFAULT NULL,account_filter uuid DEFAULT NULL,method_filter text DEFAULT NULL,date_from timestamptz DEFAULT NULL,date_to timestamptz DEFAULT NULL, search_filter text DEFAULT NULL) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$ DECLARE result jsonb; cursor_ts timestamptz; BEGIN
+CREATE FUNCTION pg09_read(w uuid,e text,resource text,resource_id uuid,cursor_id uuid,status_filter text,account_filter uuid,method_filter text,date_from timestamptz,date_to timestamptz, search_filter text) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$ DECLARE result jsonb; cursor_ts timestamptz; BEGIN
  PERFORM pg06_scope(w,e);
  IF search_filter IS NOT NULL THEN
   search_filter:=btrim(search_filter);
