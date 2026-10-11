@@ -14,8 +14,8 @@ if(!url.pathname || url.pathname==="/" || /prod/i.test(url.pathname))
  throw Error("PG00 test database must have a specific non-production name");
 
 const migrations=[
- "../../infra/migrations/0001_auth_workspaces.sql",
- "../../infra/migrations/0002_account_recovery_admin.sql",
+ "../../../infra/migrations/0001_auth_workspaces.sql",
+ "../../../infra/migrations/0002_account_recovery_admin.sql",
 ];
 const sql=postgres(urlText,{max:1,prepare:false,connect_timeout:8,ssl:false});
 const testId=randomUUID();
