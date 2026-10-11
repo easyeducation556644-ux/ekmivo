@@ -4,6 +4,7 @@ import { useFormStatus } from "react-dom";
 import { createWorkspaceAction } from "../actions/account";
 import { emptyState, type FormErrorState } from "../lib/server/validation";
 import type { Locale } from "../lib/site-copy";
+import { draftStorageKey, parseSavedDraft, encodeSavedDraft } from "../lib/onboarding-draft.mjs";
 
 const modes=[
  {value:"ai",title:{en:"AI Communication",bn:"AI যোগাযোগ"},description:{en:"Inbox, AI, knowledge, CRM and follow-ups.",bn:"ইনবক্স, AI, নলেজ, CRM ও ফলো-আপ।"},icon:"✳"},
@@ -16,12 +17,6 @@ function Submit({locale}:{locale:Locale}){
 }
 type Draft = {name:string;mode:"ai"|"commerce"|"both"};
 const EMPTY_DRAFT: Draft = {name:"",mode:"both"};
-function isDraft(value:unknown):value is Draft{
- if(!value||typeof value!=="object")return false;
- const candidate=value as Record<string,unknown>;
- return typeof candidate.name==="string"&&candidate.name.length<=100
-  &&(candidate.mode==="ai"||candidate.mode==="commerce"||candidate.mode==="both");
-}
 export function WorkspaceOnboarding({locale,userId}:{locale:Locale;userId:string}){
  const [name,setName]=useState("");
  const [mode,setMode]=useState<"ai"|"commerce"|"both">("both");
@@ -30,13 +25,13 @@ export function WorkspaceOnboarding({locale,userId}:{locale:Locale;userId:string
  const [pendingUrl,setPendingUrl]=useState("");
  const dialog=useRef<HTMLDialogElement>(null);
  const submitting=useRef(false);
- const draftKey=`ekmivo:onboarding-draft:v1:${userId}`;
+ const draftKey=draftStorageKey(userId);
  const dirty=name!==saved.name||mode!==saved.mode;
  const [state,action]=useActionState<FormErrorState,FormData>(createWorkspaceAction.bind(null,locale),emptyState);
  const save=():boolean=>{
   const draft:Draft={name,mode};
   try{
-   window.localStorage.setItem(draftKey,JSON.stringify(draft));
+   window.localStorage.setItem(draftKey,encodeSavedDraft(draft));
    setSaved(draft);
    setNotice(locale==="bn"?"এই ব্রাউজারে ড্রাফট সংরক্ষিত হয়েছে।":"Draft saved in this browser.");
    return true;
@@ -48,8 +43,8 @@ export function WorkspaceOnboarding({locale,userId}:{locale:Locale;userId:string
  const restore=()=>{
   try{
    const data=window.localStorage.getItem(draftKey);
-   const parsed:unknown=data?JSON.parse(data):null;
-   if(!isDraft(parsed))throw Error("missing/invalid draft");
+   const parsed=parseSavedDraft(data);
+   if(!parsed)throw Error("missing/invalid draft");
    setName(parsed.name);setMode(parsed.mode);setSaved(parsed);
    setNotice(locale==="bn"?"সর্বশেষ ড্রাফট ফিরিয়ে আনা হয়েছে।":"Saved draft restored.");
   }catch{setNotice(locale==="bn"?"এই অ্যাকাউন্টের কোনো বৈধ ড্রাফট পাওয়া যায়নি।":"No valid saved draft for this account.");}
