@@ -13,3 +13,7 @@ Acceptance: OPEN. New migration 0014 is not applied; no live verification or dep
 Matching SQL and worker are implemented in migration 0014 but HAVE NOT been run on disposable financial databases; exact five-field/window/competing-worker/advance and cancellation/duplicate/rollback properties are therefore not verified. Live checkout issuance and real receipt E2E remain blocked.
 
 Automated verification: source-authored tests/CI invocation are not PASS until a completed exact-commit run is recorded in the audit. New migration 0014 is NOT APPLIED. Real handset/provider/merchant payment, notices and deployment are NOT TESTED. Acceptance: **OPEN**.
+
+## PG06-focused CI source context — 2026-10-11
+
+The exact-source CI 38158507367 at 8aaf240 is green for Go tests and disposable SQL 0014 migration/rerun, **not** for actual five-field matching/atomic financial settlement/reconciliation under race or real receipts. PG07 behavior acceptance OPEN; no provider/device/payment E2E. Continue the dependency-ordered PG07 matrix after PG06 real-device/protocol gates; see ../PG06-PG09-AUDIT.md.
