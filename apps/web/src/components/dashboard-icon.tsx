@@ -2,6 +2,7 @@ import type { SVGProps } from "react";
 const paths: Record<string, string> = {
  overview:"M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z",
  inbox:"M4 4h16v16H4z M4 13h5l2 3h2l2-3h5",
+ bell:"M6 17V9a6 6 0 0 1 12 0v8l2 2H4z M10 22h4",
  notifications:"M6 17V9a6 6 0 0 1 12 0v8l2 2H4z M10 22h4",
  reports:"M4 20V4 M4 20h17 M8 16v-5 M13 16V7 M18 16v-9",
  comments:"M4 4h16v12H9l-5 4z M8 8h8 M8 12h5",
