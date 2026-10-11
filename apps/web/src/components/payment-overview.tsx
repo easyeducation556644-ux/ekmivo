@@ -31,7 +31,7 @@ export function PaymentOverview({locale,workspaceId,environment}:{locale:Locale;
    return payload.items;
   };
   let active=true;
-  setLoading(true);setError("");setRecentError("");setData(null);setRecent([]);
+  void Promise.resolve().then(()=>{if(active){setLoading(true);setError("");setRecentError("");setData(null);setRecent([])}});
   void read("overview").then(values=>{if(active)setData((values[0]||null) as Overview|null)}).catch(e=>{if(active&&!controller.signal.aborted)setError(e instanceof Error?e.message:"Source unavailable")}).finally(()=>{if(active)setLoading(false)});
   void read("payments").then(values=>{if(active)setRecent(values.slice(0,6) as Recent[])}).catch(e=>{if(active&&!controller.signal.aborted)setRecentError(e instanceof Error?e.message:"Recent payments unavailable")});
   return()=>{active=false;controller.abort()};
