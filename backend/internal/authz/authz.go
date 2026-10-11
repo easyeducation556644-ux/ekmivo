@@ -53,11 +53,23 @@ type Repository struct{DB *sql.DB}
 func (r *Repository) ValidateRuntimeRole(ctx context.Context)error{
  if r==nil||r.DB==nil{return ErrUnavailable}
  var current string
- var super, bypass,login bool
- err:=r.DB.QueryRowContext(ctx,`SELECT current_user,rolsuper,rolbypassrls,rolcanlogin
-  FROM pg_roles WHERE rolname=current_user`).Scan(&current,&super,&bypass,&login)
+ var super,bypass,login,createRole,createDB,elevatedMember,tableOwner bool
+ err:=r.DB.QueryRowContext(ctx,`SELECT r.rolname,r.rolsuper,r.rolbypassrls,r.rolcanlogin,
+  r.rolcreaterole,r.rolcreatedb,
+  EXISTS(
+   SELECT 1 FROM pg_auth_members m JOIN pg_roles parent ON parent.oid=m.roleid
+   WHERE m.member=r.oid AND parent.rolname IN ('neon_superuser','pg_read_all_data','pg_write_all_data')
+  ),
+  EXISTS(
+   SELECT 1 FROM pg_class tbl JOIN pg_namespace n ON n.oid=tbl.relnamespace
+   WHERE n.nspname='public' AND tbl.relname IN
+     ('workspace_environments','workspace_environment_settings','auth_sessions','platform_admin_mfa')
+     AND tbl.relowner=r.oid
+  )
+ FROM pg_roles r WHERE r.rolname=current_user`).Scan(
+  &current,&super,&bypass,&login,&createRole,&createDB,&elevatedMember,&tableOwner)
  if err!=nil{return fmt.Errorf("%w: cannot inspect database role",ErrUnavailable)}
- if current!="ekmivo_runtime"||super||bypass||!login {
+ if current!="ekmivo_runtime"||super||bypass||createRole||createDB||elevatedMember||tableOwner||!login {
   return fmt.Errorf("%w: financial API requires dedicated unprivileged ekmivo_runtime login",ErrUnavailable)
  }
  return nil
