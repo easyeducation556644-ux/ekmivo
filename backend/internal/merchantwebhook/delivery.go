@@ -85,7 +85,13 @@ func ValidateURL(raw string) (*url.URL, error) {
 	if e != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.Fragment != "" || u.Opaque != "" || len(raw) > 2048 || u.Port() != "" && u.Port() != "443" || strings.ContainsAny(u.Hostname(), " \t\r\n") {
 		return nil, errors.New("HTTPS public endpoint required")
 	}
-	if strings.HasSuffix(strings.ToLower(u.Hostname()), ".localhost") || strings.EqualFold(u.Hostname(), "localhost") {
+	hostname := strings.TrimSuffix(strings.ToLower(u.Hostname()), ".")
+	if hostname == "localhost" || strings.HasSuffix(hostname, ".localhost") ||
+		strings.HasSuffix(hostname, ".local") || strings.HasSuffix(hostname, ".internal") ||
+		strings.HasSuffix(hostname, ".onion") {
+		return nil, errors.New("private endpoint denied")
+	}
+	if strings.Contains(hostname, "%") {
 		return nil, errors.New("private endpoint denied")
 	}
 	if ip, e := netip.ParseAddr(u.Hostname()); e == nil && !publicIP(ip) {
