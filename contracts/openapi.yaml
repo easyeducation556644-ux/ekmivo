@@ -92,10 +92,23 @@ paths:
         Claim body: pairing_token/public_key (X.509 DER Base64), signed by that key. Other bodies bind enrollment_id/environment to registered device.
         Events: durable sequence >0, source/binding/kind (device_sms/device_notification)/evidence/observed_at. Full actual payer and original transaction time parsed server-side. No customer TrxID entry.
         Offline retry preserves queued bytes/event ID/sequence and refreshes transport timestamp/signature. ACK means durable storage, not verified payment.
-      requestBody: {required: true, content: {application/json: {schema: {type: object}}}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - { $ref: '#/components/schemas/DeviceClaimRequest' }
+                - { $ref: '#/components/schemas/DeviceHeartbeatRequest' }
+                - { $ref: '#/components/schemas/DeviceEventRequest' }
+                - { $ref: '#/components/schemas/DeviceHistoryRequest' }
       responses:
         '200': {description: Enrollment or health or masked device history}
-        '202': {description: Durable evidence ACK with stable replay handle}
+        '202':
+          description: Evidence transaction committed; does not verify funds
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeviceDurableAck' }
         '403': {description: Device proof or fresh authorization rejected}
         '409': {description: Reused identity with changed payload}
         '413': {description: Body too large}
@@ -519,6 +532,54 @@ components:
         256-bit random server-side bearer secret, never put into browser JavaScript,
         query strings or client SDK bundles; store in a server-side secret manager.
   schemas:
+    DeviceClaimRequest:
+      type: object
+      additionalProperties: false
+      required: [pairing_token, public_key]
+      properties:
+        pairing_token: {type: string, pattern: '^[A-Za-z0-9_-]{43}$'}
+        public_key: {type: string, contentEncoding: base64, description: "P-256 X.509 DER public key; possession proven by the request signature"}
+    DeviceHeartbeatRequest:
+      type: object
+      additionalProperties: false
+      required: [enrollment_id, environment, permission_ok, backlog, overflow_count, queue_error, model, app_version]
+      properties:
+        enrollment_id: {type: string, format: uuid}
+        environment: {type: string, enum: [sandbox, live]}
+        permission_ok: {type: boolean}
+        backlog: {type: integer, minimum: 0, maximum: 10000}
+        overflow_count: {type: integer, format: int64, minimum: 0, description: "Monotonic tally of dropped receipt captures at the 500-event encrypted outbox quota"}
+        queue_error: {type: string, maxLength: 64, pattern: '^[A-Z0-9_]*$', description: "Diagnostic code only, never receipt text"}
+        model: {type: string}
+        app_version: {type: string}
+    DeviceEventRequest:
+      type: object
+      additionalProperties: false
+      required: [enrollment_id, environment, source, binding, kind, evidence, observed_at, sequence]
+      properties:
+        enrollment_id: {type: string, format: uuid}
+        environment: {type: string, enum: [sandbox, live]}
+        source: {type: string}
+        binding: {type: string, description: "Enrolled sms:subscriptionID or notification package binding"}
+        kind: {type: string, enum: [device_sms, device_notification]}
+        evidence: {type: string, maxLength: 8192, description: "Approved incoming receipt only; encrypted server-side, never merchant-facing"}
+        observed_at: {type: string, format: date-time, description: "Device collection time, never a replacement for original provider transaction time"}
+        sequence: {type: integer, format: int64, minimum: 1}
+    DeviceHistoryRequest:
+      type: object
+      additionalProperties: false
+      required: [enrollment_id, environment]
+      properties:
+        enrollment_id: {type: string, format: uuid}
+        environment: {type: string, enum: [sandbox, live]}
+    DeviceDurableAck:
+      type: object
+      required: [ack, observation_id, reason, replayed]
+      properties:
+        ack: {type: string, const: durable}
+        observation_id: {type: [string, 'null'], format: uuid}
+        reason: {type: string}
+        replayed: {type: boolean}
     BillingSource:
       type: object
       required: [id, source_kind, source_reference, amount_minor, currency, issued_at, items]
