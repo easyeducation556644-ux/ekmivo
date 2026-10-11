@@ -38,3 +38,10 @@
 .pg09-overview table caption{font-size:.8rem;color:var(--color-text-secondary);text-align:start;padding:4px 0}
 @media(max-width:767px){.pg09-volume-bars{height:110px;gap:6px}.pg-operation-overview-actions{align-items:stretch}.pg-operation-table{max-width:100%}.pg09-recent-payments .pg-operation-table{overscroll-behavior-inline:contain}}
 @media(prefers-reduced-motion:reduce){.pg09-overview *{scroll-behavior:auto!important}}
+
+
+.pg09-detail-history{margin-block:20px;padding:16px;border:1px solid var(--color-border);border-radius:10px;background:var(--color-surface)}
+.pg09-detail-history h2{font-size:1.05rem;margin:0 0 12px}
+.pg09-detail-history ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.pg09-detail-history li{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;padding:12px;background:var(--color-surface-subtle);border-radius:8px;overflow-wrap:anywhere}
+.pg09-detail-history time{color:var(--color-text-secondary);font-size:.875rem}
