@@ -1074,6 +1074,24 @@ try{
   1,"PG08 delivery failure changed verified financial payment");
  console.log("PG08 isolated webhook state machine PASS: 2xx, terminal 403, 500/429/unknown retry, 1m/5m delay, expired/stale lease, max retries, disabled endpoint, event-stable replay and independent verified funds (SYNTHETIC)");
 
+
+ // PG08 MERCHANT SIDE, physically separate disposable database and real
+ // in-process TLS authoritative payment-query server. No actual customer.
+ await admin.unsafe('CREATE DATABASE "ekmivo_pg08_merchant"');
+ const merchantDSN=ds("ekmivo_pg08_merchant");
+ const merchantDB=postgres(merchantDSN,{max:1,prepare:false});
+ try{
+  const schema=await readFile(new URL("../../../examples/webhook-receiver/schema.sql",import.meta.url),"utf8");
+  await merchantDB.unsafe(schema).simple();
+ }finally{await merchantDB.end({timeout:3})}
+ execFileSync("go",["test","./cmd/webhook-receiver-example","-run","TestReceiverScopedTLSQueryAndTransactionalDedup","-count=1","-v"],{
+  cwd:new URL("../../../backend/",import.meta.url),
+  stdio:"inherit",
+  env:{...process.env,PG08_TEST_MERCHANT_DSN:merchantDSN},
+  timeout:100000
+ });
+ console.log("PG08 merchant receiver PASS: independent consumer DB, local TLS authoritative payment check, signature/schema/realm/amount verification, event-ID dedup, fulfillment once and old-key overlap (SIMULATED)");
+
  const controlEmpty=await admin`SELECT to_regclass('public.payment_intents') IS NULL AS no_payments`;
  ok(controlEmpty[0].no_payments,"financial tables leaked into control DB");
  console.log(`PG04 isolated finance+River PASS: ${count} assertions; 2 DBs, no shared auth, registry, realm/cross-role isolation, PGX River rollback/idempotency`);
