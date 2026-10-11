@@ -22,14 +22,14 @@ export const navigation: Record<Service, NavigationGroup[]> = {
     { label: { en: "Workspace", bn: "ওয়ার্কস্পেস" }, items: ["team", "billing", "settings", "help"] },
   ],
 };
-export function serviceEnabled(service: Service, mode: "ai" | "commerce" | "both") {
+export function serviceEnabled(service: Service, mode: "ai" | "commerce" | "both" | "off") {
   return mode === "both" || (service === "ai" ? mode === "ai" : mode === "commerce");
 }
 export function sectionInService(service: Service, section: string): section is SectionKey {
   return navigation[service].some(group => group.items.includes(section as SectionKey));
 }
-export function defaultService(mode: "ai" | "commerce" | "both"): Service { return mode === "ai" ? "ai" : "payments"; }
-export function sectionService(section: SectionKey, mode: "ai" | "commerce" | "both"): Service {
+export function defaultService(mode: "ai" | "commerce" | "both" | "off"): Service { return mode === "ai" ? "ai" : "payments"; }
+export function sectionService(section: SectionKey, mode: "ai" | "commerce" | "both" | "off"): Service {
   if (sectionInService("ai", section) && sectionInService("payments", section)) return defaultService(mode);
   return sectionInService("payments", section) ? "payments" : "ai";
 }

@@ -8,7 +8,7 @@ import { DashboardIcon as Icon } from "./dashboard-icon";
 import { SiteControls } from "./site-controls";
 import { activeDrafts,saveActiveDrafts,discardActiveDrafts } from "../lib/client/draft-navigation";
 
-type Space = { id: string; name: string; mode: "ai" | "commerce" | "both"; role: "owner" | "admin" | "editor" | "viewer" };
+type Space = { id: string; name: string; mode: "ai" | "commerce" | "both" | "off"; role: "owner" | "admin" | "editor" | "viewer" };
 type PaymentContext = { environment: PaymentEnvironment; status: "active" | "suspended"; availableEnvironments: PaymentEnvironment[]; liveOperational: false };
 type Props = { locale: Locale; service: Service; section: SectionKey; workspace: Space; spaces: Space[]; userName: string; platformAdmin: boolean; theme: "light" | "dark" | "system"; paymentContext?: PaymentContext; children: React.ReactNode; logout: React.ReactNode };
 const memoryKey=(workspaceId:string,service:Service)=>`ekmivo-last:${workspaceId}:${service}`;
@@ -152,6 +152,11 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
  };
  const switchBusiness=(target:Space)=>{
   if(target.id===workspace.id){setMobileOpen(false);if(businessMenu.current)businessMenu.current.open=false;return;}
+  if(target.mode==="off"){
+   setMobileOpen(false);
+   startTransition(()=>router.push(`/${locale}/w/${target.id}/dashboard`));
+   return;
+  }
   const chosen=serviceEnabled(service,target.mode)?service:(target.mode==="ai"?"ai":"payments");
   goTo(target.id,chosen,chosen==="payments"?rememberedEnvironment(target.id):environment,rememberedSection(target.id,chosen));
  };

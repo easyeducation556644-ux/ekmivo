@@ -42,8 +42,8 @@ export const sections={
  settings:{en:"Workspace settings",bn:"সেটিংস",detail:{en:"Profile, security, service configuration and preferences.",bn:"প্রোফাইল, নিরাপত্তা, সেবার ধরন ও পছন্দ।"},group:"common"},
 } as const;
 export type SectionKey=keyof typeof sections;
-export function allowedSection(key:string,mode:"ai"|"commerce"|"both"){
+export function allowedSection(key:string,mode:"ai"|"commerce"|"both"|"off"){
  const data=sections[key as SectionKey];
- return !!data&&(data.group==="common"||data.group===mode||mode==="both");
+ return mode!=="off"&&!!data&&(data.group==="common"||data.group===mode||mode==="both");
 }
 export const groupOrder=["common","ai","commerce"] as const;
