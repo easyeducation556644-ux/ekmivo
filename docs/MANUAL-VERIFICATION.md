@@ -148,3 +148,11 @@
 |---|---|---|---|---|---|---|
 | — | — | Not yet executed together | PENDING | — | — | Agent continues automated verification |
 
+
+### PG02 final source-layer owner/browser test additions
+
+- [ ] In `/bn/account`, edit **Display name** without saving; switch EN/BN and press **Stay**: URL, cookie locale and text remain unchanged; **Save draft & leave** preserves only account-scoped name in current tab and does **not** update server; revisit and click Restore. **Discard & leave** must not persist the unsaved name. Complete the real **Save name** action and refresh: persisted name now matches the server-confirmed success.
+- [ ] While a future registered dashboard editor has a dirty draft, switch to another business where **both products are disabled**. It must still show Save/Discard/Stay before rendering the disabled-business information page.
+- [ ] Open Ctrl/⌘K search from a focused text field; Escape and Close must restore the original focused field. On 320px mobile open menu, Escape/Close must focus the menu trigger again, including when it closes through React cleanup.
+- [ ] Test a blocked unsaved-draft **language switch**: the locale preference cookie must remain unchanged until Save/Discard actually authorizes navigation. Switching Light/Dark/System must not discard the draft.
+- [ ] Verify the **latest PG02 SHA** is deployed in Vercel before judging production UI. The attempted Vercel build on 2026-10-11 failed at quota validation **HTTP 402 / `api-deployments-free-per-day`** (over 100 per 24-hour window). This is a hosting-rate blocker, not a claim that the latest web source is running. Do not silently test the older `356575bb` deployment as the current implementation.
