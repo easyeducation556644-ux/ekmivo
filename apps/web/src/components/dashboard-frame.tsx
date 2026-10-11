@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { sections, type SectionKey } from "../lib/dashboard-sections";
 import { dashboardHref, navigation, searchableNavigation, serviceEnabled, serviceNames, sectionInService, type Locale, type Service, type PaymentEnvironment } from "../lib/dashboard-navigation";
 import { DashboardIcon as Icon } from "./dashboard-icon";
@@ -27,7 +27,7 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
  const [globalQuery,setGlobalQuery]=useState("");
  const [activeResult,setActiveResult]=useState(0);
  const [searchOpen,setSearchOpen]=useState(false);
- const [isNavigating,setIsNavigating]=useState(false);
+ const [isNavigating,startTransition]=useTransition();
  const [noticeOpen,setNoticeOpen]=useState(false);
  const drawer=useRef<HTMLDialogElement>(null);
  const searchDialog=useRef<HTMLDialogElement>(null);
@@ -40,17 +40,15 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
  const contextHref=useCallback((key:SectionKey,product:Service=service,businessId:string=workspace.id,env:PaymentEnvironment=environment)=>dashboardHref(locale,businessId,product,key,env),[locale,workspace.id,service,environment]);
 
  const goTo=useCallback((businessId:string,product:Service,env:PaymentEnvironment,nextSection:SectionKey)=>{
-  setIsNavigating(true);
   setMobileOpen(false);
   setSearchOpen(false);
   if(serviceMenu.current)serviceMenu.current.open=false;
   if(businessMenu.current)businessMenu.current.open=false;
-  router.push(dashboardHref(locale,businessId,product,nextSection,env));
- },[locale,router]);
+  startTransition(()=>router.push(dashboardHref(locale,businessId,product,nextSection,env)));
+ },[locale,router,startTransition]);
 
  useEffect(()=>{
   try{window.localStorage.setItem(memoryKey(workspace.id,service),section);}catch{/* Non-essential preference. */}
-  setIsNavigating(false);
  },[pathname,section,workspace.id,service,environment]);
  useEffect(()=>{
   const d=drawer.current;
