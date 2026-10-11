@@ -101,6 +101,7 @@ async function run(){
   const rows=await sql`SELECT * FROM workspace_environment_settings`;
   if(rows.length)throw Error("Pooled connection leaked transaction context");
  }finally{await sql`RESET ROLE`;}
+ await sql.unsafe("ALTER ROLE ekmivo_runtime LOGIN PASSWORD 'pg01-ci-only-password'");
  console.log("PG01 PASS: 3 tenants x 2 environments; FORCE RLS; missing context; removed/disabled/viewer; cross-env; rollback/pool cleanup");
 }
 try{await run();}catch(e){console.error("PG01 FAIL:",e instanceof Error?e.message.replace(/postgres(?:ql)?:\/\/[^\s]+/g,"[redacted]"):"unknown");process.exitCode=1;}finally{await sql.end({timeout:3});}
