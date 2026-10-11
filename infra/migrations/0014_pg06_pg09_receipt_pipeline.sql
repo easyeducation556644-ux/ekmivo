@@ -215,31 +215,135 @@ CREATE FUNCTION pg07_pending() RETURNS TABLE(id uuid,workspace_id uuid,environme
  SELECT s.observation_id,s.workspace_id,s.environment,r.entitlement_version FROM pg07_receipt_results s JOIN financial_workspace_registry r USING(workspace_id,environment) WHERE s.status='pending' AND r.status='active' ORDER BY s.observation_id LIMIT 10
 $$;
 CREATE FUNCTION pg07_match(o_id uuid,expected_version bigint) RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
-DECLARE o financial_receipt_observations; a payment_attempts; candidates integer; payment uuid; event uuid; source text; status_name text;result pg07_receipt_results;
+DECLARE
+ o financial_receipt_observations;
+ a payment_attempts;
+ candidate_count integer;
+ payment uuid;
+ event uuid;
+ source text;
+ verification text;
+ status_name text;
+ result pg07_receipt_results;
+ locked_intent uuid;
 BEGIN
+ -- Serialize two workers on the same receipt. Never retry a completed match
+ -- or issue a second payment/event when the River wake-up is duplicated.
  SELECT * INTO result FROM pg07_receipt_results WHERE observation_id=o_id FOR UPDATE;
- IF result.status IS DISTINCT FROM 'pending' THEN RETURN result.status; END IF;
- IF NOT EXISTS(SELECT 1 FROM financial_workspace_registry WHERE workspace_id=result.workspace_id AND environment=result.environment AND status='active' AND entitlement_version=expected_version) THEN RAISE EXCEPTION 'stale authority' USING ERRCODE='42501'; END IF;
- SELECT * INTO o FROM financial_receipt_observations WHERE id=o_id FOR UPDATE;
- -- Same bucket lock as attempt issuance; prevents new candidate races.
- PERFORM pg_advisory_xact_lock(hashtextextended(o.workspace_id::text||':'||o.environment||':'||o.receiving_account_id::text||':'||o.payer_hmac||':'||o.method||':'||o.amount_minor::text,0));
- SELECT count(*) INTO candidates FROM payment_attempts p WHERE p.workspace_id=o.workspace_id AND p.environment=o.environment AND p.receiving_account_id=o.receiving_account_id AND p.payer_hmac=o.payer_hmac AND p.method=o.method AND p.amount_minor=o.amount_minor AND p.currency=o.currency AND o.direction='incoming' AND o.time_precision IN ('second','minute') AND o.original_transaction_at>=p.window_start AND o.original_transaction_at<p.window_end AND (o.time_precision<>'minute' OR o.original_transaction_at+interval '1 minute'<=p.window_end);
- IF candidates<>1 THEN
-  status_name:=CASE WHEN candidates=0 THEN 'unmatched' ELSE 'ambiguous' END;
-  UPDATE pg07_receipt_results SET status=status_name,reason=CASE WHEN candidates=0 THEN 'no_exact_five_field_candidate' ELSE 'multiple_exact_candidates' END,processed_at=now() WHERE observation_id=o_id; RETURN status_name;
+ IF result.observation_id IS NULL THEN RETURN 'missing'; END IF;
+ IF result.status <> 'pending' THEN RETURN result.status; END IF;
+ IF result.environment IS DISTINCT FROM (SELECT environment FROM financial_realm WHERE singleton)
+ OR NOT EXISTS(
+  SELECT 1 FROM financial_workspace_registry
+  WHERE workspace_id=result.workspace_id AND environment=result.environment
+    AND status='active' AND entitlement_version=expected_version
+ ) THEN RAISE EXCEPTION 'stale authority or wrong financial realm' USING ERRCODE='42501'; END IF;
+ SELECT * INTO o FROM financial_receipt_observations
+ WHERE id=o_id AND workspace_id=result.workspace_id AND environment=result.environment FOR UPDATE;
+ IF o.id IS NULL THEN RAISE EXCEPTION 'untrusted observation' USING ERRCODE='42501'; END IF;
+ -- Do not infer a masked payer, original timestamp, missing source identity,
+ -- uncertain amount or outgoing direction from upload/observed_at metadata.
+ IF o.direction<>'incoming' OR o.payer_hmac IS NULL OR o.receiving_account_id IS NULL
+ OR o.method IS NULL OR o.amount_minor IS NULL OR o.amount_minor<=0
+ OR o.original_transaction_at IS NULL OR o.time_precision NOT IN ('second','minute')
+ OR o.original_transaction_at>now()+interval '5 minutes' THEN
+  UPDATE pg07_receipt_results SET status='unmatched',reason='incomplete_or_nonincoming_evidence',
+    processed_at=now() WHERE observation_id=o_id;
+  RETURN 'unmatched';
  END IF;
- SELECT p.* INTO a FROM payment_attempts p WHERE p.workspace_id=o.workspace_id AND p.environment=o.environment AND p.receiving_account_id=o.receiving_account_id AND p.payer_hmac=o.payer_hmac AND p.method=o.method AND p.amount_minor=o.amount_minor AND p.currency=o.currency AND o.original_transaction_at>=p.window_start AND o.original_transaction_at<p.window_end AND (o.time_precision<>'minute' OR o.original_transaction_at+interval '1 minute'<=p.window_end) FOR UPDATE;
- PERFORM 1 FROM payment_intents WHERE id=a.intent_id FOR UPDATE;
- IF EXISTS(SELECT 1 FROM pg05_intent_events WHERE intent_id=a.intent_id AND event_type='cancelled') THEN UPDATE pg07_receipt_results SET status='cancelled',reason='funds_for_cancelled_intent',processed_at=now() WHERE observation_id=o_id; RETURN 'cancelled'; END IF;
- IF EXISTS(SELECT 1 FROM financial_payments WHERE attempt_id=a.id OR observation_id=o.id) OR EXISTS(SELECT 1 FROM financial_allocations WHERE intent_id=a.intent_id) THEN UPDATE pg07_receipt_results SET status='duplicate',reason='attempt_already_funded',processed_at=now() WHERE observation_id=o_id; RETURN 'duplicate'; END IF;
- SELECT source_kind INTO source FROM financial_inbound_events WHERE id=o.inbound_event_id;
- INSERT INTO financial_payments(workspace_id,environment,attempt_id,observation_id,verified_amount_minor,currency,verification_method,policy_version)
- VALUES(o.workspace_id,o.environment,a.id,o.id,o.amount_minor,o.currency,CASE source WHEN 'device_sms' THEN 'sms_match' WHEN 'device_notification' THEN 'notification_match' ELSE 'sandbox_fixture' END,a.policy_version) RETURNING id INTO payment;
- INSERT INTO financial_allocations(workspace_id,environment,payment_id,intent_id,amount_minor,currency) VALUES(o.workspace_id,o.environment,payment,a.intent_id,o.amount_minor,o.currency);
+ IF EXISTS(SELECT 1 FROM pg06_account_configuration
+ WHERE account_id=o.receiving_account_id AND workspace_id=o.workspace_id
+ AND environment=o.environment AND disabled_at IS NOT NULL) THEN
+  UPDATE pg07_receipt_results SET status='unmatched',reason='receiving_account_disabled',
+    processed_at=now() WHERE observation_id=o_id;
+  RETURN 'unmatched';
+ END IF;
+ SELECT e.source_kind INTO source FROM financial_inbound_events e
+ WHERE e.workspace_id=o.workspace_id AND e.environment=o.environment AND e.id=o.inbound_event_id;
+ verification:=CASE source
+  WHEN 'device_sms' THEN 'sms_match'
+  WHEN 'device_notification' THEN 'notification_match'
+  WHEN 'provider_api' THEN 'provider_api'
+  WHEN 'bank_statement' THEN 'bank_statement'
+  WHEN 'sandbox_fixture' THEN CASE WHEN o.environment='sandbox' THEN 'sandbox_fixture' END
+  ELSE NULL END;
+ IF verification IS NULL THEN
+  UPDATE pg07_receipt_results SET status='unmatched',reason='unapproved_receipt_source',
+    processed_at=now() WHERE observation_id=o_id;
+  RETURN 'unmatched';
+ END IF;
+ -- Same bucket lock as immutable attempt issuance (0008). Match is never
+ -- decided by receipt arrival time; minute precision means the whole minute.
+ PERFORM pg_advisory_xact_lock(hashtextextended(
+  o.workspace_id::text||':'||o.environment||':'||o.receiving_account_id::text||
+  ':'||o.payer_hmac||':'||o.method||':'||o.amount_minor::text,0));
+ SELECT count(*) INTO candidate_count FROM payment_attempts p
+ WHERE p.workspace_id=o.workspace_id AND p.environment=o.environment
+ AND p.receiving_account_id=o.receiving_account_id AND p.payer_hmac=o.payer_hmac
+ AND p.method=o.method AND p.amount_minor=o.amount_minor AND p.currency=o.currency
+ AND o.original_transaction_at>=p.window_start AND o.original_transaction_at<p.window_end
+ AND (o.time_precision<>'minute' OR o.original_transaction_at+interval '1 minute'<=p.window_end);
+ IF candidate_count<>1 THEN
+  status_name:=CASE WHEN candidate_count=0 THEN 'unmatched' ELSE 'ambiguous' END;
+  UPDATE pg07_receipt_results SET status=status_name,
+   reason=CASE WHEN candidate_count=0 THEN 'no_exact_five_field_candidate'
+     ELSE 'multiple_exact_candidates' END,processed_at=now()
+   WHERE observation_id=o_id;
+  RETURN status_name;
+ END IF;
+ SELECT p.* INTO a FROM payment_attempts p WHERE p.workspace_id=o.workspace_id
+ AND p.environment=o.environment AND p.receiving_account_id=o.receiving_account_id
+ AND p.payer_hmac=o.payer_hmac AND p.method=o.method AND p.amount_minor=o.amount_minor
+ AND p.currency=o.currency AND o.original_transaction_at>=p.window_start
+ AND o.original_transaction_at<p.window_end
+ AND (o.time_precision<>'minute' OR o.original_transaction_at+interval '1 minute'<=p.window_end)
+ FOR UPDATE OF p;
+ -- PG05 checkout locks intent BEFORE taking the bucket lock. SKIP LOCKED
+ -- avoids reverse-order deadlocks: retain pending and let next sweep retry.
+ SELECT i.id INTO locked_intent FROM payment_intents i
+ WHERE i.workspace_id=a.workspace_id AND i.environment=a.environment AND i.id=a.intent_id
+ FOR UPDATE OF i SKIP LOCKED;
+ IF locked_intent IS NULL THEN RETURN 'pending'; END IF;
+ IF EXISTS(SELECT 1 FROM pg05_intent_events WHERE intent_id=a.intent_id
+ AND workspace_id=a.workspace_id AND environment=a.environment AND event_type='cancelled') THEN
+  UPDATE pg07_receipt_results SET status='cancelled',reason='funds_for_cancelled_intent',
+   processed_at=now() WHERE observation_id=o_id;
+  RETURN 'cancelled';
+ END IF;
+ -- A receipt arriving AFTER checkout expiry may still verify if the provider
+ -- original transaction time fits the immutable pre-expiry attempt window.
+ IF EXISTS(SELECT 1 FROM financial_payments
+ WHERE workspace_id=o.workspace_id AND environment=o.environment
+ AND (attempt_id=a.id OR observation_id=o.id))
+ OR EXISTS(SELECT 1 FROM financial_allocations
+ WHERE workspace_id=a.workspace_id AND environment=a.environment AND intent_id=a.intent_id) THEN
+  UPDATE pg07_receipt_results SET status='duplicate',reason='attempt_already_funded',
+   processed_at=now() WHERE observation_id=o_id;
+  RETURN 'duplicate';
+ END IF;
+ -- Payment field/provenance trigger + allocation cap trigger independently
+ -- fail closed. Any error rolls back ALL rows, including webhook deliveries.
+ INSERT INTO financial_payments(workspace_id,environment,attempt_id,observation_id,
+ verified_amount_minor,currency,verification_method,policy_version)
+ VALUES(o.workspace_id,o.environment,a.id,o.id,o.amount_minor,o.currency,verification,a.policy_version)
+ RETURNING id INTO payment;
+ INSERT INTO financial_allocations(workspace_id,environment,payment_id,intent_id,amount_minor,currency)
+ VALUES(o.workspace_id,o.environment,payment,a.intent_id,o.amount_minor,o.currency);
  INSERT INTO pg07_events(workspace_id,environment,payment_id,event_type,payload)
- VALUES(o.workspace_id,o.environment,payment,'payment.verified',jsonb_build_object('schema_version',1,'type','payment.verified','workspace_id',o.workspace_id,'environment',o.environment,'occurred_at',now(),'data',jsonb_build_object('payment_id',payment,'payment_intent_id',a.intent_id,'merchant_reference',(SELECT merchant_reference FROM payment_intents WHERE id=a.intent_id),'amount_minor',o.amount_minor,'currency',o.currency,'verification_status','verified','verification_method',CASE source WHEN 'device_sms' THEN 'sms_match' ELSE 'notification_match' END,'original_transaction_at',o.original_transaction_at,'verified_at',now(),'resource_version',1,'late_sync',now()>a.window_end))) RETURNING id INTO event;
- INSERT INTO pg08_deliveries(workspace_id,environment,endpoint_id,event_id) SELECT o.workspace_id,o.environment,e.id,event FROM pg08_endpoints e WHERE e.workspace_id=o.workspace_id AND e.environment=o.environment AND e.active;
- UPDATE pg07_receipt_results SET status='matched',payment_id=payment,processed_at=now() WHERE observation_id=o_id;
+ VALUES(o.workspace_id,o.environment,payment,'payment.verified',
+ jsonb_build_object('schema_version',1,'type','payment.verified','workspace_id',o.workspace_id,
+ 'environment',o.environment,'occurred_at',now(),
+ 'data',jsonb_build_object('payment_id',payment,'payment_intent_id',a.intent_id,
+ 'merchant_reference',(SELECT merchant_reference FROM payment_intents WHERE id=a.intent_id),
+ 'amount_minor',o.amount_minor,'currency',o.currency,'verification_status','verified',
+ 'verification_method',verification,'original_transaction_at',o.original_transaction_at,
+ 'verified_at',now(),'resource_version',1,'late_sync',now()>a.window_end)))
+ RETURNING id INTO event;
+ INSERT INTO pg08_deliveries(workspace_id,environment,endpoint_id,event_id)
+ SELECT o.workspace_id,o.environment,e.id,event FROM pg08_endpoints e
+ WHERE e.workspace_id=o.workspace_id AND e.environment=o.environment AND e.active;
+ UPDATE pg07_receipt_results SET status='matched',payment_id=payment,
+ reason='',processed_at=now() WHERE observation_id=o_id;
  RETURN 'matched';
 END $$;
 CREATE FUNCTION pg08_due() RETURNS TABLE(id uuid,workspace_id uuid,environment text,entitlement_version bigint) LANGUAGE sql SECURITY DEFINER SET search_path=public,pg_temp AS $$
