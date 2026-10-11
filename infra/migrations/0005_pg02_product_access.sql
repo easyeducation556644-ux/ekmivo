@@ -17,6 +17,18 @@ INSERT INTO workspace_product_access(workspace_id,product,enabled)
  SELECT id,'payments',service_mode IN ('commerce','both') FROM workspaces
  ON CONFLICT DO NOTHING;
 
+CREATE TABLE IF NOT EXISTS workspace_product_access_audit (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+ actor_id uuid NOT NULL REFERENCES app_users(id) ON DELETE RESTRICT,
+ product text NOT NULL CHECK(product IN ('ai','payments')),
+ previous_enabled boolean NOT NULL,
+ new_enabled boolean NOT NULL,
+ changed_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS workspace_product_access_audit_business_idx
+ ON workspace_product_access_audit(workspace_id,changed_at DESC);
+
 CREATE OR REPLACE FUNCTION seed_workspace_product_access() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
 BEGIN
