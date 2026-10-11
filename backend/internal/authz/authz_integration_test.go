@@ -44,10 +44,10 @@ func TestPostgresSessionMembershipAndEnvironment(t *testing.T){
   if err!=nil{t.Fatal(err)}
   _,err=fixture.ExecContext(ctx,"INSERT INTO workspace_members(workspace_id,user_id,role) VALUES($1::uuid,$2::uuid,'owner')",workspaces[i],id)
   if err!=nil{t.Fatal(err)}
-  for _,environment:=range []string{"sandbox","live"}{
-   _,err=fixture.ExecContext(ctx,"INSERT INTO workspace_environments(workspace_id,environment) VALUES($1::uuid,$2)",workspaces[i],environment)
-   if err!=nil{t.Fatal(err)}
-  }
+  // Migration trigger seeds both environments atomically with each workspace.
+  var seeded int
+  err=fixture.QueryRowContext(ctx,"SELECT count(*) FROM workspace_environments WHERE workspace_id=$1::uuid",workspaces[i]).Scan(&seeded)
+  if err!=nil||seeded!=2{t.Fatalf("workspace contexts not seeded: %v (count %d)",err,seeded)}
  }
  // Fixture is committed for the separate runtime connection, then removed
  // at test cleanup. The randomly generated session token is never logged.
