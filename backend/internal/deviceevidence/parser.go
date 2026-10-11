@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 	_ "time/tzdata" // Keep receipt timezone parsing independent of host tzdata.
 )
 
@@ -104,6 +105,9 @@ func MinorUnits(s string) (int64, error) {
 	return amount, nil
 }
 func (r ParserRule) Validate() error {
+	if len(r.Pattern) > 2048 || len(r.CapturePattern) > 2048 {
+		return errors.New("parser rule exceeds safe bounds")
+	}
 	if r.CapturePattern != "" {
 		if !strings.HasPrefix(r.CapturePattern, "^") || !strings.HasSuffix(r.CapturePattern, "$") {
 			return errors.New("capture filter must match whole evidence")
@@ -133,7 +137,7 @@ func (r ParserRule) Validate() error {
 }
 func (r ParserRule) Parse(source, realm, body string) (ParsedReceipt, error) {
 	var p ParsedReceipt
-	if !r.Approved || r.SandboxOnly && realm != "sandbox" || source != r.Source || len(body) > 8192 {
+	if !r.Approved || r.SandboxOnly && realm != "sandbox" || source != r.Source || len(body) > 8192 || !utf8.ValidString(body) {
 		return p, errors.New("unsupported receipt source")
 	}
 	if e := r.Validate(); e != nil {
