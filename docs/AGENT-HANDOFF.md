@@ -66,3 +66,8 @@ Additive migrations `0003_pg01_admin_mfa.sql` and `0004_pg01_environment_rls.sql
 
 ### Render handoff, PG01 (2026-10-11)
 Go service is **live** at `https://ekmivo-go-api.onrender.com`, Render id `srv-db5j532d0e5s73fli4h0`, Singapore Free. Render has `AUTHZ_DATABASE_URL` bound to the restricted Neon runtime role and `EKMIVO_REQUIRE_AUTHZ=true`; startup log on deploy `dep-db5j7e8473hc73bcd8j0` confirms least-privileged DB identity and missing-context RLS isolation. Owner's real TOTP MFA enrollment and active MFA-verified session confirmed. However PG01 remains open for real authenticated HTTP authorization/tenant denials, admin MFA replay/logout/role checks and recovery evidence; these cannot be relabeled as completed based on isolated tests. Financial readiness 503 by design. Do not start PG02 until PG01 accepted.
+
+### Independent PG01 HTTP audit — acceptance OPEN
+
+Dedicated production HTTP fixture tests and browser reproduction steps are recorded in [PG01 evidence](evidence/PG01/README.md). Missing actual write/proxy/recovery/revocation paths remain required coverage; do not interpret read-only capability checks or fixture updates as complete acceptance. Inspect production-http-results.json for current test outcomes before advancing to PG02.
+Concurrent update: the remote repository now contains PG02 UI work (observed during this audit and preserved). This does not change PG01's open acceptance status. The final verification run reports 34 passing assertions and 3 NOT_IMPLEMENTED coverage items; supported revocation/recovery lifecycle remains incomplete. See PG01 evidence for exact boundaries.

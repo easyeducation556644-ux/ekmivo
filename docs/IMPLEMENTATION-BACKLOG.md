@@ -285,3 +285,8 @@ PG00 accepted. PG01 scope F02/F03/F04, S02/S04/S45: Go opaque session/member/rol
 
 ### PG01 Render runtime evidence (acceptance still open)
 Real Render service `ekmivo-go-api` deployed Singapore commit `16fd3351`; startup read-only PostgreSQL probe passed for least-privileged role and missing-context FORCE RLS against production Neon. Real owner TOTP enrollment confirmed (1 active MFA session). Production API `/readyz` remains unready for money workflows, and remaining production authenticated access/MFA revocation negative scenarios still require evidence. No serial advance to PG02; see `docs/evidence/PG01/README.md`.
+
+### Independent PG01 HTTP audit — acceptance OPEN
+
+Dedicated production HTTP fixture tests and browser reproduction steps are recorded in [PG01 evidence](evidence/PG01/README.md). Missing actual write/proxy/recovery/revocation paths remain required coverage; do not interpret read-only capability checks or fixture updates as complete acceptance. Inspect production-http-results.json for current test outcomes before advancing to PG02.
+Concurrent update: the remote repository now contains PG02 UI work (observed during this audit and preserved). This does not change PG01's open acceptance status. The final verification run reports 34 passing assertions and 3 NOT_IMPLEMENTED coverage items; supported revocation/recovery lifecycle remains incomplete. See PG01 evidence for exact boundaries.

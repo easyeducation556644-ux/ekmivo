@@ -119,3 +119,10 @@ Committed receipt field prefilter, Android Keystore P-256 signer, Kotlin raw-bod
 
 ### PG01 live Render startup verification — 2026-10-11
 Render `ekmivo-go-api` Singapore service `srv-db5j532d0e5s73fli4h0` deployed Go build `16fd3351` live; runtime log confirmed dedicated nonprivileged Neon role and zero tenant/environment rows without transaction-local RLS context. Required DB env configured with fail-closed `EKMIVO_REQUIRE_AUTHZ=true`, secrets not logged. Owner's real TOTP enrollment and fresh MFA session verified in Neon (1 each). PG01 **still open** for authenticated production HTTP negative tests and admin role/MFA recovery walkthrough; PG02 not started. See `docs/evidence/PG01/README.md`.
+
+## Independent PG01 verification — 2026-10-11
+
+Live Go HTTP authorization was tested using dedicated transient control-plane fixtures: three tenants, viewer capability denials, removed membership, expired/revoked sessions and MFA-gated admin access. Full expected/actual endpoint/status/DB assertions and limitations are in [PG01 evidence](evidence/PG01/README.md) and its production-http-results.json. The same source includes an opt-in redacted verification harness. Existing owner credentials/MFA and financial records were untouched; cleanup is separately asserted.
+
+**PG01 remains not accepted.** Actual workspace writes, approved web-to-Go session proxy and user-facing audited MFA revocation/recovery (including one-use recovery codes) are not implemented/testable. Capability denial and simulated enrollment revocation are partial evidence, not substitutes for those flows. No PG02 advance authorized by this verification.
+Concurrent update: the remote repository now contains PG02 UI work (observed during this audit and preserved). This does not change PG01's open acceptance status. The final verification run reports 34 passing assertions and 3 NOT_IMPLEMENTED coverage items; supported revocation/recovery lifecycle remains incomplete. See PG01 evidence for exact boundaries.

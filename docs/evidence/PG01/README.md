@@ -41,3 +41,40 @@ Project Ekmivo, database `ekmivo`, Singapore. Existing 0001/0002 not re-run. Add
 **Production MFA owner observation:** Real Neon read-only query returned one confirmed administrator MFA enrollment and one active session with recent MFA, maintaining one Super Admin; no OTP seed/session contents copied.
 
 **Not yet verified:** authentic HTTP session forwarded through approved Next.js proxy to Go; live revoked/expired and cross-tenant HTTP negative tests; browser admin role mutation denial and repeated-code scenarios; recovery/incident procedures. Isolated Go/Postgres tests cover these paths but are not production HTTP evidence. PG01 remains **OPEN** pending those checks. PG02 not started. Android PG06/AN03 remain partial, not acceptance.
+
+## Independent deployed HTTP verification — 2026-10-11
+
+Status remains **IN PROGRESS / NOT ACCEPTED**. Source inspected at `912f297`; results concern actual deployed responses, not a claimed deployment SHA. Machine-readable endpoint/status/role/response/assertion records: [production-http-results.json](production-http-results.json). Reproducible guarded harness: [pg01-production-http.mjs](../../../apps/web/scripts/pg01-production-http.mjs).
+
+### Method and limits
+
+Dedicated short-lived `example.invalid` test users, three workspaces and a viewer were created through the authorized control-plane database connection; opaque sessions were generated using the existing format. This tests deployed HTTP authorization, **not signup/login issuance**. A dedicated test administrator's encrypted TOTP seed was installed as an unconfirmed fixture; the challenge was submitted to the **real deployed Next.js server action**, followed by Go HTTP verification. This is real challenge/replay/lockout evidence, **not password-confirmed enrollment or a physical authenticator test**. Seeds, credentials, cookies, recovery codes and raw HTML never enter evidence. No financial records or existing user/admin settings were changed. Fixture cleanup assertions are recorded separately.
+
+Production targets: `https://ekmivo-go-api.onrender.com` and `https://ekmivo-web-masharzys-projects.vercel.app`. The JSON contains every expected/actual status and safe response. Next.js business denials may use HTTP 200; verify the error text and database result, not the transport status alone.
+
+### Remaining release blockers
+
+- No deployed workspace mutation endpoint exists: POST to the read-only access route returns 405. Viewer capability denial plus unchanged settings is verified, but **405 is not authorization evidence for an actual write command**.
+- No MFA recovery-code generation/storage/consume endpoint exists. Recovery-code reuse/rate-limit checks therefore cannot run; password-reset OTP is a different factor and must not silently bypass MFA.
+- No supported user-facing MFA revoke/reset action exists. Test-row `confirmed_at=NULL` verifies fail-closed behavior of existing sessions, but does not prove an audited revocation workflow, re-enrollment/session invalidation or operator recovery procedure.
+- No Next.js-to-Go authenticated session proxy is implemented. Direct Go fixture-cookie requests verify Go checks; normal browser product integration remains unverified.
+
+These are missing implementation coverage, not external credential blockers. Do not mark PG01 accepted or start PG02 until remaining required flows and their checks pass. Do not infer payment-engine readiness from this report.
+
+### Short browser walkthrough
+
+Use a **dedicated test administrator** and test workspaces; leave the sole production owner untouched. Operator grants the test account the required role through the existing approved admin process. Do not share its password, authenticator seed or codes in evidence.
+
+1. Sign in to the test administrator in a fresh browser profile, then open `/en/admin` (or `/bn/admin`) before MFA. Expected: redirect to the MFA screen, no admin dashboard.
+2. On `/en/admin/mfa`, confirm the test-account password, add its private key to its authenticator and submit the current code. Expected: admin dashboard. This manual enrollment step supplements the harness, which uses a seeded unconfirmed key.
+3. Log out, sign in again, and submit the already-used TOTP code before its step changes. Expected: invalid/already-used error; no admin access. Never reuse the owner's authenticator for this test.
+4. In the fresh test session, submit five invalid six-digit codes. The next attempt must show the 15-minute cooldown. Another browser login for the same test account must not reset the database lockout. Stop; do not lock the owner's account.
+5. As test account A, open test workspace B's URL. Expected: no B data. For deployed Go HTTP assertions use the guarded harness, because a browser cookie on the Vercel domain is not automatically sent to the Render domain; do not paste cookies into console/logs.
+6. Revocation and recovery walkthroughs are currently **unavailable**: no such controls exist. Do not delete a real MFA row manually or treat password reset as MFA recovery. Implement an audited flow, then add the corresponding browser steps and HTTP assertions.
+
+To rerun the harness, first securely pull production variables to an ignored local file from the verified Vercel project. Set `PG01_ALLOW_PRODUCTION_FIXTURES=true` in the runner's environment, then invoke Node with `--env-file=<ignored-file> scripts/pg01-production-http.mjs` from `apps/web`. This explicitly creates and cleans dedicated test identity/workspace fixtures in the deployed control plane; never run it as an ordinary CI test. No container or Docker startup is needed.
+### Final result of independent run
+
+The final run passed real deployed TOTP challenge, same-code replay in a fresh session, five invalid attempts plus persistent lockout, with DB-confirmed blocked_until. Go three-tenant/session/capability/MFA negatives and cleanup also passed. Three required coverage items remain NOT_IMPLEMENTED: actual protected write endpoint, recovery-code flow and web-to-Go session proxy. Audited MFA revoke/re-enrollment remains an additional lifecycle gap; only controlled test-row revocation was checked. Initial form-transport timeout was investigated and the final run uses React Server Action encoding, matching the deployed client request protocol. RSC redirects may return HTTP 200 with the action redirect header, unlike ordinary HTML POST's 303; the database freshness and subsequent Go access confirm success.
+
+Concurrent repository observation: during verification, origin/main advanced to `f9e390e` with PG02 UI commits. Those changes were preserved and pulled; they do not supply missing PG01 acceptance evidence. Earlier statements that PG02 has not started are historical. PG01 remains open regardless of those UI commits.
