@@ -136,7 +136,7 @@ CREATE FUNCTION pg06_device_context(d uuid) RETURNS TABLE(workspace_id uuid,envi
  FROM pg06_devices d JOIN financial_workspace_registry r USING(workspace_id,environment)
  WHERE d.id=$1 AND d.revoked_at IS NULL AND d.public_key IS NOT NULL AND r.status='active'
 $$;
-CREATE FUNCTION pg06_ingest(d uuid,event text,hash text,ciphertext bytea,payer text,amount bigint,at_time timestamptz,precision text,ref text,method_name text,parser integer,source_kind text,parse_error text,observed_time timestamptz,event_sequence bigint)
+CREATE FUNCTION pg06_ingest(d uuid,event text,hash text,ciphertext bytea,payer text,amount bigint,at_time timestamptz,time_precision_name text,ref text,method_name text,parser integer,source_kind text,parse_error text,observed_time timestamptz,event_sequence bigint)
  RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
 DECLARE device pg06_devices; previous pg06_transport; inbound uuid; observation uuid; original uuid;old_receipt financial_receipt_observations;
 BEGIN
@@ -148,19 +148,19 @@ BEGIN
   RETURN jsonb_build_object('ack','durable','observation_id',previous.observation_id,'reason',previous.parse_reason,'replayed',true);
  END IF;
  IF parse_error='' THEN
-  IF payer !~ '^[a-f0-9]{64}$' OR ref !~ '^[a-f0-9]{64}$' OR at_time IS NULL OR at_time>now()+interval '5 minutes' OR amount<=0 OR precision NOT IN ('second','minute') OR NOT EXISTS(SELECT 1 FROM financial_receiving_accounts a WHERE a.id=device.account_id AND a.method=method_name AND a.workspace_id=device.workspace_id AND a.environment=device.environment) THEN RAISE EXCEPTION 'invalid parsed evidence' USING ERRCODE='22023';END IF;
+  IF payer !~ '^[a-f0-9]{64}$' OR ref !~ '^[a-f0-9]{64}$' OR at_time IS NULL OR at_time>now()+interval '5 minutes' OR amount<=0 OR time_precision_name NOT IN ('second','minute') OR NOT EXISTS(SELECT 1 FROM financial_receiving_accounts a WHERE a.id=device.account_id AND a.method=method_name AND a.workspace_id=device.workspace_id AND a.environment=device.environment) THEN RAISE EXCEPTION 'invalid parsed evidence' USING ERRCODE='22023';END IF;
   PERFORM pg_advisory_xact_lock(hashtextextended('receipt|'||device.account_id::text||'|'||ref,0));
   SELECT * INTO old_receipt FROM financial_receipt_observations WHERE workspace_id=device.workspace_id AND environment=device.environment AND receiving_account_id=device.account_id AND provider_reference_hmac=ref;
   original:=old_receipt.id;
   IF original IS NOT NULL THEN
    -- Different transports for the same provider/account transaction do not allocate twice.
-   IF old_receipt.payer_hmac IS DISTINCT FROM payer OR old_receipt.amount_minor IS DISTINCT FROM amount OR old_receipt.original_transaction_at IS DISTINCT FROM at_time OR old_receipt.time_precision IS DISTINCT FROM precision OR old_receipt.method IS DISTINCT FROM method_name THEN parse_error:='provider_identity_conflict';
+   IF old_receipt.payer_hmac IS DISTINCT FROM payer OR old_receipt.amount_minor IS DISTINCT FROM amount OR old_receipt.original_transaction_at IS DISTINCT FROM at_time OR old_receipt.time_precision IS DISTINCT FROM time_precision_name OR old_receipt.method IS DISTINCT FROM method_name THEN parse_error:='provider_identity_conflict';
    ELSE observation:=original;parse_error:='duplicate_provider_identity';END IF;
   ELSE
    INSERT INTO financial_inbound_events(workspace_id,environment,source_kind,source_event_id,event_digest,original_source_at,encrypted_evidence)
    VALUES(device.workspace_id,device.environment,source_kind,d::text||':'||event,hash,at_time,ciphertext) RETURNING id INTO inbound;
    INSERT INTO financial_receipt_observations(workspace_id,environment,inbound_event_id,receiving_account_id,provider_reference_hmac,payer_hmac,amount_minor,method,direction,original_transaction_at,time_precision,parser_version)
-   VALUES(device.workspace_id,device.environment,inbound,device.account_id,ref,payer,amount,method_name,'incoming',at_time,precision,parser) RETURNING id INTO observation;
+   VALUES(device.workspace_id,device.environment,inbound,device.account_id,ref,payer,amount,method_name,'incoming',at_time,time_precision_name,parser) RETURNING id INTO observation;
    INSERT INTO pg07_receipt_results(workspace_id,environment,observation_id) VALUES(device.workspace_id,device.environment,observation);
   END IF;
  END IF;
