@@ -1145,17 +1145,19 @@ try{
 
  // PG09: REAL RLS-scoped list/detail SQL on synthetic isolated sandbox rows.
  // Cursor chronology cannot be replaced with UUID-desc (random IDs).
- const pg09Read=async(resource,id=null,cursor=null,status=null,account=null,method=null,from=null,to=null,db=pg07DB,workspace=pg07WS,realm="sandbox")=>db.begin(async tx=>{
+ const pg09Read=async(resource,id=null,cursor=null,status=null,account=null,method=null,from=null,to=null,db=pg07DB,workspace=pg07WS,realm="sandbox",search=null)=>db.begin(async tx=>{
   await tx.unsafe("SELECT set_config('ekmivo.workspace_id',$1,true),set_config('ekmivo.environment',$2,true)",[workspace,realm]);
   return (await tx.unsafe(
-   "SELECT pg09_read($1::uuid,$2,$3,$4::uuid,$5::uuid,$6,$7::uuid,$8,$9::timestamptz,$10::timestamptz) AS data",
-   [workspace,realm,resource,id,cursor,status,account,method,from,to]))[0].data;
+   "SELECT pg09_read($1::uuid,$2,$3,$4::uuid,$5::uuid,$6,$7::uuid,$8,$9::timestamptz,$10::timestamptz,$11::text) AS data",
+   [workspace,realm,resource,id,cursor,status,account,method,from,to,search]))[0].data;
  });
  const paymentDetail=await pg09Read("payments",complete[0].id);
  same(paymentDetail.items.length,1,"PG09 verified payment detail unavailable");
  same(paymentDetail.items[0].status,"verified","PG09 verified status not authoritative");
  same(paymentDetail.items[0].source_kind,"sandbox_fixture","PG09 receipt source provenance missing");
  same(paymentDetail.items[0].event_id,pg08Event,"PG09 domain event correlation absent");
+ const byReference=await pg09Read("payments",null,null,null,null,null,null,null,pg07DB,pg07WS,"sandbox",paymentDetail.items[0].merchant_reference);
+ ok(byReference.items.some(x=>x.id===complete[0].id),"PG09 tenant-scoped merchant-reference search failed");
  ok(["delivered","pending","sending","failed","disabled"].includes(paymentDetail.items[0].webhook_status),"PG09 latest webhook delivery outcome missing");
  const filteredPayments=await pg09Read("payments",null,null,"verified",pg07Account,"bkash");
  ok(filteredPayments.items.some(x=>x.id===complete[0].id),"PG09 account/method/status filtered payments excluded actual verified fixture");
@@ -1168,6 +1170,12 @@ try{
   const result=(await pg07DB.unsafe("INSERT INTO pg08_endpoints(workspace_id,environment,url,secret,created_at) VALUES($1::uuid,'sandbox',$2,$3,$4) RETURNING id,created_at",[pg07WS,'https://example.invalid/pg09-'+n,Buffer.alloc(32,73),created]))[0];
   endpoints.push(result);
  }
+ const targeted=await pg09Read("webhooks",null,null,null,null,null,null,null,pg07DB,pg07WS,"sandbox","pg09-60");
+ same(targeted.items.length,1,"PG09 server search ignored later-than-first-page endpoint");
+ same(targeted.items[0].id,endpoints[60].id,"PG09 server search did not search full tenant scope");
+ const literalCase=await pg09Read("webhooks",null,null,null,null,null,null,null,pg07DB,pg07WS,"sandbox","PG09-31");
+ same(literalCase.items[0]?.id,endpoints[31].id,"PG09 server search failed case folding");
+ await reject(pg07DB,()=>pg09Read("webhooks",null,null,null,null,null,null,null,pg07DB,pg07WS,"sandbox","x".repeat(97)),"22023");
  const firstPage=await pg09Read("webhooks");
  same(firstPage.items.length,50,"PG09 first keyset page not 50 rows");
  ok(!!firstPage.next_cursor,"PG09 list omitted next cursor");
