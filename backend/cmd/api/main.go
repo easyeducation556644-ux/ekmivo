@@ -82,7 +82,11 @@ func newHandlerWithRepository(repo *authz.Repository)http.Handler{
 }
 func main(){
  var repo *authz.Repository
- if connection:=os.Getenv("AUTHZ_DATABASE_URL");connection!=""{
+ connection:=os.Getenv("AUTHZ_DATABASE_URL")
+ if os.Getenv("EKMIVO_REQUIRE_AUTHZ")=="true" && connection==""{
+  log.Fatal("authorization database is mandatory for deployed Go API")
+ }
+ if connection!=""{
   db,err:=sql.Open("pgx",connection)
   if err!=nil{log.Fatal("authz database driver initialization failed")}
   db.SetMaxOpenConns(8)
@@ -90,9 +94,10 @@ func main(){
   db.SetConnMaxLifetime(10*time.Minute)
   ctx,cancel:=context.WithTimeout(context.Background(),8*time.Second)
   err=db.PingContext(ctx)
-  if err==nil{repo=&authz.Repository{DB:db};err=repo.ValidateRuntimeRole(ctx)}
+  if err==nil{repo=&authz.Repository{DB:db};err=repo.ProbeReadOnlyBoundary(ctx)}
   cancel()
-  if err!=nil{log.Fatal("authorization runtime role validation failed; refusing privileged connection")}
+  if err!=nil{log.Fatal("PG01 authorization database or restricted RLS scope unavailable")}
+  log.Print("PG01 authz runtime PASS: nonprivileged role and no-context tenant isolation verified")
   defer db.Close()
  }
  port:=os.Getenv("PORT")
