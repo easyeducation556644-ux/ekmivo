@@ -1142,6 +1142,83 @@ try{
  });
  console.log("PG08 merchant receiver PASS: independent consumer DB, local TLS authoritative payment check, signature/schema/realm/amount verification, event-ID dedup, fulfillment once and old-key overlap (SIMULATED)");
 
+
+ // PG09: REAL RLS-scoped list/detail SQL on synthetic isolated sandbox rows.
+ // Cursor chronology cannot be replaced with UUID-desc (random IDs).
+ const pg09Read=async(resource,id=null,cursor=null,status=null,account=null,method=null,from=null,to=null,db=pg07DB,workspace=pg07WS,realm="sandbox")=>db.begin(async tx=>{
+  await tx.unsafe("SELECT set_config('ekmivo.workspace_id',$1,true),set_config('ekmivo.environment',$2,true)",[workspace,realm]);
+  return (await tx.unsafe(
+   "SELECT pg09_read($1::uuid,$2,$3,$4::uuid,$5::uuid,$6,$7::uuid,$8,$9::timestamptz,$10::timestamptz) AS data",
+   [workspace,realm,resource,id,cursor,status,account,method,from,to]))[0].data;
+ });
+ const paymentDetail=await pg09Read("payments",complete[0].id);
+ same(paymentDetail.items.length,1,"PG09 verified payment detail unavailable");
+ same(paymentDetail.items[0].status,"verified","PG09 verified status not authoritative");
+ same(paymentDetail.items[0].source_kind,"sandbox_fixture","PG09 receipt source provenance missing");
+ same(paymentDetail.items[0].event_id,pg08Event,"PG09 domain event correlation absent");
+ same(paymentDetail.items[0].webhook_status,"delivered","PG09 webhook delivery outcome not visible");
+ const filteredPayments=await pg09Read("payments",null,null,"verified",pg07Account,"bkash");
+ ok(filteredPayments.items.some(x=>x.id===complete[0].id),"PG09 account/method/status filtered payments excluded actual verified fixture");
+ same((await pg09Read("payments",null,null,"verified",pg07SecondAccount,"bkash")).items.some(x=>x.id===complete[0].id),
+  false,"PG09 account filter leaked another account's payment");
+ const moment=new Date();
+ const endpoints=[];
+ for(let n=0;n<61;n++){
+  const created=new Date(moment.getTime()-(n+1)*60000);
+  const result=(await pg07DB.unsafe("INSERT INTO pg08_endpoints(workspace_id,environment,url,secret,created_at) VALUES($1::uuid,'sandbox',$2,$3,$4) RETURNING id,created_at",[pg07WS,'https://example.invalid/pg09-'+n,Buffer.alloc(32,73),created]))[0];
+  endpoints.push(result);
+ }
+ const firstPage=await pg09Read("webhooks");
+ same(firstPage.items.length,50,"PG09 first keyset page not 50 rows");
+ ok(!!firstPage.next_cursor,"PG09 list omitted next cursor");
+ for(let i=1;i<firstPage.items.length;i++){
+  const current=firstPage.items[i],previous=firstPage.items[i-1];
+  ok(new Date(previous.created_at).getTime()>=new Date(current.created_at).getTime(),
+   "PG09 first page unsorted by real creation time");
+ }
+ const lastPage=await pg09Read("webhooks",null,firstPage.next_cursor);
+ ok(lastPage.items.length>=11,"PG09 keyset cursor skipped old rows");
+ const ids=new Set([...firstPage.items,...lastPage.items].map(x=>x.id));
+ for(const row of endpoints)ok(ids.has(row.id),"PG09 cursor lost endpoint due to random UUID ordering");
+ const latest=(await pg07DB.unsafe("INSERT INTO pg08_endpoints(workspace_id,environment,url,secret,created_at) "+
+  "VALUES($1::uuid,'sandbox','https://example.invalid/new-post-cursor',$2,now()) RETURNING id",
+  [pg07WS,Buffer.alloc(32,72)]))[0].id;
+ const postInsert=await pg09Read("webhooks",null,firstPage.next_cursor);
+ same(postInsert.items.some(x=>x.id===latest),false,"PG09 back-page polluted by later insertion");
+ // A foreign or unknown ID is never a silently valid empty cursor.
+ await reject(pg07DB,()=>pg09Read("webhooks",null,randomUUID()),"22023");
+ const chosen=endpoints[0];
+ const selected=await pg09Read("webhooks",chosen.id);
+ same(selected.items.length,1,"PG09 named webhook detail could not load");
+ same(selected.items[0].id,chosen.id,"PG09 named webhook detail drifted to another endpoint");
+ const overview=(await pg09Read("overview")).items[0];
+ ok(Number(overview.verified_minor)>=pg07Base.amount,"PG09 overview verified volume not derived from allocations");
+ ok(Number(overview.failed_deliveries)>=1,"PG09 overview ignored failed callback without altering payment");
+ const device=(await pg07DB.unsafe(
+  "INSERT INTO pg06_devices(workspace_id,environment,account_id,name,source,parser_id,binding) "+
+  "VALUES($1::uuid,'sandbox',$2::uuid,'PG09 fictional device','device_sms','fictional-v1','sms:1') RETURNING id",
+  [pg07WS,pg07Account]))[0].id;
+ const ingressID=randomUUID();
+ const transport=(await pg07DB.unsafe(
+  "INSERT INTO pg06_transport(workspace_id,environment,device_id,event_id,digest,observation_id,parse_reason,observed_at,sequence) "+
+  "VALUES($1::uuid,'sandbox',$2::uuid,$3,$4,$5::uuid,'',now(),1) RETURNING id",
+  [pg07WS,device,ingressID,hmac(),pg07ReceiptID]))[0].id;
+ const incoming=await pg09Read("incoming",transport);
+ same(incoming.items.length,1,"PG09 incoming detail not queryable");
+ same(incoming.items[0].device_source,"device_sms","PG09 source identity missing");
+ ok((incoming.items[0].evidence_digest_prefix||"").length===12,"PG09 redacted transport digest not displayed");
+ ok(Array.isArray(incoming.items[0].candidates)&&incoming.items[0].candidates.length>0,
+  "PG09 detail five-field candidate comparisons missing");
+ const listIncoming=await pg09Read("incoming");
+ const listRow=listIncoming.items.find(x=>x.id===transport);
+ same(listRow.candidates,null,"PG09 list unnecessarily exposed detail-level candidates");
+ const wrongRealm=pg07DB;
+ await reject(wrongRealm,()=>pg09Read("payments",null,null,null,null,null,null,null,wrongRealm,pg07WS,"live"),"42501");
+ const dRows=await pg09Read("deliveries",pg07Endpoint);
+ ok(dRows.items.length>=1&&dRows.items.every(x=>x.endpoint_id===pg07Endpoint),
+  "PG09 webhook detail deliveries are not scoped by endpoint");
+ console.log("PG09 isolated source-backed UI contracts PASS: chronological UUID-tie keyset pages, filters, scoped list/detail, audit-safe incoming comparison, overview and webhook correlation (FICTIONAL SANDBOX ONLY)");
+
  const controlEmpty=await admin`SELECT to_regclass('public.payment_intents') IS NULL AS no_payments`;
  ok(controlEmpty[0].no_payments,"financial tables leaked into control DB");
  console.log(`PG04 isolated finance+River PASS: ${count} assertions; 2 DBs, no shared auth, registry, realm/cross-role isolation, PGX River rollback/idempotency`);
