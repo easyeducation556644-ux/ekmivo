@@ -164,7 +164,11 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
   if(target.id===workspace.id){setMobileOpen(false);if(businessMenu.current)businessMenu.current.open=false;return;}
   if(target.mode==="off"){
    setMobileOpen(false);
-   startTransition(()=>router.push(`/${locale}/w/${target.id}/dashboard`));
+   const next=`/${locale}/w/${target.id}/dashboard`;
+   // Even a disabled product has a guarded destination. Never bypass an
+   // active unsaved draft when switching to a business with both products off.
+   if(activeDrafts().length){setBlockedRoute(next);setDraftError("");return;}
+   startTransition(()=>router.push(next));
    return;
   }
   const chosen=serviceEnabled(service,target.mode)?service:(target.mode==="ai"?"ai":"payments");
