@@ -88,3 +88,10 @@ This pass is intentionally based on a **new branch from current `main`**, rather
 6. Repeat keyboard-only, touch, EN/BN with Light/Dark/System + OS change, zoom 200%, widths 320/768/1440, back/forward, malformed env, suspended membership, offline/forbidden/loading/error/empty and screen-reader output.
 
 **Status:** PG02 functional source hardening added, final CI + production deploy parity + browser/device matrix still open. PG03–PG09 backend record/payment actions and PG13 notification streams are *dependency-owned*, not PG02 completion claims. Keep PG02 **OPEN** until its genuine required gates are verified.
+
+
+### PG02 hardening CI result — 2026-10-11
+
+- **PASS 3/3 jobs:** [GitHub Actions run 38123777088](https://github.com/masharzy/ekmivo/actions/runs/38123777088), PR head `9902051cfb1fd94a467a8c4d709aae5be53e6ab0`: Next.js lint/TypeScript/production build, isolated PostgreSQL tenant/product/environment/session/migrations, new real-component onboarding locale guard regression, business search, existing draft/locale/profile/Go integration tests, Go build/unit tests, and native Kotlin/Compose debug build + unit tests.
+- [PR #2](https://github.com/masharzy/ekmivo/pull/2) **squash merged into `main`**, merge commit `3cc4eeefce3dfed8997fe9f83cc35903cdf4c912`. Earlier isolated regression CI failed only because its browser fixture lacked `location.origin`; fixture corrected and fully green above. Do not mislabel the failed run as a product verification pass.
+- No browser/device QA was performed by these CI jobs. **Production parity is separately verified from Vercel deployment metadata** and must match the eventual release commit. Leave PG02 acceptance OPEN and the single manual ledger unchanged until actual user-interaction evidence is available.
