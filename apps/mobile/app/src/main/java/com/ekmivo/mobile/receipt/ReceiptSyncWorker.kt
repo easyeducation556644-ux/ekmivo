@@ -40,19 +40,28 @@ class ReceiptSyncWorker(context:Context,params:WorkerParameters):Worker(context,
   return try { ReceiptStore(applicationContext).use{store ->
    val device=store.enrollment()?:return Result.success();if(!store.enabled())return Result.success()
    val permission=if(device.getString("binding").startsWith("sms:"))ContextCompat.checkSelfPermission(applicationContext,Manifest.permission.RECEIVE_SMS)==PackageManager.PERMISSION_GRANTED else NotificationManagerCompat.getEnabledListenerPackages(applicationContext).contains(applicationContext.packageName)
-   val health=JSONObject().put("enrollment_id",device.getString("id")).put("environment",device.getString("environment")).put("permission_ok",permission).put("backlog",store.count()).put("model",Build.MODEL).put("app_version",BuildConfig.VERSION_NAME)
+   val health=JSONObject().put("enrollment_id",device.getString("id")).put("environment",device.getString("environment")).put("permission_ok",permission).put("backlog",store.count()).put("overflow_count",store.overflowCount()).put("queue_error",store.queueError()).put("model",Build.MODEL).put("app_version",BuildConfig.VERSION_NAME)
    val heartbeat=ReceiptTransport.post("heartbeat",device.getString("id"),UUID.randomUUID().toString(),health.toString().toByteArray())
-   if(heartbeat.first==403){store.pause();return Result.failure()};if(heartbeat.first !in 200..299)return Result.retry()
+   if(heartbeat.first==403){store.setQueueError("DEVICE_AUTHORIZATION_DENIED");store.pause();return Result.failure()};if(heartbeat.first !in 200..299)return Result.retry()
    repeat(5){
     val next=store.next()?:return Result.success()
     val response=ReceiptTransport.post("events",device.getString("id"),next.first,next.second)
-    if(response.first==403){store.pause();return Result.failure()}
+    if(response.first==403){store.setQueueError("DEVICE_AUTHORIZATION_DENIED");store.pause();return Result.failure()}
+    if(response.first in listOf(400,409,413,422)){
+     // Poison payload must never be silently deleted or retried forever.
+     store.setQueueError("INGEST_REJECTED_"+response.first)
+     return Result.failure()
+    }
     if(response.first !in 200..299)return Result.retry()
-    if(JSONObject(response.second).optString("ack")!="durable")return Result.retry()
+    if(JSONObject(response.second).optString("ack")!="durable"){
+     store.setQueueError("DURABLE_ACK_MISSING")
+     return Result.retry()
+    }
     store.acknowledge(next.first)
+    store.setQueueError("")
    }
    if(store.count()>0)Result.retry() else Result.success()
-  }} catch(_:Exception){Result.retry()}
+  }} catch(_:Exception){ReceiptStore(applicationContext).use{it.setQueueError("QUEUE_OR_TRANSPORT_ERROR")};Result.retry()}
  }
  companion object {
   fun schedule(context:Context){
