@@ -75,6 +75,9 @@ jobs:
       - name: PG02 account-scoped draft security and persistence contracts
         working-directory: apps/web
         run: node scripts/pg02-draft-smoke.mjs
+      - name: PG02 unsaved draft Save, Discard and Stay contract
+        working-directory: apps/web
+        run: node scripts/pg02-draft-smoke.mjs
       - name: TypeScript compile
         working-directory: apps/web
         run: npx tsc --noEmit

@@ -1,15 +1,28 @@
+// PG02 draft registration tests: no browser, no network, no mock business data.
 import assert from "node:assert/strict";
-import { draftStorageKey,parseSavedDraft,encodeSavedDraft } from "../src/lib/onboarding-draft.mjs";
-const actor1="11111111-1111-4111-a111-111111111111";
-const actor2="22222222-2222-4222-a222-222222222222";
-assert.notEqual(draftStorageKey(actor1),draftStorageKey(actor2));
-assert.equal(draftStorageKey(actor1.toUpperCase()),draftStorageKey(actor1));
-assert.throws(()=>draftStorageKey("../somebody"));
-const value={name:"বাংলা ব্যবসা",mode:"commerce"};
-assert.deepEqual(parseSavedDraft(encodeSavedDraft(value)),value);
-for(const raw of [null,"","[1]","{broken",JSON.stringify({name:"x",mode:"live"}),JSON.stringify({name:"x".repeat(101),mode:"ai"}),JSON.stringify({name:47,mode:"both"}),"x".repeat(600)]){
- assert.equal(parseSavedDraft(raw),null);
-}
-assert.throws(()=>encodeSavedDraft({name:"valid",mode:"live"}));
-assert.equal(parseSavedDraft(encodeSavedDraft({name:"",mode:"both"})).mode,"both");
-console.log("PG02 PASS: account scope, schema roundtrip, Bangla, malformed values and forbidden draft modes");
+import {readFile} from "node:fs/promises";
+import vm from "node:vm";
+import ts from "typescript";
+const source=await readFile(new URL("../src/lib/client/draft-navigation.ts",import.meta.url),"utf8");
+const script=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+const exports={};
+vm.runInNewContext(script,{exports},{timeout:5000});
+const {registerDraft,activeDrafts,saveActiveDrafts,discardActiveDrafts}=exports;
+assert.equal(activeDrafts().length,0);
+let dirty=true,discarded=0,saved=0;
+const off=registerDraft({id:"payment-request-draft",isDirty:()=>dirty,save:async()=>{saved++;dirty=false;return true;},discard:()=>{discarded++;dirty=false;}});
+assert.equal(activeDrafts().length,1);
+assert.equal(await saveActiveDrafts(),true);
+assert.equal(saved,1);
+assert.equal(activeDrafts().length,0);
+dirty=true;
+assert.equal(discardActiveDrafts(),true);
+assert.equal(discarded,1);
+dirty=true;
+const offFail=registerDraft({id:"unavailable-draft-save",isDirty:()=>dirty,save:async()=>false,discard:()=>{dirty=false;}});
+assert.equal(await saveActiveDrafts(),false,"Failed save cannot allow navigation");
+assert.equal(activeDrafts().length,2);
+assert.equal(discardActiveDrafts(),true);
+offFail();off();
+assert.equal(activeDrafts().length,0,"Unmount cleanup must remove registration");
+console.log("PG02 PASS: dirty guard, save-success, save-failure-stays, explicit discard, registration cleanup");

@@ -6,6 +6,7 @@ import { sections, type SectionKey } from "../lib/dashboard-sections";
 import { dashboardHref, navigation, searchableNavigation, serviceEnabled, serviceNames, sectionInService, type Locale, type Service, type PaymentEnvironment } from "../lib/dashboard-navigation";
 import { DashboardIcon as Icon } from "./dashboard-icon";
 import { SiteControls } from "./site-controls";
+import { activeDrafts,saveActiveDrafts,discardActiveDrafts } from "../lib/client/draft-navigation";
 
 type Space = { id: string; name: string; mode: "ai" | "commerce" | "both"; role: "owner" | "admin" | "editor" | "viewer" };
 type PaymentContext = { environment: PaymentEnvironment; status: "active" | "suspended"; availableEnvironments: PaymentEnvironment[]; liveOperational: false };
@@ -33,8 +34,12 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
  const [searchOpen,setSearchOpen]=useState(false);
  const [isNavigating,startTransition]=useTransition();
  const [noticeOpen,setNoticeOpen]=useState(false);
+ const [blockedRoute,setBlockedRoute]=useState<string|null>(null);
+ const [draftError,setDraftError]=useState("");
+ const [draftSaving,setDraftSaving]=useState(false);
  const drawer=useRef<HTMLDialogElement>(null);
  const searchDialog=useRef<HTMLDialogElement>(null);
+ const draftDialog=useRef<HTMLDialogElement>(null);
  const serviceMenu=useRef<HTMLDetailsElement>(null);
  const businessMenu=useRef<HTMLDetailsElement>(null);
  const groups=sidebarQuery?searchableNavigation(service,sidebarQuery):navigation[service];
@@ -49,7 +54,9 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
   setSearchOpen(false);
   if(serviceMenu.current)serviceMenu.current.open=false;
   if(businessMenu.current)businessMenu.current.open=false;
-  startTransition(()=>router.push(dashboardHref(locale,businessId,product,nextSection,env)));
+  const next=dashboardHref(locale,businessId,product,nextSection,env);
+  if(activeDrafts().length){setBlockedRoute(next);setDraftError("");return;}
+  startTransition(()=>router.push(next));
  },[locale,router,startTransition]);
 
  useEffect(()=>{
@@ -67,6 +74,34 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
   if(!searchOpen && d?.open)d.close();
   return ()=>{if(d?.open)d.close();};
  },[searchOpen]);
+ useEffect(()=>{
+  const d=draftDialog.current;
+  if(blockedRoute && d && !d.open)d.showModal();
+  if(!blockedRoute && d?.open)d.close();
+  return ()=>{if(d?.open)d.close();};
+ },[blockedRoute]);
+ useEffect(()=>{
+  const beforeLeave=(event:BeforeUnloadEvent)=>{
+   if(activeDrafts().length){event.preventDefault();event.returnValue="";}
+  };
+  window.addEventListener("beforeunload",beforeLeave);
+  return ()=>window.removeEventListener("beforeunload",beforeLeave);
+ },[]);
+ const commitDraftNavigation=async()=>{
+  if(!blockedRoute)return;
+  setDraftSaving(true);
+  const ok=await saveActiveDrafts();
+  setDraftSaving(false);
+  if(!ok){setDraftError(bn?"খসড়া সংরক্ষণ করা যায়নি। এই পৃষ্ঠায় থাকুন বা পরিবর্তন বাতিল করুন।":"Draft save failed. Stay on this page or discard changes.");return;}
+  const next=blockedRoute;setBlockedRoute(null);
+  startTransition(()=>router.push(next));
+ };
+ const discardDraftNavigation=()=>{
+  if(!blockedRoute)return;
+  if(!discardActiveDrafts()){setDraftError(bn?"পরিবর্তন বাতিল করা যায়নি":"Unable to discard the changes");return;}
+  const next=blockedRoute;setBlockedRoute(null);
+  startTransition(()=>router.push(next));
+ };
  useEffect(()=>{
   const key=(event:KeyboardEvent)=>{
    if((event.metaKey||event.ctrlKey)&&event.key.toLocaleLowerCase()==="k"){
@@ -208,6 +243,16 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
     {!foundKeys.length&&<p role="status">{bn?"কোনো পৃষ্ঠা পাওয়া যায়নি":"No matching pages"}</p>}
    </div>
    <p className="ds-search-hint">{bn?"এই সার্চে শুধু বর্তমান সেবার পৃষ্ঠা পাওয়া যাবে; লেনদেন খোঁজার API এখনো তৈরি হয়নি।":"Navigation search is scoped to this product. Record search is unavailable until its API is implemented."}</p>
+  </dialog>
+  <dialog ref={draftDialog} className="ds-draft-dialog" aria-label={bn?"সংরক্ষণ না করা পরিবর্তন":"Unsaved changes"} onCancel={()=>{setBlockedRoute(null);setDraftError("");}}>
+   <h2>{bn?"পরিবর্তন সংরক্ষণ করা হয়নি":"You have unsaved changes"}</h2>
+   <p>{bn?"ব্যবসা, সেবা বা পরিবেশ পরিবর্তন করলে এই খসড়া হারাতে পারেন। কী করতে চান?":"Changing the business, product or environment may lose your draft. Choose an action."}</p>
+   {draftError&&<p className="ds-draft-error" role="alert">{draftError}</p>}
+   <div className="ds-draft-actions">
+    <button type="button" disabled={draftSaving} onClick={()=>{setBlockedRoute(null);setDraftError("");}}>{bn?"থাকুন":"Stay"}</button>
+    <button type="button" disabled={draftSaving} onClick={discardDraftNavigation}>{bn?"বাতিল করুন":"Discard"}</button>
+    <button type="button" disabled={draftSaving} onClick={()=>{void commitDraftNavigation();}}>{draftSaving?(bn?"সংরক্ষণ হচ্ছে…":"Saving…"):(bn?"খসড়া সংরক্ষণ":"Save draft")}</button>
+   </div>
   </dialog>
  </div>;
 }

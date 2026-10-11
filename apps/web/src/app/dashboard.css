@@ -298,3 +298,15 @@
 .ds-unreleased-nav summary{cursor:pointer;font-size:11px;font-weight:700;padding:0 10px 6px;color:var(--color-text-secondary);list-style:none}
 .ds-unreleased-nav summary small{display:inline-block;margin-left:5px;font-size:10px;font-weight:400;color:var(--color-text-muted)}
 .ds-unreleased-nav p{margin:0 10px 8px;font-size:11px;line-height:1.6;color:var(--color-text-muted)}
+
+/* PG02 draft navigation: explicit Save/Discard/Stay, not a silent redirect. */
+.ds-draft-dialog{position:fixed;inset:0;margin:auto;width:min(480px,calc(100vw - 32px));max-height:calc(100svh - 36px);padding:28px;background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:12px;color:var(--color-text);box-shadow:0 25px 90px rgb(0 0 0 / 25%)}
+.ds-draft-dialog::backdrop{background:rgb(0 0 0 / 48%)}
+.ds-draft-dialog h2{font-size:21px;line-height:1.4}
+.ds-draft-dialog>p{color:var(--color-text-secondary);font-size:14px;line-height:1.7}
+.ds-draft-dialog .ds-draft-error{border:1px solid var(--color-danger);border-radius:7px;padding:12px;color:var(--color-danger)}
+.ds-draft-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:25px}
+.ds-draft-actions button{min-height:44px;padding:10px 14px;border:1px solid var(--color-control-border);border-radius:7px;color:var(--color-text);background:var(--color-surface);font-size:13px;font-weight:600}
+.ds-draft-actions button:last-child{background:var(--color-primary);color:var(--color-on-primary)}
+.ds-draft-actions button:disabled{opacity:.6;cursor:wait}
+@media(max-width:370px){.ds-draft-dialog{padding:20px}.ds-draft-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.ds-draft-actions button:last-child{grid-column:1/-1}}
