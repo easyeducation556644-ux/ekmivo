@@ -11,6 +11,10 @@ type Space = { id: string; name: string; mode: "ai" | "commerce" | "both"; role:
 type PaymentContext = { environment: PaymentEnvironment; status: "active" | "suspended"; availableEnvironments: PaymentEnvironment[]; liveOperational: false };
 type Props = { locale: Locale; service: Service; section: SectionKey; workspace: Space; spaces: Space[]; userName: string; platformAdmin: boolean; theme: "light" | "dark" | "system"; paymentContext?: PaymentContext; children: React.ReactNode; logout: React.ReactNode };
 const memoryKey=(workspaceId:string,service:Service)=>`ekmivo-last:${workspaceId}:${service}`;
+const environmentKey=(workspaceId:string)=>`ekmivo-last-env:${workspaceId}`;
+function rememberedEnvironment(workspaceId:string):PaymentEnvironment{
+ try{return window.localStorage.getItem(environmentKey(workspaceId))==="live"?"live":"sandbox";}catch{return "sandbox";}
+}
 function rememberedSection(workspaceId:string,service:Service): SectionKey {
  try {
   const stored=window.localStorage.getItem(memoryKey(workspaceId,service));
@@ -84,12 +88,12 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
   if(target===service)return;
   if(!serviceEnabled(target,workspace.mode))return;
   const remembered=rememberedSection(workspace.id,target);
-  goTo(workspace.id,target,target==="payments"?"sandbox":environment,remembered);
+  goTo(workspace.id,target,target==="payments"?rememberedEnvironment(workspace.id):environment,remembered);
  };
  const switchBusiness=(target:Space)=>{
   if(target.id===workspace.id){setMobileOpen(false);if(businessMenu.current)businessMenu.current.open=false;return;}
   const chosen=serviceEnabled(service,target.mode)?service:(target.mode==="ai"?"ai":"payments");
-  goTo(target.id,chosen,chosen==="payments"?"sandbox":environment,rememberedSection(target.id,chosen));
+  goTo(target.id,chosen,chosen==="payments"?rememberedEnvironment(target.id):environment,rememberedSection(target.id,chosen));
  };
  const nav=(key:SectionKey)=>{
   goTo(workspace.id,service,environment,key);
@@ -152,6 +156,7 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
       <select value={environment} onChange={event=>{
        const next=event.target.value as PaymentEnvironment;
        if(!paymentContext?.availableEnvironments.includes(next))return;
+       try{window.localStorage.setItem(environmentKey(workspace.id),next);}catch{/* Explicit URL is authoritative for navigation. */}
        goTo(workspace.id,service,next,"overview");
       }}>
        {(["sandbox","live"] as PaymentEnvironment[]).map(item=><option key={item} value={item} disabled={!paymentContext?.availableEnvironments.includes(item)}>{item==="sandbox"?"Sandbox":"Live"}</option>)}
