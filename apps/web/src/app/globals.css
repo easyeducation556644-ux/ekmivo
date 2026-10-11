@@ -236,3 +236,15 @@ h1,h2,h3,p { margin-top: 0; }
  .site-header .header-nav.open .mobile-extra{display:block}
  .site-header .header-nav.open{max-height:calc(100svh - 94px);overflow:auto}
 }
+
+/* PG02: user-owned local draft controls and focus-contained exit choice. */
+.ek-onboard-draft-controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.ek-onboard-draft-controls button,.ek-onboard-leave-actions button{border:1px solid var(--color-control-border);background:var(--color-surface);color:var(--color-text);border-radius:7px;padding:10px 14px;min-height:44px;font-weight:600;font-size:13px}
+.ek-onboard-draft-controls button:disabled{cursor:not-allowed;opacity:.5}
+.ek-onboard-leave{width:min(490px,calc(100vw - 26px));max-height:calc(100dvh - 36px);overflow:auto;border:1px solid var(--color-control-border);background:var(--color-surface);color:var(--color-text);padding:clamp(18px,4vw,30px);border-radius:13px;box-shadow:0 22px 75px rgb(0 0 0 / 20%)}
+.ek-onboard-leave::backdrop{background:rgb(0 0 0 / 45%)}
+.ek-onboard-leave h2{font-size:clamp(20px,4vw,28px);margin:0 0 10px}
+.ek-onboard-leave p{color:var(--color-text-secondary);line-height:1.6}
+.ek-onboard-leave-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:22px}
+.ek-onboard-leave-actions button:first-child{background:var(--color-primary);color:var(--color-on-primary)}
+@media(max-width:400px){.ek-onboard-leave-actions{flex-direction:column}.ek-onboard-leave-actions button{width:100%}}
