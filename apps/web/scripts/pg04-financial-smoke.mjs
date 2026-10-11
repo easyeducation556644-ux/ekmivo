@@ -714,6 +714,74 @@ try{
  ok(controlPipeline.no_receipt_tables&&controlPipeline.no_matcher,"PG06-09 leaked finance schema into control");
  console.log("PG06-09 0014 migration: disposable dual-realm replay, grants, FORCE RLS and control isolation PASS");
 
+
+ // PG06 contract: simulated device/receipt against the already-isolated
+ // disposable PostgreSQL 17 sandbox. No actual provider or handset involved.
+ const pg06DB=dbs.sandbox,pg06WS=controls[0][1];
+ const beforeDevices=(await pg06DB.unsafe(
+  "SELECT count(*)::int n FROM pg06_devices WHERE workspace_id=$1::uuid",[pg06WS]))[0].n;
+ try {
+  await pg06DB.begin(async tx=>{
+   await tx.unsafe(
+    "SELECT set_config('ekmivo.workspace_id',$1,true),set_config('ekmivo.environment','sandbox',true)",
+    [pg06WS]);
+   const account=(await tx.unsafe(
+    "INSERT INTO financial_receiving_accounts(workspace_id,environment,method,identity_hmac,display_suffix) "+
+    "VALUES($1::uuid,'sandbox','bkash',$2,'8844') RETURNING id",
+    [pg06WS,hmac()]))[0].id;
+   const tokenDigest=hmac();
+   const pairing=(await tx.unsafe(
+    "SELECT pg06_pair($1::uuid,'sandbox',$2::uuid,'CI simulated phone','fixture','fixture-v1','sms:101',$3) AS value",
+    [pg06WS,account,tokenDigest]))[0].value;
+   ok(Boolean(pairing.id),"PG06 test pairing did not generate enrollment ID");
+   const key=randomBytes(91),otherKey=randomBytes(91);
+   const first=(await tx.unsafe("SELECT pg06_claim($1,$2) AS value",[tokenDigest,key]))[0].value;
+   same(first.id,pairing.id,"PG06 initial pairing lost enrollment ID");
+   const replay=(await tx.unsafe("SELECT pg06_claim($1,$2) AS value",[tokenDigest,key]))[0].value;
+   same(replay.id,pairing.id,"PG06 lost-response same-key recovery failed");
+   await reject(tx,()=>tx.unsafe("SELECT pg06_claim($1,$2)",[tokenDigest,otherKey]),"42501");
+   const pre=(await tx.unsafe("SELECT count(*)::int n FROM pg06_device_context($1::uuid)",[pairing.id]))[0].n;
+   same(pre,1,"PG06 enrolled device did not resolve");
+   const health=(await tx.unsafe(
+    "SELECT pg06_heartbeat($1::uuid,true,3,'isolated CI','0.0.0',2,'INGEST_REJECTED_422') AS ok",
+    [pairing.id]))[0];
+   ok(health.ok,"PG06 opaque health not stored");
+   const healthRow=(await tx.unsafe(
+    "SELECT overflow_count,last_queue_error FROM pg06_devices WHERE id=$1::uuid",[pairing.id]))[0];
+   same(Number(healthRow.overflow_count),2,"PG06 dropped receipt count invisible");
+   same(healthRow.last_queue_error,"INGEST_REJECTED_422","PG06 poison queue error missing");
+   await reject(tx,()=>tx.unsafe(
+    "SELECT pg06_heartbeat($1::uuid,true,1,'isolated CI','0.0.0',-1,'')",
+    [pairing.id]),"22023");
+   const eventID=randomUUID(),eventHash=hmac();
+   const ingress=[pairing.id,eventID,eventHash,Buffer.from("ci-nonprovider-fixture"),
+    null,null,null,null,null,null,null,"device_sms","unrecognized_or_incomplete_receipt",new Date(),1];
+   const incoming=(await tx.unsafe(
+    "SELECT pg06_ingest($1::uuid,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) AS value",
+    ingress))[0].value;
+   same(incoming.ack,"durable","PG06 simulated invalid evidence lacked durable storage ACK");
+   const duplicate=(await tx.unsafe(
+    "SELECT pg06_ingest($1::uuid,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) AS value",
+    ingress))[0].value;
+   same(duplicate.replayed,true,"PG06 duplicate same-event not idempotent");
+   const changed=[...ingress];changed[2]=hmac();
+   await reject(tx,()=>tx.unsafe(
+    "SELECT pg06_ingest($1::uuid,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)",
+    changed),"23505");
+   const hist=(await tx.unsafe("SELECT pg06_history($1::uuid) AS value",[pairing.id]))[0].value;
+   ok(hist.length===1,"PG06 duplicate ingress created extra transport history");
+   await tx.unsafe("UPDATE pg06_devices SET revoked_at=now() WHERE id=$1::uuid",[pairing.id]);
+   await reject(tx,()=>tx.unsafe("SELECT pg06_claim($1,$2)",[tokenDigest,key]),"42501");
+   const removed=(await tx.unsafe("SELECT count(*)::int n FROM pg06_device_context($1::uuid)",[pairing.id]))[0].n;
+   same(removed,0,"PG06 revoked device still resolved");
+   throw rollback; // retain NO synthetic enrollment/account/event.
+  });
+ } catch(error){if(error!==rollback)throw error}
+ same((await pg06DB.unsafe(
+  "SELECT count(*)::int n FROM pg06_devices WHERE workspace_id=$1::uuid",[pg06WS]))[0].n,
+  beforeDevices,"PG06 transaction fixture leaked into financial realm");
+ console.log("PG06 isolated PostgreSQL signed-ingress function smoke PASS: same-key claim recovery, different-key deny, overflow health, durable replay, changed digest deny, revoke and rollback (SIMULATED only)");
+
  const controlEmpty=await admin`SELECT to_regclass('public.payment_intents') IS NULL AS no_payments`;
  ok(controlEmpty[0].no_payments,"financial tables leaked into control DB");
  console.log(`PG04 isolated finance+River PASS: ${count} assertions; 2 DBs, no shared auth, registry, realm/cross-role isolation, PGX River rollback/idempotency`);
