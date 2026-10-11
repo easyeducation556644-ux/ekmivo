@@ -69,7 +69,7 @@ func TestBengaliAmountAllowedOnlyByApprovedParser(t *testing.T) {
 func TestParserSafetyLimitsAndPreCaptureScope(t *testing.T) {
 	r := ParserRule{
 		ID: "fixture", Version: 1, Source: "fixture", Method: "bkash",
-		Pattern: `^Received (?P<amount>[0-9.]+) from (?P<payer>\\+880[0-9]+) at (?P<time>[0-9: -]+) ref (?P<reference>[A-Z0-9]+)$`,
+		Pattern: `^Received (?P<amount>[0-9.]+) from (?P<payer>\+880[0-9]+) at (?P<time>[0-9: -]+) ref (?P<reference>[A-Z0-9]+)$`,
 		TimeLayout: "2006-01-02 15:04:05", TimeZone: "Asia/Dhaka", Precision: "second",
 		Approved: true, SandboxOnly: true,
 	}
@@ -89,7 +89,7 @@ func TestParserSafetyLimitsAndPreCaptureScope(t *testing.T) {
 	if err := r.Validate(); err == nil {
 		t.Fatal("oversize regex accepted")
 	}
-	r.Pattern = `^Received (?P<amount>[0-9.]+) from (?P<payer>\\+880[0-9]+) at (?P<time>[0-9: -]+) ref (?P<reference>[A-Z0-9]+)$`
+	r.Pattern = `^Received (?P<amount>[0-9.]+) from (?P<payer>\+880[0-9]+) at (?P<time>[0-9: -]+) ref (?P<reference>[A-Z0-9]+)$`
 	if _, err := r.Parse("fixture", "sandbox", string([]byte{0xff, 0xfe})); err == nil {
 		t.Fatal("invalid UTF-8 receipt accepted")
 	}
