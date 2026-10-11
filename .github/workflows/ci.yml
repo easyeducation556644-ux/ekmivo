@@ -85,6 +85,9 @@ jobs:
         env:
           PG00_TEST_DATABASE_URL: postgresql://ekmivo_test:local-only-ci-password@127.0.0.1:5432/ekmivo_pg00
         run: node scripts/pg02-profile-smoke.mjs
+      - name: PG02 locale draft-guard and theme transition contracts
+        working-directory: apps/web
+        run: node scripts/pg02-locale-guard-smoke.mjs
       - name: TypeScript compile
         working-directory: apps/web
         run: npx tsc --noEmit
