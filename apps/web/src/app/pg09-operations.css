@@ -1,0 +1,15 @@
+.pg-operations{position:relative;min-width:0;padding:clamp(12px,2vw,24px)}
+.pg-operations button,.pg-operations input,.pg-operations select{font:inherit}
+.pg-operations button{border:1px solid var(--color-control-border);border-radius:8px;background:var(--color-surface);color:var(--color-text);padding:8px 12px;min-height:44px;cursor:pointer;margin:4px}
+.pg-operations button:disabled{opacity:.5;cursor:not-allowed}
+.pg-operations :is(button,input,select,summary,a):focus-visible{outline:2px solid var(--color-focus);outline-offset:3px}
+.pg-operations input,.pg-operations select{padding:10px;min-height:44px;border:1px solid var(--color-control-border);border-radius:8px;background:var(--color-surface);color:var(--color-text);width:100%;max-width:100%;box-sizing:border-box}
+.pg-operation-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:16px;padding-block:18px}
+.pg-operation-form label,.pg-operation-search{display:grid;gap:6px}.pg-operation-form p,.pg-operation-form>div{grid-column:1/-1}
+.pg-operation-table{overflow:auto;margin-block:20px}.pg-operation-table table{border-collapse:collapse;width:100%;font-size:.9rem}.pg-operation-table :is(th,td){border-bottom:1px solid var(--color-border);padding:12px;text-align:start;vertical-align:top}.pg-operation-table th{font-weight:600;background:var(--color-surface-subtle)}
+.pg-operation-error{color:var(--color-danger);background:var(--color-danger-bg);padding:12px;border-radius:8px}
+.pg-once-secret{padding:16px;background:var(--color-warning-bg);color:var(--color-warning);margin-block:16px}.pg-once-secret code{display:block;overflow-wrap:anywhere}
+.pg-operation-detail{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:16px}.pg-operation-detail dd{margin:4px 0;overflow-wrap:anywhere}.pg-operation-detail dt{color:var(--color-text-secondary)}
+.pg-operation-skeleton{min-height:220px;background:var(--color-surface-subtle);padding:24px;animation:pg-record-pulse 1.4s ease-in-out infinite}
+.pg-operation-confirm{position:fixed;inset:25% max(16px,calc((100vw - 540px)/2)) auto;background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-control-border);box-shadow:var(--shadow-dialog);padding:24px;z-index:60}
+@keyframes pg-record-pulse{50%{opacity:.6}}@media(prefers-reduced-motion:reduce){.pg-operation-skeleton{animation:none}}

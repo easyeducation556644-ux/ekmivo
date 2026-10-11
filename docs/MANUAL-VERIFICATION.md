@@ -333,3 +333,22 @@ Source a17d5c63, CI [38148742214](https://github.com/masharzy/ekmivo/actions/run
 
 ### PG05 integrated automated result
 Source 63e50c8 / CI 38150117547: four jobs PASS, combined PG04/PG05 financial 198 assertions and real browser 26/26 PASS. This closes available isolated source/CI checks, not operator production parity, physical screen-reader/device/provider checks. Existing manual checklist remains authoritative.
+
+## PG06–PG09 combined verification — code checkpoint 2026-10-11
+
+All rows below are **NOT RUN / pending**, not failed or passed. Run automated checks and fix source first, then bundle these with the existing ledger. No passwords, cookies, keys, source receipt plaintext, MFA secrets or recovery codes in evidence.
+
+| Item | What to check | Needed source/account | Expected result |
+|---|---|---|---|
+| PG06 pairing | Owner/admin pairs; viewer cannot; token expires/consumed; wrong key/raw bytes/signed enrollment/env rejected | Dedicated owner/viewer, consented Kotlin device | One bound enrollment; no cross-workspace/account/env submission |
+| PG06 capture | Approved actual incoming receipt; unrelated SMS/OTP/debit excluded; masked/missing payer/time exception | Real consented samples, approved parser/source | Five actual fields, original timestamp; no guessed sender/time or false paid |
+| PG06 lifecycle | Permission denial/revoke; dual-SIM; airplane mode; reboot; backlog quota; force-stop; device revoke; lost claim response | Consented Android OEM/SIM device | Queue encrypted, IDs/sequence stable, transport re-signed, health truthful; gaps visible, no fake ACK |
+| PG07 uniqueness | Parallel matches, transport duplicate/provider identity collision, same amount with wrong payer/account/method | Disposable isolated finance DBs, actual sandbox API/device | One payment/allocation/event; conflict never silently reallocated |
+| PG07 windows | Exactly start/exclusive end, whole minute containment, timezone, late sync, cancelled, under/over/advance | Controlled attempts + signed receipt evidence | Only complete unique original-time match verifies; other funds remain reasoned exceptions |
+| PG08 delivery | Exact raw-body HMAC, timestamp/env/IDs/key mismatch, consumer query/dedup, timeout/lost ACK/crash recovery | Dedicated public HTTPS receiver and its own disposable merchant DB | Stable event ID, fresh attempt/signature, durable retry; paid stays paid; fulfil once |
+| PG08 SSRF | Private/mixed DNS, rebinding, metadata, IPv6/mapped IP, redirects, non-HTTPS, non-443 | Controlled security test DNS/receiver | Rejected before private request; no arbitrary proxy/redirect |
+| PG08 rotation/replay | New key, overlap expiry, disabled endpoint, same-event replay | Dedicated owner/receiver | Once-visible secret; receiver accepts allowed keys only; payment logic not re-run |
+| PG09 UI | Real data & actions, 320/768/1024/desktop, keyboard/modal, EN/BN, Light/Dark/System, offline/error/forbidden/empty, draft switch/deep link | Dedicated owner/admin/editor/viewer; real scoped seeded sandbox | Persistent shell, truthful state, masked data, no arbitrary mark-paid, no wrong-tenant view/action |
+| Prerequisites | Live hosted checkout/production receiving instructions and consented receipt-notice channel | Actual intended account/channel configuration | Remain unavailable until implemented/configured and verified; no implied release from pipeline source |
+
+Record exact endpoint/action, role, expected/actual HTTP status, safe response and relevant DB assertion during the later pass. Build/CI references belong in each per-PG README.

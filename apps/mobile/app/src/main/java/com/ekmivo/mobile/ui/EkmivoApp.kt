@@ -274,6 +274,7 @@ private fun Inbox(copy:AppCopy){
 @Composable
 private fun Preferences(copy:AppCopy,appearance:Appearance,language:Language,status:ServiceStatus,
  onAppearance:(Appearance)->Unit,onLanguage:(Language)->Unit,onRefresh:()->Unit){
+ val receiptContext=LocalContext.current
  LazyColumn(modifier=Modifier.fillMaxSize(),
   contentPadding=androidx.compose.foundation.layout.PaddingValues(horizontal=20.dp,vertical=24.dp),
   verticalArrangement=Arrangement.spacedBy(21.dp)){
@@ -304,6 +305,11 @@ private fun Preferences(copy:AppCopy,appearance:Appearance,language:Language,sta
   }
   item{
    SettingsPanel(title=copy.apiStatus){ConnectionCard(copy,status,onRefresh)}
+  }
+  item{
+   Button(onClick={receiptContext.startActivity(android.content.Intent(receiptContext,com.ekmivo.mobile.receipt.ReceiptSetupActivity::class.java))}){
+    Text(if(language==Language.BN)"Receipt সংগ্রহ সেটআপ" else "Receipt collection setup")
+   }
   }
   item{
    SettingsPanel(title=copy.support){

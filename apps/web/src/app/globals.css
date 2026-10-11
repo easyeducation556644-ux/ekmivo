@@ -3,6 +3,7 @@
 @import "./landing-ink-bone.css";
 @import "./dashboard.css";
 @import "./pg05-checkout.css";
+@import "./pg09-operations.css";
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 100px; }

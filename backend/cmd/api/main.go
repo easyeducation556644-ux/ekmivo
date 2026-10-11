@@ -59,6 +59,11 @@ func newHandlerWithRepository(repo *authz.Repository) http.Handler {
 }
 func newHandlerWithCheckout(repo *authz.Repository, pay *checkout.Service) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/operations/{resource}", pay.HandleOperations)
+	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/operations/{resource}/{resourceID}", pay.HandleOperations)
+	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/operations/{resource}", pay.HandleOperations)
+	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/operations/{resource}/{resourceID}/{action}", pay.HandleOperations)
+	mux.HandleFunc("POST /v1/device/{action}", pay.HandleDevice)
 	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/linked-sources", pay.HandleSources)
 	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/linked-sources", pay.HandleSources)
 	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/payment-intents", pay.HandleMerchant)
@@ -72,7 +77,7 @@ func newHandlerWithCheckout(repo *authz.Repository, pay *checkout.Service) http.
 	})
 	// The financial API, workers and jobs are intentionally not ready before PG03/PG04.
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"status": "not_ready", "reason": "financial_services_not_implemented"})
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"status": "not_ready", "reason": "financial_release_verification_pending"})
 	})
 	identify := func(r *http.Request) (authz.Principal, error) {
 		if repo == nil {
@@ -226,6 +231,14 @@ func main() {
 			log.Fatal("PG05 checkout startup preflight failed: ", err)
 		}
 		defer pg05.Close()
+		if os.Getenv("PG06_PIPELINE_ENABLED") == "true" {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			err = pg05.ConfigurePipeline(ctx, os.Getenv("PG06_ENCRYPTION_KEY_HEX"), os.Getenv("PG06_PARSER_RULES_JSON"), os.Getenv("PG06_CONTROL_PROJECTION_URL"), os.Getenv("PG06_LIVE_DATABASE_URL"))
+			cancel()
+			if err != nil {
+				log.Fatal("receipt pipeline startup blocked: ", err)
+			}
+		}
 	}
 	port := os.Getenv("PORT")
 	if port == "" {

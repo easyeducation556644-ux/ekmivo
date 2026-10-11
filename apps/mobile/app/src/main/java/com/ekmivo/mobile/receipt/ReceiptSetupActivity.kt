@@ -1,0 +1,93 @@
+package com.ekmivo.mobile.receipt
+
+import android.os.Bundle
+import android.content.Intent
+import android.provider.Settings
+import android.Manifest
+import android.util.Base64
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.ekmivo.mobile.data.AppPreferences
+import com.ekmivo.mobile.data.Appearance
+import com.ekmivo.mobile.data.Language
+import com.ekmivo.mobile.ui.EkmivoTheme
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import org.json.JSONObject
+import java.util.UUID
+
+/** Minimal collection consent/pairing, not an expansion of merchant inbox UI. */
+class ReceiptSetupActivity:ComponentActivity(){
+ override fun onCreate(savedInstanceState:Bundle?){
+  super.onCreate(savedInstanceState)
+  val preferences=AppPreferences(applicationContext)
+  setContent {
+   val appearance by preferences.appearance.collectAsState(initial=Appearance.SYSTEM)
+   val language by preferences.language.collectAsState(initial=Language.BN)
+   val bn=language==Language.BN
+   EkmivoTheme(dark=when(appearance){Appearance.SYSTEM->isSystemInDarkTheme();Appearance.DARK->true;Appearance.LIGHT->false}){
+    val scope=rememberCoroutineScope();var token by remember{mutableStateOf("")};var consent by remember{mutableStateOf(false)};var busy by remember{mutableStateOf(false)}
+    var proposed by remember{mutableStateOf<JSONObject?>(null)};var active by remember{mutableStateOf(ReceiptStore(applicationContext).use{it.enrollment()})}
+    var message by remember{mutableStateOf("")}
+    var history by remember{mutableStateOf<List<JSONObject>>(emptyList())}
+    val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){granted ->message=if(granted){if(bn)"SMS অনুমতি দেওয়া হয়েছে।" else "SMS permission granted."}else{if(bn)"SMS অনুমতি নেই; সেটিংস থেকে অনুমতি দিন।" else "SMS permission denied; review device settings."}}
+    Surface(Modifier.fillMaxSize()){
+     Column(Modifier.verticalScroll(rememberScrollState()).padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
+      Text(if(bn)"পেমেন্ট receipt সংগ্রহ" else "Payment receipt collection",style=MaterialTheme.typography.headlineSmall)
+      Text(if(bn)"শুধু নির্ধারিত account-এর অনুমোদিত payment receipt সংগ্রহ হবে। ব্যক্তিগত SMS বা OTP সংরক্ষণ হবে না। Device signature অর্থ প্রাপ্তির প্রমাণ নয়; server যাচাই করবে।" else "Collect approved payment receipts for the bound account. Personal messages and OTPs are excluded. Device signatures identify this device; the server verifies payments.")
+      if(active==null){
+       Row{Checkbox(consent,onCheckedChange={consent=it},enabled=!busy);Text(if(bn)"আমি এই account-এর receipt সংগ্রহে সম্মতি দিচ্ছি।" else "I consent to receipt collection for this account.")}
+       OutlinedTextField(token,onValueChange={token=it.trim()},label={Text(if(bn)"Devices page-এর pairing token" else "Pairing token from Devices")},enabled=!busy,modifier=Modifier.fillMaxWidth())
+       Button(enabled=consent&&!busy&&token.isNotBlank(),onClick={
+        busy=true;message="";scope.launch{
+         try{
+          val result=withContext(Dispatchers.IO){
+           val key=AndroidKeystoreSigner("ekmivo-receipt-device").ensurePublicKey()
+           val body=JSONObject().put("pairing_token",token).put("public_key",Base64.encodeToString(key,Base64.NO_WRAP)).toString().toByteArray()
+           ReceiptTransport.post("claim","",UUID.randomUUID().toString(),body)
+          }
+          token="";if(result.first==200){proposed=JSONObject(result.second)}else{message=if(bn)"Pair হয়নি। মেয়াদ, token ও server connection দেখুন।" else "Pairing failed. Check expiry, token and server connection."}
+         }catch(_:Exception){message=if(bn)"Server unavailable। আবার চেষ্টা করুন।" else "Server unavailable. Retry."}finally{busy=false}
+        }
+       }){Text(if(bn)"Pair করুন" else "Pair device")}
+       proposed?.let{bound ->
+        Text((if(bn)"নিশ্চিত করুন: " else "Confirm: ")+bound.optString("environment")+" · "+bound.optString("account_id")+" · "+bound.optString("source")+" · "+bound.optString("binding"))
+        Button(onClick={ReceiptStore(applicationContext).use{it.saveEnrollment(bound)};active=bound;proposed=null;ReceiptSyncWorker.schedule(applicationContext)}){Text(if(bn)"Account নিশ্চিত করে চালু করুন" else "Confirm account and enable")}
+       }
+      }else{
+       Text(active!!.optString("environment")+" · "+active!!.optString("source")+" · "+active!!.optString("binding"))
+       Text((if(bn)"অপেক্ষমাণ receipt: " else "Queued receipts: ")+ReceiptStore(applicationContext).use{it.count()})
+       Button(onClick={if(active!!.optString("binding").startsWith("sms:"))permission.launch(Manifest.permission.RECEIVE_SMS)else startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))}){Text(if(bn)"সংগ্রহের অনুমতি / settings" else "Collection permission / settings")}
+       Button(onClick={ReceiptSyncWorker.schedule(applicationContext);message=if(bn)"Sync schedule করা হয়েছে; ACK পেলে queue থেকে সরবে।" else "Sync scheduled; receipts leave the queue only after durable ACK."}){Text(if(bn)"এখন Sync করুন" else "Sync now")}
+       Button(enabled=!busy,onClick={busy=true;scope.launch{try{
+        val bound=active!!;val body=JSONObject().put("enrollment_id",bound.getString("id")).put("environment",bound.getString("environment"))
+        val result=withContext(Dispatchers.IO){ReceiptTransport.post("history",bound.getString("id"),UUID.randomUUID().toString(),body.toString().toByteArray())}
+        if(result.first!=200)throw IllegalStateException()
+        val items=JSONObject(result.second).getJSONArray("items");history=(0 until items.length()).map{items.getJSONObject(it)}
+       }catch(_:Exception){message=if(bn)"Receipt history unavailable।" else "Receipt history unavailable."}finally{busy=false}}}){Text(if(bn)"Server receipt log দেখুন" else "View server receipt log")}
+       history.forEach{row ->Text(row.optString("event_id").take(8)+" · "+row.optString("status")+" · "+row.optString("received_at")+" · "+row.optString("reason"))}
+       Text(if(bn)"Durable ACK মানে সংরক্ষিত হয়েছে; payment নিশ্চিত হওয়ার অর্থ নয়।" else "Durable ACK means stored; it does not mean payment confirmed.")
+       var disconnect by remember{mutableStateOf(false)}
+       OutlinedButton(onClick={disconnect=true}){Text(if(bn)"সংযোগ বিচ্ছিন্ন করুন" else "Disconnect")}
+       if(disconnect)AlertDialog(onDismissRequest={disconnect=false},title={Text(if(bn)"এই device বন্ধ করবেন?" else "Disconnect this device?")},text={Text(if(bn)"স্থানীয় queue ও key মুছবে। Web Devices-এ enrollment revoke করুন।" else "Deletes this device's local queue and key. Revoke its enrollment in Web Devices.")},confirmButton={TextButton(onClick={ReceiptStore(applicationContext).use{it.disconnect()};active=null;disconnect=false}){Text(if(bn)"বিচ্ছিন্ন করুন" else "Disconnect")}},dismissButton={TextButton(onClick={disconnect=false}){Text(if(bn)"ফিরে যান" else "Cancel")}})
+      }
+      if(busy)LinearProgressIndicator(Modifier.fillMaxWidth())
+      if(message.isNotEmpty())Text(message)
+      TextButton(onClick={finish()}){Text(if(bn)"ফিরে যান" else "Back")}
+     }
+    }
+   }
+  }
+ }
+}

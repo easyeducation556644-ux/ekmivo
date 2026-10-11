@@ -169,7 +169,7 @@ export function CheckoutExperience({locale,token}:{locale:Locale;token:string}){
       <p>{bn?"আপনার নম্বর, মাধ্যম, পরিমাণ ও সময়সীমা অপরিবর্তনীয় রাখা হয়েছে। কিন্তু কোনো টাকা যাচাই হয়নি।":"Your payer, method, amount and time window are immutable. No funds have been verified."}</p>
       <div className="pg05-simulated"><strong>{bn?"শুধু পরীক্ষামূলক গন্তব্য":"SIMULATED DESTINATION ONLY"}</strong>
        <p>{info.destination||"SIMULATED — DO NOT SEND MONEY"}</p>
-       <small>{bn?"কোনো বাস্তব নম্বরে টাকা পাঠাবেন না। পেমেন্ট শনাক্তকরণ এখনও সংযুক্ত হয়নি।":"Never send funds to a real number. Automated receipt matching is not connected."}</small></div>
+       <small>{bn?"কোনো বাস্তব নম্বরে টাকা পাঠাবেন না। এটি sandbox; server-এর receipt evidence ছাড়া payment নিশ্চিত হবে না।":"Do not send real funds from this sandbox checkout. Payment requires verified server receipt evidence."}</small></div>
       <p role="status">{bn?"টাকা পাওয়ার প্রমাণ পাওয়া যায়নি। নিজের থেকে পেমেন্ট নিশ্চিত করার বোতাম নেই।":"No verified receipt yet. There is no self-approval button."}</p>
      </>}
      {state==="processing"&&<><h2>{title}</h2><p>{bn?"সার্ভার পেমেন্টের প্রমাণ যাচাই করছে।":"The server is examining actual payment evidence."}</p></>}

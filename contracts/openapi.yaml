@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Ekmivo Payment API
-  version: 0.5.1
+  version: 0.9.0-draft
   description: |
     PG03 implemented contract: process liveness, financial readiness, and
     real server-side merchant credential verification. Credential issue/rotate/
@@ -9,8 +9,8 @@ info:
     PG05 provides SANDBOX-ONLY standalone and server-priced linked order/invoice
     snapshots, immutable payment intents, opaque hosted checkout, payer+route lock,
     status refresh and cancellation. Full commerce/invoice operations, live
-    receiving instructions, receipt matching and signed webhook delivery are
-    NOT implemented; no money verification
+    receiving instructions are
+    NOT released. PG06–PG09 source contracts are unverified and not deployed. No money verification
     can be inferred from return URLs, payer confirmation or sandbox responses.
 servers:
   - url: https://ekmivo-go-api.onrender.com
@@ -19,6 +19,89 @@ tags:
   - name: Operations
   - name: Merchant
 paths:
+  /v1/workspaces/{workspaceID}/operations/{resource}:
+    parameters:
+      - {name: workspaceID, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: resource, in: path, required: true, schema: {type: string, enum: [overview, payments, incoming, gateways, devices, webhooks, deliveries, events, parsers]}}
+      - {name: environment, in: query, required: true, schema: {type: string, enum: [sandbox, live]}}
+      - {name: cursor, in: query, schema: {type: string, format: uuid}}
+      - {name: status, in: query, schema: {type: string}}
+      - {name: account, in: query, schema: {type: string, format: uuid}}
+      - {name: method, in: query, schema: {type: string}}
+      - {name: from, in: query, schema: {type: string, format: date-time}}
+      - {name: to, in: query, schema: {type: string, format: date-time}}
+    get:
+      operationId: listFinancialOperations
+      security: [{SessionCookie: []}, {MerchantBearer: []}]
+      responses:
+        '200': {description: 'Scoped masked items, at most 50, next_cursor; source unavailable is not an empty list.'}
+        '401': {description: Authentication required}
+        '403': {description: Role or environment denied}
+        '503': {description: Pipeline or realm unavailable}
+    post:
+      operationId: createFinancialConnection
+      security: [{SessionCookie: []}]
+      description: 'Owner/admin only. Devices require account_id/name/source/binding/parser_id; gateways require method/account_number; webhooks require HTTPS url. Only mutation returns pairing_token/signing_secret.'
+      requestBody: {required: true, content: {application/json: {schema: {type: object}}}}
+      responses:
+        '200': {description: Configuration persisted; once-visible capability where applicable}
+        '403': {description: Owner/admin and permitted origin required}
+        '409': {description: Identity conflict}
+        '503': {description: Configuration unavailable}
+  /v1/workspaces/{workspaceID}/operations/{resource}/{resourceID}:
+    parameters:
+      - {name: workspaceID, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: resource, in: path, required: true, schema: {type: string, enum: [payments, incoming, gateways, devices, webhooks, deliveries, events]}}
+      - {name: resourceID, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: environment, in: query, required: true, schema: {type: string, enum: [sandbox, live]}}
+    get:
+      operationId: getFinancialOperation
+      security: [{SessionCookie: []}, {MerchantBearer: []}]
+      responses:
+        '200': {description: 'Scoped detail in items; deliveries uses resourceID as endpoint filter.'}
+        '403': {description: Denied}
+        '503': {description: Source unavailable}
+  /v1/workspaces/{workspaceID}/operations/{resource}/{resourceID}/{action}:
+    parameters:
+      - {name: workspaceID, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: resource, in: path, required: true, schema: {type: string, enum: [incoming, gateways, devices, webhooks, deliveries]}}
+      - {name: resourceID, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: action, in: path, required: true, schema: {type: string, enum: [revoke, rename, reprocess, enable, disable, rotate, replay]}}
+      - {name: environment, in: query, required: true, schema: {type: string, enum: [sandbox, live]}}
+    post:
+      operationId: changeFinancialConnection
+      security: [{SessionCookie: []}]
+      description: 'Owner/admin; valid transitions checked in PostgreSQL. Reprocess cannot approve funds. Replay delivers the same event without payment re-execution.'
+      requestBody: {required: true, content: {application/json: {schema: {type: object}}}}
+      responses:
+        '200': {description: Audited transition committed}
+        '403': {description: Denied}
+        '404': {description: Resource or transition unavailable}
+        '503': {description: Source unavailable}
+  /v1/device/{action}:
+    parameters:
+      - {name: action, in: path, required: true, schema: {type: string, enum: [claim, heartbeat, events, history]}}
+      - {name: X-Ekmivo-Device-ID, in: header, schema: {type: string, format: uuid}}
+      - {name: X-Ekmivo-Event-ID, in: header, required: true, schema: {type: string, pattern: '^[a-zA-Z0-9_-]{1,128}$'}}
+      - {name: X-Ekmivo-Timestamp, in: header, required: true, schema: {type: string}}
+      - {name: X-Ekmivo-Signature, in: header, required: true, schema: {type: string, contentEncoding: base64}}
+    post:
+      operationId: signedDeviceRequest
+      description: |
+        P-256 SHA256 DER Base64 over newline-delimited method/path/Unix-seconds timestamp/event ID/SHA256(raw-body) hex. Transport freshness ±300 seconds.
+        Claim body: pairing_token/public_key (X.509 DER Base64), signed by that key. Other bodies bind enrollment_id/environment to registered device.
+        Events: durable sequence >0, source/binding/kind (device_sms/device_notification)/evidence/observed_at. Full actual payer and original transaction time parsed server-side. No customer TrxID entry.
+        Offline retry preserves queued bytes/event ID/sequence and refreshes transport timestamp/signature. ACK means durable storage, not verified payment.
+      requestBody: {required: true, content: {application/json: {schema: {type: object}}}}
+      responses:
+        '200': {description: Enrollment or health or masked device history}
+        '202': {description: Durable evidence ACK with stable replay handle}
+        '403': {description: Device proof or fresh authorization rejected}
+        '409': {description: Reused identity with changed payload}
+        '413': {description: Body too large}
+        '422': {description: Invalid bound envelope}
+        '429': {description: Rate limited}
+        '503': {description: Source or parser unavailable}
   /healthz:
     get:
       operationId: getHealth

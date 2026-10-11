@@ -3,14 +3,15 @@ import { boundedBody } from "../../../../lib/server/bounded-body";
 import { goOrigin } from "../../../../lib/server/go-origin";
 
 export const dynamic = "force-dynamic";
+const operationPath=/^workspaces\/[0-9a-f-]{36}\/operations\/(payments|incoming|gateways|devices|webhooks|deliveries|events|parsers|overview)(?:\/[0-9a-f-]{36}(?:\/(revoke|rename|reprocess|enable|disable|rotate|replay))?)?$/i;
 const workspacePath = /^workspaces\/[0-9a-f-]{36}\/(access|settings|(?:payment-intents(?:\/[0-9a-f-]{36}(?:\/cancel)?)?|linked-sources))$/i;
 async function forward(request: Request, context: { params: Promise<{ path: string[] }> }) {
  const path = (await context.params).path.join("/");
  const read = request.method === "GET";
- if (!(read && ["session", "platform/access"].includes(path)) && !workspacePath.test(path))
+ if (!(read && ["session", "platform/access"].includes(path)) && !workspacePath.test(path) && !operationPath.test(path))
   return Response.json({ code: "NOT_FOUND" }, { status: 404 });
  const intentPath=/^workspaces\/[0-9a-f-]{36}\/(?:payment-intents(?:\/[0-9a-f-]{36}(?:\/cancel)?)?|linked-sources)$/i.test(path);
- if(!read && !((path.endsWith("/settings")&&request.method==="PATCH") || (intentPath&&request.method==="POST")))
+ if(!read && !((path.endsWith("/settings")&&request.method==="PATCH") || ((intentPath||operationPath.test(path))&&request.method==="POST")))
   return Response.json({ code:"METHOD_NOT_ALLOWED" },{status:405});
  const requestUrl = new URL(request.url);
  // Next's local server may use localhost internally despite a 127.0.0.1 Host.
@@ -26,7 +27,7 @@ async function forward(request: Request, context: { params: Promise<{ path: stri
   return Response.json({ code: "PROXY_CONFIG_INVALID" }, { status: 503 });
  const target = new URL("/v1/" + path, base);
  const incoming = new URL(request.url);
- for (const key of ["environment", "capability"]) {
+ for (const key of ["environment", "capability", "cursor", "status", "account", "method", "from", "to"]) {
   if(incoming.searchParams.getAll(key).length>1)return Response.json({code:"INVALID_SCOPE"},{status:400});
   const value = incoming.searchParams.get(key);
   if (value) target.searchParams.set(key, value);
