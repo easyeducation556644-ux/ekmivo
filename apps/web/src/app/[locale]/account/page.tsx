@@ -39,7 +39,7 @@ export default async function AccountPage({params}:{params:Promise<{locale:strin
      <dt>{bn?"অ্যাডমিন MFA":"Administrator MFA"}</dt><dd>{mfa[0]?.enabled?(bn?"সক্রিয়":"Enabled"):(bn?"চালু নয় / প্রযোজ্য নয়":"Not enrolled / not applicable")}</dd>
     </dl>
    </section>
-   <AccountActions locale={locale} name={user.name}/>
+   <AccountActions locale={locale} name={user.name} accountId={user.id}/>
    <section className="ek-account-panel">
     <h2>{bn?"সক্রিয় সেশন":"Active sessions"}</h2>
     {sessions.length?<ul className="ek-account-sessions">{sessions.map((s,i)=><li key={i}>

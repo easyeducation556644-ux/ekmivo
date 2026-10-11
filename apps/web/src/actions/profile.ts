@@ -6,7 +6,7 @@ import { requireUser, hashToken } from "../lib/server/auth";
 import { database } from "../lib/server/db";
 import { asText, validatedName, safeLocale } from "../lib/server/validation";
 
-export type ProfileActionState={status:"idle"|"error"|"success";message:string};
+export type ProfileActionState={status:"idle"|"error"|"success";message:string;savedName?:string};
 
 export async function saveDisplayName(localeRaw:string,_previous:ProfileActionState,form:FormData):Promise<ProfileActionState>{
  const locale=safeLocale(localeRaw),actor=await requireUser(locale);
@@ -18,7 +18,7 @@ export async function saveDisplayName(localeRaw:string,_previous:ProfileActionSt
    WHERE id=${actor.id}::uuid AND disabled_at IS NULL RETURNING id`;
   if(!rows.length)return {status:"error",message:locale==="bn"?"সেশন আর সক্রিয় নেই।":"Session no longer active."};
   revalidatePath(`/${locale}/account`);
-  return {status:"success",message:locale==="bn"?"নাম সংরক্ষণ হয়েছে।":"Display name saved."};
+  return {status:"success",savedName:name,message:locale==="bn"?"নাম সংরক্ষণ হয়েছে।":"Display name saved."};
  }catch(error){
   console.error("[profile update]",error instanceof Error?error.name:"unknown");
   return {status:"error",message:locale==="bn"?"সংরক্ষণ ব্যর্থ। আবার চেষ্টা করো।":"Save failed. Please retry."};

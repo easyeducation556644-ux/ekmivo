@@ -285,3 +285,6 @@ h1,h2,h3,p { margin-top: 0; }
 .ek-workspace-product-button:disabled{opacity:.55;cursor:not-allowed}
 .ek-workspace-product-control>p{grid-column:1/-1;margin:0}
 @media(max-width:440px){.ek-workspace-product-control{grid-template-columns:1fr}.ek-workspace-product-button{width:100%}}
+
+/* PG02 account: keyboard/touch accessible locally saved draft control. */
+.ek-profile-draft-button{min-height:44px;border:1px solid var(--color-control-border);border-radius:7px;padding:10px 14px;background:var(--color-surface);color:var(--color-text);font-weight:600}
