@@ -4,7 +4,7 @@ export function proxy(request: NextRequest) {
  const path=request.nextUrl.pathname;
  const requestHeaders=new Headers(request.headers);
  requestHeaders.set("x-ekmivo-locale",path.startsWith("/en")?"en":"bn");
- const application=/^\/(?:en|bn)\/(?:workspaces|w|admin)(?:\/|$)/.test(path);
+ const application=/^\/(?:en|bn)\/(?:workspaces|w|admin|verify-email)(?:\/|$)/.test(path);
  requestHeaders.set("x-ekmivo-application",application?"1":"0");
  const response=NextResponse.next({request:{headers:requestHeaders}});
  if(application)response.headers.set("Cache-Control","private, no-store");
