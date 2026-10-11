@@ -28,13 +28,19 @@ export function serviceEnabled(service: Service, mode: "ai" | "commerce" | "both
 export function sectionInService(service: Service, section: string): section is SectionKey {
   return navigation[service].some(group => group.items.includes(section as SectionKey));
 }
-export function defaultService(mode: "ai" | "commerce" | "both"): Service { return mode === "commerce" ? "payments" : "ai"; }
+export function defaultService(mode: "ai" | "commerce" | "both"): Service { return mode === "ai" ? "ai" : "payments"; }
 export function sectionService(section: SectionKey, mode: "ai" | "commerce" | "both"): Service {
   if (sectionInService("ai", section) && sectionInService("payments", section)) return defaultService(mode);
   return sectionInService("payments", section) ? "payments" : "ai";
 }
-export function dashboardHref(locale: Locale, workspaceId: string, service: Service, section: SectionKey = "overview") {
-  return `/${locale}/w/${workspaceId}/${service}/${section}`;
+export type PaymentEnvironment = "sandbox" | "live";
+export function canonicalEnvironment(raw: string | undefined | null): PaymentEnvironment | null {
+  if(raw == null || raw === "") return "sandbox";
+  return raw === "sandbox" || raw === "live" ? raw : null;
+}
+export function dashboardHref(locale: Locale, workspaceId: string, service: Service, section: SectionKey = "overview", environment: PaymentEnvironment = "sandbox") {
+  const base = `/${locale}/w/${workspaceId}/${service}/${section}`;
+  return service === "payments" ? `${base}?env=${environment}` : base;
 }
 export function searchableNavigation(service: Service, query: string) {
   const normalized = query.trim().toLocaleLowerCase();
