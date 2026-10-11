@@ -1220,6 +1220,62 @@ try{
  const listIncoming=await pg09Read("incoming");
  const listRow=listIncoming.items.find(x=>x.id===transport);
  same(listRow.candidates,null,"PG09 list unnecessarily exposed detail-level candidates");
+
+ const allocations=await pg09Read("payments",complete[0].id);
+ same(allocations.items[0].allocations.length,1,"PG09 payment detail omitted verified financial allocations");
+ ok(allocations.items[0].webhook_delivery_history.length>=1,"PG09 payment detail omitted real delivery attempts");
+ const healthDetail=await pg09Read("devices",device);
+ same(healthDetail.items.length,1,"PG09 device detail unavailable");
+ same(healthDetail.items[0].recent_receipts[0].event_id,ingressID,"PG09 device receipt timeline not shown");
+ const receiving=await pg09Read("gateways",pg07Account);
+ ok(receiving.items[0].last_receipt_at,"PG09 receiving-account last receipt/health absent");
+ const pg09Action=async (resource,id,action,payload={},secret=null)=>pg07DB.begin(async tx=>{
+  await tx.unsafe("SELECT set_config('ekmivo.workspace_id',$1,true),set_config('ekmivo.environment','sandbox',true)",[pg07WS]);
+  return (await tx.unsafe(
+   "SELECT pg09_action($1::uuid,'sandbox',$2,$3::uuid,$4,$5::jsonb,$6) AS data",
+   [pg07WS,resource,id,action,JSON.stringify(payload),secret]))[0].data;
+ });
+ same((await pg09Action("devices",device,"rename",{name:"PG09 renamed fictional handset"})).updated,true,
+  "PG09 device rename operation unavailable");
+ same((await pg09Read("devices",device)).items[0].name,"PG09 renamed fictional handset",
+  "PG09 rename did not persist to read view");
+ await pg07DB.unsafe("INSERT INTO pg06_account_configuration(workspace_id,environment,account_id,number_cipher) "+
+  "VALUES($1::uuid,'sandbox',$2::uuid,$3)",[pg07WS,pg07Account,Buffer.alloc(48,60)]);
+ same((await pg09Action("gateways",pg07Account,"disable")).updated,true,"PG09 disable receiving account failed");
+ same((await pg09Read("gateways",pg07Account)).items[0].source_status,"disabled",
+  "PG09 account disable was not reflected in source-status");
+ same((await pg09Action("gateways",pg07Account,"enable")).updated,true,"PG09 re-enable receiving account failed");
+ same((await pg09Action("webhooks",pg07Endpoint,"disable")).updated,true,
+  "PG09 webhook disable unavailable");
+ same((await pg09Read("webhooks",pg07Endpoint)).items[0].active,false,"PG09 disabled endpoint still active");
+ same((await pg09Action("webhooks",pg07Endpoint,"enable")).updated,true,
+  "PG09 webhook re-enable unavailable");
+ const needsReprocess=await pg07Attempt(),needsReprocessReceipt=await pg07Receipt(needsReprocess,{amount:5401});
+ same(await pg07Match(needsReprocessReceipt),"unmatched","PG09 reprocess fixture unexpectedly verified");
+ const transportReprocess=(await pg07DB.unsafe(
+  "INSERT INTO pg06_transport(workspace_id,environment,device_id,event_id,digest,observation_id,parse_reason,observed_at,sequence) "+
+  "VALUES($1::uuid,'sandbox',$2::uuid,$3,$4,$5::uuid,'',now(),2) RETURNING id",
+  [pg07WS,device,randomUUID(),hmac(),needsReprocessReceipt]))[0].id;
+ same((await pg09Action("incoming",transportReprocess,"reprocess")).updated,true,
+  "PG09 safe unmatched reprocess unavailable");
+ same((await pg07DB.unsafe(
+  "SELECT status FROM pg07_receipt_results WHERE observation_id=$1::uuid",
+  [needsReprocessReceipt]))[0].status,"pending",
+  "PG09 reprocess incorrectly marked funds as verified");
+ same((await pg09Action("devices",device,"revoke")).updated,true,"PG09 device revoke not persisted");
+ ok((await pg09Read("devices",device)).items[0].revoked_at,"PG09 revoked device still shows active");
+ const audits=(await pg07DB.unsafe(
+  "SELECT count(*)::int n FROM pg09_audit WHERE workspace_id=$1::uuid AND environment='sandbox' "+
+  "AND resource IN ('devices','gateways','webhooks','incoming')",[pg07WS]))[0].n;
+ ok(audits>=7,"PG09 authorized operations lost immutable audit history");
+ const restrictedPG09=postgres(ds("ekmivo_pg04_sandbox",
+  "ekmivo_finance_reader_sandbox","pg04-sandbox-reader-only"),{max:1,prepare:false});
+ try{
+  const readerResult=await pg09Read("payments",complete[0].id,null,null,null,null,null,null,restrictedPG09);
+  same(readerResult.items[0].id,complete[0].id,"PG09 restricted reader cannot view own payment");
+  await reject(restrictedPG09,()=>restrictedPG09.unsafe("SELECT * FROM financial_payments"),"42501");
+ }finally{await restrictedPG09.end({timeout:3})}
+
  const wrongRealm=pg07DB;
  await reject(wrongRealm,()=>pg09Read("payments",null,null,null,null,null,null,null,wrongRealm,pg07WS,"live"),"42501");
  const dRows=await pg09Read("deliveries",pg07Endpoint);
