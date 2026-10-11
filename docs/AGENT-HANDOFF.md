@@ -127,3 +127,7 @@ Next work: review and verify this exact checkpoint, close remaining source gaps 
 
 ### PG06–PG09 next-agent completion and final audit
 Read [the completion checklist](evidence/PG06-PG09-COMPLETION-HANDOFF.md) for all identified remaining source gaps, automated/database/browser checks, real-device/provider gates and the mandatory final audit format. Continue on `codex/pg06-pg09-code`; all four PGs remain OPEN. Report any additional gaps discovered by source review, not only the listed ones.
+
+### PG06–PG09 current audit and actual follow-up
+
+[PG06–PG09 audit](evidence/PG06-PG09-AUDIT.md) on verification-only [draft PR #9](https://github.com/masharzy/ekmivo/pull/9) records exact source corrections, source-vs-simulation boundaries, migration 0014 isolation, unresolved code, CI status, external/device blocks and safe rollback constraints. The four PGs remain UNACCEPTED; do not deploy or merge without closing critical gates. Combine owner-only tests using [the consolidated ledger](MANUAL-VERIFICATION.md). Earlier green CI on PG05 is not evidence for the new branch.
