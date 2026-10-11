@@ -52,7 +52,7 @@ func TestExactDecimalWithBanglaAndArabicNumerals(t *testing.T) {
 func TestBengaliAmountAllowedOnlyByApprovedParser(t *testing.T) {
 	r := ParserRule{
 		ID: "fictional-bn", Version: 1, Source: "fictional",
-		Method: "nagad", Pattern: `^Received (?P<amount>[০-৯.]+) from (?P<payer>\\+880[0-9]+) at (?P<time>[0-9: -]+) ref (?P<reference>[A-Z0-9]+)$`,
+		Method: "nagad", Pattern: `^Received (?P<amount>[০-৯.]+) from (?P<payer>\+880[0-9]+) at (?P<time>[0-9: -]+) ref (?P<reference>[A-Z0-9]+)$`,
 		TimeLayout: "2006-01-02 15:04:05", TimeZone: "Asia/Dhaka",
 		Precision: "second", Approved: true, SandboxOnly: true,
 	}
