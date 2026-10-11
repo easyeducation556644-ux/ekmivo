@@ -16,14 +16,21 @@ export type WorkspacePaymentContext = {
 // "active" here only means the context is provisioned; no payment API exists yet.
 export async function paymentContextFor(
  workspace: Workspace,
+ userId: string,
  rawEnvironment: string | undefined | null,
 ): Promise<WorkspacePaymentContext> {
  const environment=canonicalEnvironment(rawEnvironment);
  if(!environment || (workspace.mode!=="commerce"&&workspace.mode!=="both")) notFound();
  const result=await database()`
- SELECT environment,status FROM workspace_environments
- WHERE workspace_id=${workspace.id}::uuid AND environment IN ('sandbox','live')
- ORDER BY environment`;
+ SELECT env.environment,env.status
+ FROM workspace_environments env
+ JOIN workspace_members member ON member.workspace_id=env.workspace_id
+ JOIN app_users actor ON actor.id=member.user_id
+ WHERE env.workspace_id=${workspace.id}::uuid
+ AND member.user_id=${userId}::uuid
+ AND actor.disabled_at IS NULL
+ AND env.environment IN ('sandbox','live')
+ ORDER BY env.environment`;
  const permitted=result.filter(row=>row.status==="active").map(row=>String(row.environment)) as PaymentEnvironment[];
  if(!permitted.includes(environment)) notFound();
  return {environment,status:"active",availableEnvironments:permitted,liveOperational:false};
