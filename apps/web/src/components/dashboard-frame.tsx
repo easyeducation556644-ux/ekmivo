@@ -41,6 +41,7 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
  const searchDialog=useRef<HTMLDialogElement>(null);
  const searchReturnFocus=useRef<HTMLElement|null>(null);
  const menuTrigger=useRef<HTMLButtonElement>(null);
+ const mobileDrawerWasOpen=useRef(false);
  const searchInput=useRef<HTMLInputElement>(null);
  const draftDialog=useRef<HTMLDialogElement>(null);
  const serviceMenu=useRef<HTMLDetailsElement>(null);
@@ -67,8 +68,13 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
  },[pathname,section,workspace.id,service,environment]);
  useEffect(()=>{
   const d=drawer.current;
-  if(mobileOpen && d && !d.open)d.showModal();
-  if(!mobileOpen && d?.open){d.close();menuTrigger.current?.focus();}
+  if(mobileOpen && d && !d.open){d.showModal();mobileDrawerWasOpen.current=true;}
+  if(!mobileOpen){
+   if(d?.open)d.close();
+   // React closes the modal in the prior effect cleanup before this effect
+   // runs; focus restoration must not depend on d.open here.
+   if(mobileDrawerWasOpen.current){mobileDrawerWasOpen.current=false;menuTrigger.current?.focus();}
+  }
   return ()=>{if(d?.open)d.close();};
  },[mobileOpen]);
  useEffect(()=>{
