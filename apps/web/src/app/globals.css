@@ -269,3 +269,19 @@ h1,h2,h3,p { margin-top: 0; }
 .ek-account-footer{display:flex;flex-wrap:wrap;gap:13px;align-items:center}
 .ek-account-footer a,.ek-account-footer button{display:inline-flex;align-items:center;min-height:44px;background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:7px;padding:10px 14px;text-decoration:none;color:var(--color-text)}
 @media(max-width:440px){.ek-account-panel dl{grid-template-columns:1fr}.ek-account-footer>*{width:100%}}
+
+/* PG02 real business-product configuration, distinct from paid subscriptions. */
+.ek-product-management{display:grid;gap:18px;margin:30px 0}
+.ek-product-management>h2{font-size:clamp(19px,3vw,28px)}
+.ek-product-managed-business{background:var(--color-surface);border:1px solid var(--color-border);padding:clamp(15px,3vw,24px);border-radius:12px;display:grid;gap:15px}
+.ek-product-managed-business>strong{font-size:17px}
+.ek-product-settings{display:grid;gap:12px}
+.ek-product-settings h3{font-size:14px;font-weight:700;margin:0}
+.ek-product-settings>p{font-size:12px;color:var(--color-text-muted);line-height:1.6}
+.ek-workspace-product-control{border:1px solid var(--color-border);border-radius:8px;padding:12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.ek-workspace-product-control>div{display:grid;gap:4px}
+.ek-workspace-product-control span{color:var(--color-text-secondary);font-size:12px}
+.ek-workspace-product-button{border:1px solid var(--color-control-border);border-radius:7px;background:var(--color-surface);color:var(--color-text);min-height:44px;padding:8px 14px;font-weight:600}
+.ek-workspace-product-button:disabled{opacity:.55;cursor:not-allowed}
+.ek-workspace-product-control>p{grid-column:1/-1;margin:0}
+@media(max-width:440px){.ek-workspace-product-control{grid-template-columns:1fr}.ek-workspace-product-button{width:100%}}
