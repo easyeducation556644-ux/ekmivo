@@ -15,6 +15,13 @@ CREATE TABLE IF NOT EXISTS platform_admin_mfa (
  created_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS platform_admin_mfa_attempts (
+ user_id uuid PRIMARY KEY REFERENCES app_users(id) ON DELETE CASCADE,
+ attempts integer NOT NULL DEFAULT 0 CHECK (attempts>=0),
+ blocked_until timestamptz,
+ updated_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS workspace_environments (
  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
  environment text NOT NULL CHECK(environment IN ('sandbox','live')),
@@ -45,7 +52,8 @@ INSERT INTO workspace_environment_settings(workspace_id,environment)
 -- deliberately fails; do not silently fall back to privileged application queries.
 GRANT USAGE ON SCHEMA public TO ekmivo_runtime;
 GRANT SELECT ON app_users,auth_sessions,workspace_members,workspaces,platform_administrators,
- platform_auth_settings,platform_admin_mfa TO ekmivo_runtime;
+ platform_auth_settings TO ekmivo_runtime;
+GRANT SELECT (user_id,confirmed_at) ON platform_admin_mfa TO ekmivo_runtime;
 GRANT SELECT ON workspace_environments,workspace_environment_settings TO ekmivo_runtime;
 GRANT UPDATE (checkout_expiry_minutes,updated_at)
  ON workspace_environment_settings TO ekmivo_runtime;
