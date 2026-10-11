@@ -264,3 +264,7 @@ Validation: local Markdown links resolve, code fences paired, authoritative inve
 ### PG00 accepted CI checkpoint and native-client architecture, 2026-10-11
 
 PG00 foundation evidence accepted in [PG00 evidence](evidence/PG00/README.md) via GitHub Actions run 38114530626 (web lint/build/typecheck, isolated PostgreSQL 17 two-migration transaction smoke, Go tests/compile). This does **not** accept Go payment readiness or downstream payment items. One Kotlin/Compose Android app is selected; PG06 receipt collection is integrated as its native module, then AN03–AN05 build the full payment/inbox application. Kotlin foundation source is preparation, not accepted PG06/AN03 real-device evidence.
+
+
+### Native Kotlin source preparation
+Owner selected native Kotlin + Compose (ADR-0001). A runnable app source foundation is being prepared under `apps/mobile` ahead of PG06/AN03; this is an early native toolchain/design dependency check, **not** an acceptance bypass for PG01–PG05. Recording runnable source or an assembled APK must not be mistaken for a real receipt bridge, live merchant payment, inbox or full AN03 phase gate. See `docs/evidence/AN03/README.md`.

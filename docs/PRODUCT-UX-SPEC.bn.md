@@ -192,7 +192,7 @@ Thread header AI replying/Human replying/AI off। Takeover atomically cancels q
 
 ## ৯. Kotlin + Jetpack Compose Android merchant app + inbox — phase 2
 
-React Native management app reuses Kotlin receipt bridge and same Go APIs। Top-left business, header product switch, explicit payment environment। Bottom tabs vary by selected product।
+Kotlin/Jetpack Compose native merchant app-এ phase-1 native receipt module reuse হবে; কোনো RN/Flutter bridge নেই। একই Go APIs ব্যবহার করবে। Top-left business, header product switch, explicit payment environment। Bottom tabs vary by selected product।
 
 | Product | Bottom tabs | Contents |
 |---|---|---|

@@ -210,7 +210,7 @@ SSLCOMMERZ-এর নথিতে IPN পাওয়ার পর transaction vali
 
 ### মূল flow: SMS/notification থেকে automatic verification
 
-HTML-এর phone bridge first-release feature। Android merchant app-এর native Kotlin bridge বা dedicated companion receiving phone থেকে consented payment evidence পাঠাবে। আগে controlled device test, তারপর release gate; শুধু pilot feature হিসেবে পিছিয়ে রাখা হচ্ছে না। iOS merchant app-এ management থাকবে, Android-এর cross-app receipt reader-এর সমতুল্য capability ধরে নেওয়া হয়নি।
+HTML-এর phone bridge first-release feature। Android merchant app-এর integrated native Kotlin receipt module (একই APK) থেকে consented payment evidence পাঠাবে। আগে controlled device test, তারপর release gate; শুধু pilot feature হিসেবে পিছিয়ে রাখা হচ্ছে না। iOS merchant app-এ management থাকবে, Android-এর cross-app receipt reader-এর সমতুল্য capability ধরে নেওয়া হয়নি।
 
 **সহজ উদাহরণ:** অর্ডার #1042-তে ৳৫০০ বাকি। Payment request-এ যে নম্বর থেকে টাকা পাঠানো হবে, receiving account এবং সময়সীমা জানা আছে। ক্রেতা টাকা পাঠান। Merchant-এর Android ফোনে আসা receipt থেকে app sender number, amount, transaction time, receiving-account mapping ও payment method নেয়। Server একটি নির্দিষ্ট pending request-এর সঙ্গে সব মিলিয়ে নিজেই `verified` করে; payment/order update ও confirmation/webhook স্বয়ংক্রিয়। ক্রেতাকে TrxID লিখতে বা merchant-কে approval দিতে হয় না।
 

@@ -26,7 +26,7 @@ A completion percentage would mix screens, source code, deployed behavior and re
 | Checkout/links/invoices/refunds | UI schemas/marketing samples; no authoritative backend | Not started | Complete financial flow and real UI actions |
 | Sandbox | No isolated payment test environment/simulator | Not started | Separate data/key/worker/source adapter, named scenarios, test-run evidence |
 | Android receipt bridge | apps/android-bridge README only; no Kotlin build | Not started | Phase-1 minimal bridge and real samples/device tests |
-| Android merchant/inbox app | apps/mobile README only | Not started | Phase-2 API/channel/web inbox foundation and RN client |
+| Android merchant/inbox app | Native Kotlin/Compose Gradle sources in apps/mobile; theme/copy/preferences/animated shell and honest connection probes | Foundation source only; CI compile/device gate pending | Secure mobile sessions, actual payments/inbox, Android receipt module and phase-2 acceptance |
 | AI/channels/commerce/connectors | Domain navigation/empty state source | Not functional | Full remaining S-ID implementation and native provider access/evidence |
 | Reliability/security/recovery | Infra template and planning/runbooks | Partial planning | Active CI, observability, load/failure tests, restore/rollback, operational owner |
 | Competitor research | AiPraktor/ZiniPay/PipraPay/Paymently reports and redacted evidence | Research complete within recorded limits | Input for design; not our product implementation proof |
@@ -90,3 +90,7 @@ The owner selected one Android-native Kotlin + Jetpack Compose application. Reac
 ### PG00 CI verified
 
 GitHub Actions `Foundation CI` run [38114530626](https://github.com/masharzy/ekmivo/actions/runs/38114530626) completed successfully on commit `2b9fea86361c61f1b5bf9720c32603d05d76e155`: whole Next.js lint, production build, TypeScript noEmit, isolated PostgreSQL 17 migrations/rollback smoke, Go tests and both binary builds passed. No production database migration or receipt transaction was involved. PG00 foundation baseline is accepted; ongoing Android build/hosting/device gates remain individually open.
+
+
+### AN03 Kotlin source checkpoint (unaccepted)
+`apps/mobile` now contains an actual Gradle/Kotlin/Jetpack Compose Android implementation with Ink & Bone Material3 colors, Hind Siliguri sourced from the existing web fonts, BN/EN copy, DataStore appearance/language preferences, animated merchant navigation, payment/inbox empty states and a real Go HTTP health/readiness probe. No receipt/SMS permissions are requested. A native CI job has been added; Android compiler/Gradle verification is ongoing, and real APK/device/performance/auth/payment behavior has not been asserted. All AN03/PG06/full inbox release gates remain open.

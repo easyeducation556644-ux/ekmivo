@@ -38,8 +38,8 @@ flowchart LR
 | Go API | Dashboard domain API, merchant API, permission checks, public checkout, receipt/provider ingress, financial commands। |
 | Go payment worker | Parsing/matching, reconciliation/expiry, notification/export, webhook delivery। API থেকে আলাদা process; একই domain packages। |
 | PostgreSQL | Authoritative records, immutable evidence, dedup, allocations, audit/outbox এবং River jobs। |
-| Kotlin bridge | Consented relevant receipts, source binding, signed events, encrypted offline queue/heartbeat। Paid-status authority নেই। |
-| React Native app | Phase 2 merchant management/inbox; same Go APIs এবং reused Kotlin bridge; দ্বিতীয় matcher নয়। |
+| Kotlin receipt module (same app) | Constrained, consented relevant receipts, source binding, signed events, encrypted offline queue/heartbeat। Paid-status authority নেই; এই code একই Kotlin/Compose Android APK-এ থাকবে। |
+| Kotlin/Compose Android app | Phase 2 merchant management/inbox; same Go APIs ও phase-1 native receipt module; দ্বিতীয় matcher নয়। |
 
 Deploy proposal: Vercel web; Render managed Docker service Go API + separate background worker; Neon PostgreSQL। Worker HTTP service থেকে পৃথক operate করা যায়। Region, always-on capacity, connection budget এবং recovery quote release-এর আগে validate হবে; provisioning done নয়। [Render workers](https://render.com/docs/background-workers)
 

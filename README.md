@@ -7,7 +7,7 @@ Ekmivo is a dual-service SaaS under active development. The first public release
 | Path | Purpose |
 |---|---|
 | `apps/web` | Next.js public site and future merchant UI; deploy to Vercel |
-| `apps/mobile` | Future Android/iOS merchant application |
+| `apps/mobile` | Native Kotlin + Jetpack Compose Android application (no RN/Flutter/bridge) |
 | `apps/android-bridge` | Future consented Android payment receipt capture |
 | `apps/extension` | Future browser assistant |
 | `backend` | Go API and workers, intended for persistent container hosting |
