@@ -50,7 +50,10 @@ val stageHindSiliguri by tasks.registering(Copy::class) {
  includeEmptyDirs = false
 }
 android.sourceSets.getByName("main").res.srcDir(layout.buildDirectory.dir("generated/native-fonts/res"))
-tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Resources") }.configureEach {
+tasks.matching { task ->
+ (task.name.startsWith("merge") || task.name.startsWith("generate")) && task.name.endsWith("Resources") ||
+ task.name.startsWith("map") && task.name.endsWith("SourceSetPaths")
+}.configureEach {
  dependsOn(stageHindSiliguri)
 }
 
