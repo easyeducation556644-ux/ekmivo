@@ -26,17 +26,9 @@ CREATE INDEX IF NOT EXISTS auth_one_time_codes_lookup_idx
 
 ALTER TABLE platform_administrators
  ADD COLUMN IF NOT EXISTS role text NOT NULL DEFAULT 'super_admin';
-DO $
-BEGIN
- IF NOT EXISTS (
-  SELECT 1 FROM pg_constraint WHERE conname='platform_administrators_role_check'
- ) THEN
-  ALTER TABLE platform_administrators
-   ADD CONSTRAINT platform_administrators_role_check
-   CHECK (role IN ('super_admin','admin','support','analyst'));
- END IF;
-END
-$;
+ALTER TABLE platform_administrators
+ ADD CONSTRAINT platform_administrators_role_check
+ CHECK (role IN ('super_admin','admin','support','analyst'));
 
 CREATE TABLE IF NOT EXISTS platform_admin_audit (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
