@@ -50,6 +50,8 @@ func NormalizeNumber(s string) (string, bool) {
 			return '0' + r - '০'
 		case r >= '٠' && r <= '٩':
 			return '0' + r - '٠'
+		case r >= '۰' && r <= '۹':
+			return '0' + r - '۰'
 		case r == ' ' || r == '-' || r == '(' || r == ')':
 			return -1
 		}
@@ -64,6 +66,21 @@ func NormalizeNumber(s string) (string, bool) {
 	return s, phonePattern.MatchString(s)
 }
 func MinorUnits(s string) (int64, error) {
+	// Normalize numeral scripts without relaxing the strict decimal syntax.
+	// Parser rules must still explicitly permit these characters; this does
+	// not infer amount, currency or the sender from an unapproved message.
+	s = strings.Map(func(r rune) rune {
+		switch {
+		case r >= '০' && r <= '৯':
+			return '0' + r - '০'
+		case r >= '٠' && r <= '٩':
+			return '0' + r - '٠'
+		case r >= '۰' && r <= '۹':
+			return '0' + r - '۰'
+		default:
+			return r
+		}
+	}, s)
 	if !regexp.MustCompile(`^[0-9]{1,10}(\.[0-9]{1,2})?$`).MatchString(s) {
 		return 0, errors.New("invalid amount")
 	}
