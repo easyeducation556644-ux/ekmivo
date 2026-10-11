@@ -36,3 +36,9 @@ Current repository status: partial web/auth/dashboard foundation; financial engi
 ## Latest owner execution constraint — 2026-10-11
 
 Keep Android entirely Kotlin/Jetpack Compose, but **stop Android UI expansion**. Follow payment-first PG01, PG02, ... serially; only advance after each item's acceptance evidence is complete. PG06 Android signer/structural validation and AN03 debug APK remain **partial source evidence**, not real receipt collection/payment or Android release acceptance. Never silently mark PG06/AN03 complete.
+
+
+## Latest PG02 execution authorization and UI acceptance (2026-10-11)
+The owner explicitly allowed **PG02 implementation to begin while a separate agent independently verifies PG01**. This overrides the earlier no-start-before-PG01 rule for implementation only; PG01 stays UNACCEPTED until its verified evidence closes every gate, and PG02/PG03 must never be declared accepted or advanced beyond their prerequisites prematurely. Preserve concurrent agent changes and do not reset source/migrations.
+
+**Before each PG's user interface**, read the relevant named screen in `docs/PRODUCT-UX-SPEC.bn.md`, `docs/DESIGN-SYSTEM.md` and tokens. An endpoint, route, empty shell, preview/mock, placeholder table or visually clickable but inert action does NOT meet acceptance. Verify authorized **real data + interactions + loading/error/empty/success/forbidden/offline** where applicable; responsive 320/768/1024/desktop; full EN/BN and Light/Dark/System, keyboard, drafts, roles and deep links. If its real backend is unimplemented, label unavailable honestly and leave that PG screen/gate OPEN.

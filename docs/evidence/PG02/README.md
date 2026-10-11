@@ -1,34 +1,37 @@
-# PG02 — UX implementation and acceptance evidence
+# PG02 — context-aware business/product/environment UX acceptance
 
-**Current status: IN PROGRESS, NOT ACCEPTED.** PG01 has a separate verification agent; owner authorized PG02 implementation in parallel. **Do not mark PG02 accepted before PG01's sign-off and this complete evidence matrix.** Kotlin/Compose Android UI expansion remains paused. PG06 Android signer/validation and AN03 debug build remain partial evidence only.
+**Status: IN PROGRESS, NOT ACCEPTED.** Product owner (2026-10-11) allowed PG02 UI implementation while PG01's security verification runs separately. No PG01 acceptance was implied, and PG03 must not start until PG01 and PG02 acceptance gates are closed.
 
-## Source of truth
-- `docs/PRODUCT-UX-SPEC.bn.md` §1–3 lines 23–62: actual control placement, product/business/environment transitions, responsive navigation, list behavior, uncommitted drafts, search and keyboard.
-- `docs/PRODUCT-UX-SPEC.bn.md` §4–7: payment and AI screens/actions/data definitions; separate downstream PG09/AN and full-product acceptance.
-- `docs/DESIGN-SYSTEM.md` and `docs/design/tokens.css`: Ink & Bone palette, Hind Siliguri, full-page theme system, accessible contrast and motion.
-- `docs/IMPLEMENTATION-BACKLOG.md` PG02: D01/D02/F05, S03/S05/S46. A compiled shell is only source evidence.
+## Canonical requirement mapping
 
-## Required functional acceptance matrix (each row needs captured test result)
+Read `docs/PRODUCT-UX-SPEC.bn.md` sections **1 (placement and switching)**, **2 (merchant routes)**, **3 (all list/form states)**, **4 (payment overview/setup)** and **8–9** if relevant. Design source: `docs/DESIGN-SYSTEM.md` §§2–7 and `docs/design/tokens.css`.
 
-| Feature | Required proof (not just route/render) | Status |
-|---|---|---|
-| Business selector | Search, selected check, role, manage/create; switch preserves an entitled product and resolves target business on server; account B cannot see A's records; no invented aggregate revenue | OPEN |
-| Product selector | Payment and AI purpose/capability, selected check, disabled reason; same business and last **authorized** page; first visit Overview; unavailable action is visibly disabled | OPEN |
-| Sandbox / Live | Header control; distinct server-validated data/credentials; persistent sandbox banner, Live setup checklist; switching never carries payment record IDs, secrets or cross-env filters | OPEN |
-| Unsaved drafts | Product/business/environment/locale/theme transitions use **Save draft / Discard / Stay** when editing; returning/back preserves valid unsaved state. A browser confirm alone is not Save draft | OPEN |
-| Route and history | Authorized bookmarkable `/{locale}/w/{id}/{product}/{section}`, payments `?env=...`; back/forward restores section/filter; revoked permission is denied, not silently redirected into other business | OPEN |
-| Search | Global Ctrl/⌘K, arrows/Enter/Esc, product/environment-scoped authorized records plus navigation; sidebar search is navigation-only; no fabricated record results | OPEN |
-| Shared list and detail contracts | Real data or explicit source-unavailable state; URL-backed search/filter/sort/cursor, refresh/freshness, scoped export; loading/error+retry/empty/forbidden/stale/offline/not-found, keyboard row detail link | OPEN — downstream data surfaces tied to PG03–PG09 may be blocked and must not be advertised functional |
-| Header/profile/events | EN/BN + Light/Dark/System visible on mobile; notification list/count and read action only when wired; profile security/session actions; no phantom unread count | OPEN |
-| Language/theme | Light/EN, Light/BN, Dark/EN, Dark/BN and System preference, OS change and cross-tab sync; complete strings and locale-safe currency/dates; no hydration flash; route/query/form draft retained | OPEN |
-| Responsive/a11y | 320/768/1440px, 200% zoom, Hind Siliguri, keyboard focus, drawer focus return, Escape, screen reader labels, reduced motion; mobile one-pane scroll/back restoration | OPEN |
-| Errors and feedback | Explicit submit/loading/success/failure for **real** actions, live permission denial, safe retries, no fake payments, no invented success toast | OPEN |
+| UI / state | Implemented source behavior | Evidence status |
+| --- | --- | --- |
+| Business selector | Current authorized `workspacesFor` list, role, search, selected state, create/manage link; target service remains enabled or falls back | Source, browser pending |
+| Product switch | Payment/AI cards with availability reasons and last valid page, current click no navigation | Source, browser pending |
+| Payment environment | Query `?env=sandbox/live`, server `requireWorkspace` and membership-revalidated `workspace_environments`; suspend/invalid/duplicate query denied; different business env remembered separately; explicit live setup-unavailable banner | Source, isolated SQL test pending final CI |
+| Global search | Ctrl/⌘K, Escape, arrow/Enter, scoped **navigation-only** results; real record search not invented | Source, keyboard/focus QA pending |
+| EN/BN + appearance | Language change retains query/env/hash; theme System/Light/Dark immediate cookie and cross-tab localStorage sync; source uses Ink & Bone/Hind Siliguri | Source, rendered four-combination/OS QA pending |
+| Mobile UI | Drawer and two-row compact controls; CSS breakpoints at 1150, 800, 520, 355; 320px acceptance not yet rendered | Source, device QA pending |
+| Loading/error/forbidden | Dynamic loading skeleton; actual server error with retry; unauthorized/invalid environment message with safe workspace fallback | Source, browser pending |
+| Success/empty | Real selected business/product/env shown in header and context; absent business query shows empty; unavailable backend has **no fabricated zero records or financial actions** | Source, real integration pending |
+| Notifications, payment records | No fake unread, mark-paid, payment-created or webhook-sent states; event/record backend not built, explicitly unavailable | **Not implemented; later PG owner screen contracts** |
+| Unsaved forms | Three-choice Save draft / Discard / Stay and focus/scroll restoration | **Not implemented; PG02 gate open** |
 
-## Evidence format required before acceptance
-For every feature above record **commit SHA**, scenario/setup (tenant A/B, sandbox/live, locale/theme/device), exact action, expected and actual result, CI/browser evidence link, failures and remediation. Product-specific money flows that do not exist until PG03–PG09 stay *blocked by dependency*, not “complete because the page renders”.
+## Automated validation
+- `node apps/web/scripts/pg02-navigation-smoke.mjs`: pure actual TypeScript navigation contract transpilation and assertions.
+- `node apps/web/scripts/pg02-tenant-context-smoke.mjs`: disposable loopback PostgreSQL 17, 2 workspaces, membership revocation, environment suspension, user disabling and intentional rollback. No production fixture writes.
+- `.github/workflows/ci.yml` requires both along with full Next lint, TypeScript, production build, Go/Postgres security tests and unchanged native Kotlin tests.
 
-## Current groundwork
-A previous dashboard shell, EN/BN/theme controls, route guards and server-issued environment context existed prior to this checkpoint. New `feat(pg02)` commits have begun business/product/environment navigation and theme switching; **unverified source progress is not acceptance**. Work must preserve concurrent agent changes, migration history and production credentials.
+## PG02 remaining acceptance and manual checklist
+- [ ] Verify all three CI jobs green on latest combined commit and record exact run ID.
+- [ ] Authenticate as real workspace owner in production; use business search, switch selected/unselected product, confirm denied product is not reachable via deep link.
+- [ ] Toggle Sandbox and Live, verify one per-business preference and no record/query leakage, reload/back/forward; suspended environment and forged membership browser denial.
+- [ ] Test navigation search Ctrl/⌘K, arrow/Enter, Escape, semantic focus return, keyboard-only and screen reader.
+- [ ] Test EN/BN + Light/Dark/System combinations at 320, 375, 768, 1024, 1440px, 200% zoom, OS color changes and two tabs. Check overflow, Bengali conjunct clipping, no flashing, no reset on theme/language switch.
+- [ ] Implement and test unsaved draft Save/Discard/Stay, when the first relevant editable PG02 form is present.
+- [ ] Verify loading skeleton, real network/server error and retry, unavailable context/forbidden, business no-match, success current context, service unavailable without showing 0 fake financial rows.
+- [ ] Document what is deferred to later numbered PG screen scopes (PG03 keys, PG05 requests, PG09 financial record lists, PG13 notifications) without describing it as PG02 complete.
 
-## Execution rule
-Do not create a new UI screen without first checking the corresponding row in `PRODUCT-UX-SPEC.bn.md`. Implement specified data, actions, loading/error/empty/success, responsive EN/BN/theme handling; if a required backend is not ready, accurately classify the screen as incomplete instead of calling the route finished.
+PG06 signer/validation and AN03 Kotlin application source stay **partial and unaccepted**. Do not claim true payment auto-confirmation, original receipt collection or signed merchant webhook delivery from this dashboard foundation.
