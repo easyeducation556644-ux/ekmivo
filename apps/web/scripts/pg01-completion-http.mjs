@@ -14,19 +14,19 @@ const user=randomUUID(),viewer=randomUUID(),foreign=randomUUID();
 const workspace=randomUUID(),otherWorkspace=randomUUID();
 const password=randomBytes(30).toString('base64url'),tokens=[];
 const hash=value=>createHash('sha256').update(value).digest('hex');
-const results=[],references=new Map();
+const results=[],references=new Map(),roles=new Map();
 let seeded=false;
 let secret=encodeBase32(randomBytes(20));
 function record(name,pass,detail){results.push({name,pass,...detail});console.log(name+': '+(pass?'PASS':'FAIL'));}
 function encrypted(value){const iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',Buffer.from(process.env.MFA_ENCRYPTION_KEY,'base64url'),iv);const bytes=Buffer.concat([cipher.update(value),cipher.final()]);return ['v1',iv.toString('base64url'),cipher.getAuthTag().toString('base64url'),bytes.toString('base64url')].join(':');}
-async function session(userId=user){const token=randomBytes(32).toString('base64url');tokens.push(token);await sql`INSERT INTO auth_sessions(user_id,token_hash,expires_at) VALUES(${userId},${hash(token)},now()+interval '1 hour')`;return token;}
+async function session(userId=user){const token=randomBytes(32).toString('base64url');tokens.push(token);roles.set(token,userId===viewer?'workspace viewer':'dedicated Super Admin / workspace owner');await sql`INSERT INTO auth_sessions(user_id,token_hash,expires_at) VALUES(${userId},${hash(token)},now()+interval '1 hour')`;return token;}
 const headers=token=>token?{Cookie:'ekmivo-session='+token}:{};
 async function http(base,path,token,expected,name,method='GET',body,extra={}){
  const response=await fetch(base+path,{method,headers:{...headers(token),...(body?{'Content-Type':'application/json'}:{}),...extra},body:body?JSON.stringify(body):undefined,redirect:'manual',signal:AbortSignal.timeout(30000)});
  let payload;try{payload=await response.json();}catch{payload={};}
  const safe=Object.fromEntries(Object.entries(payload).filter(([key])=>['code','message','checkout_expiry_minutes','role','environment','capability'].includes(key)));
  const expectedCode=name==='Proxy viewer write denied'?'ACCESS_DENIED':null;
- record(name,response.status===expected&&(!expectedCode||payload.code===expectedCode),{endpoint:method+' '+path.replaceAll(workspace,'<test-workspace>').replaceAll(otherWorkspace,'<foreign-workspace>'),expected_status:expected,actual_status:response.status,safe_response:safe});
+ record(name,response.status===expected&&(!expectedCode||payload.code===expectedCode),{role:token?roles.get(token):'anonymous',endpoint:method+' '+path.replaceAll(workspace,'<test-workspace>').replaceAll(otherWorkspace,'<foreign-workspace>'),expected_status:expected,actual_status:response.status,safe_response:safe});
  return payload;
 }
 function decode(value){return value.replaceAll('&quot;','"').replaceAll('&#x27;',"'").replaceAll('&amp;','&');}
@@ -70,6 +70,17 @@ try{
  let ownerToken=await session(),viewerToken=await session(viewer);
  const settings='/v1/workspaces/'+workspace+'/settings?environment=sandbox';
  const body={checkout_expiry_minutes:20};
+ await http(api,'/v1/session',null,401,'Anonymous session denied');
+ const expired=await session();
+ await sql`UPDATE auth_sessions SET expires_at=now()-interval '1 minute' WHERE token_hash=${hash(expired)}`;
+ await http(api,'/v1/session',expired,401,'Expired session denied');
+ const revoked=await session();
+ await sql`UPDATE auth_sessions SET revoked_at=now() WHERE token_hash=${hash(revoked)}`;
+ await http(api,'/v1/session',revoked,401,'Revoked session denied');
+ await http(api,'/v1/platform/access',ownerToken,403,'MFA bypass denied');
+ await sql`DELETE FROM workspace_members WHERE workspace_id=${workspace} AND user_id=${viewer}`;
+ await http(api,settings,viewerToken,403,'Removed membership actual write denied','PATCH',body);
+ await sql`INSERT INTO workspace_members(workspace_id,user_id,role) VALUES(${workspace},${viewer},'viewer')`;
  await http(api,settings,ownerToken,200,'Owner actual settings write','PATCH',body);
  await http(api,settings,viewerToken,403,'Viewer actual settings write denied','PATCH',{checkout_expiry_minutes:25});
  let stored=await sql`SELECT environment,checkout_expiry_minutes FROM workspace_environment_settings WHERE workspace_id=${workspace} ORDER BY environment`;

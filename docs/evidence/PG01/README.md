@@ -1,6 +1,6 @@
 # PG01 — session/tenant/environment authorization and admin MFA
 
-**Work:** PG01 / F02,F03,F04 / S02,S04,S45. **STATUS: IN PROGRESS, NOT ACCEPTED.** PG00 foundation accepted; PG02 has NOT started. Android UI expansion paused; PG06 and AN03 remain partial.
+**Work:** PG01 / F02,F03,F04 / S02,S04,S45. **Latest status: IMPLEMENTED; deployed security verification recorded below; manual browser/device QA and latest-source Vercel parity pending.** PG02 concurrent changes preserved. Historical checkpoints below are superseded by the completion section, not rewritten as past successes. Android UI expansion remains paused.
 
 ## Code
 - `backend/internal/authz/authz.go`: validates existing opaque cookie session hash against PostgreSQL. Fails closed on invalid/expired/revoked/disabled, email verification required, removed members and unauthorized capabilities. Uses `SET LOCAL` tenant/workspace/environment context only after membership and capability checks, then queries FORCE-RLS data in a bounded transaction.
@@ -78,3 +78,40 @@ To rerun the harness, first securely pull production variables to an ignored loc
 The final run passed real deployed TOTP challenge, same-code replay in a fresh session, five invalid attempts plus persistent lockout, with DB-confirmed blocked_until. Go three-tenant/session/capability/MFA negatives and cleanup also passed. Three required coverage items remain NOT_IMPLEMENTED: actual protected write endpoint, recovery-code flow and web-to-Go session proxy. Audited MFA revoke/re-enrollment remains an additional lifecycle gap; only controlled test-row revocation was checked. Initial form-transport timeout was investigated and the final run uses React Server Action encoding, matching the deployed client request protocol. RSC redirects may return HTTP 200 with the action redirect header, unlike ordinary HTML POST's 303; the database freshness and subsequent Go access confirm success.
 
 Concurrent repository observation: during verification, origin/main advanced to `f9e390e` with PG02 UI commits. Those changes were preserved and pulled; they do not supply missing PG01 acceptance evidence. Earlier statements that PG02 has not started are historical. PG01 remains open regardless of those UI commits.
+
+## Completion implementation and deployed HTTP evidence — 2026-10-11
+
+**Current implementation milestone: IMPLEMENTED — MANUAL PENDING. Full production/source-parity acceptance remains OPEN.** The earlier missing write, proxy, recovery and reset features are now implemented; do not use the historical audit's NOT_IMPLEMENTED entries as the current source inventory. No payment-engine readiness claim is made.
+
+Changes: `d2484ad` implements a real owner/admin-only checkout-expiry write through Go/restricted PostgreSQL RLS, server-side HttpOnly session forwarding with a destination allowlist and mutation Origin checks, eight once-visible recovery codes stored only as user-bound hashes, audited rotation/recovery/reset, password and fresh MFA checks, persistent five-attempt/15-minute recovery lockout, atomic single-use consumption, session revocation, and authenticator re-enrollment. Go and web both reject MFA freshness from before the current enrollment generation. `/en/admin/security` and `/bn/admin/security` contain real controls and session status; EN/BN and existing Ink & Bone/theme/font are preserved.
+
+Additive `0006_pg01_mfa_recovery.sql` was applied to Neon after isolated CI success. Existing users and MFA enrollment counts were unchanged. Earlier migrations, existing secrets and concurrent PG02 work were preserved. The explicit one-off guarded script applies only this additive migration; it is not a replacement migration runner.
+
+### Build and deployment provenance
+
+- [CI 38123567627](https://github.com/masharzy/ekmivo/actions/runs/38123567627) on `d2484ad`: all three jobs PASS, including real isolated PostgreSQL owner write/viewer denial, repeated additive migration, atomic code consumption and runtime-role recovery-table denial, Go tests/build, Next lint/types/build and unchanged Kotlin build/tests.
+- [CI 38124238106](https://github.com/masharzy/ekmivo/actions/runs/38124238106) on `42fc75d`: all three jobs PASS. This includes the localhost/preview proxy Origin correction; local production build and focused lint also passed.
+- Render Go `d2484ad` was deployed LIVE (`dep-db5k6cqvcj2c73eo3vs0`). Production target: `https://ekmivo-go-api.onrender.com`. `/readyz` remains intentionally 503 because financial engine readiness belongs to later PGs.
+- Vercel production Git build `3cc4eeef` is READY/promoted (`dpl_BhoL1bA8oVqpCfGUpG5t7Q1quh8D`). Git ancestry verified that it includes core PG01 `d2484ad`. Actual production HTTP tests use `https://ekmivo-web-masharzys-projects.vercel.app`.
+- Vercel commit status for `42fc75d` reports **Deployment rate limited — retry in 24 hours**. Thus core PG01 live behavior is tested, but the additional localhost/preview-origin hardening is not claimed deployed. The earlier blanket claim that no newer web build exists was superseded by the inspected Git build; the newest source still has a quota blocker.
+
+### Actual HTTP/action outcomes
+
+[completion-http-results.json](completion-http-results.json) records expected and actual status, safe response, account role and relevant DB assertions. All security actions use a dedicated short-lived Super Admin/workspace owner; actual viewer writes use a separate viewer. Anonymous/expired/revoked cases are explicitly labelled. Server Actions use real RSC transport: a business denial or redirect may have HTTP 200, so expected safe text/redirect and subsequent API/DB assertion determine success, not HTTP status alone. Recovery codes, cookies, passwords, seeds and raw action output are never recorded.
+
+Tests cover owner write persistence vs viewer/wrong-tenant denial, removed membership, expired/revoked sessions, missing MFA, proxy authentication/role-header spoofing/Origin/destination denial, real TOTP challenge, EN/BN × light/dark security SSR, recovery generation/hash-only storage/rotation, old-code and wrong-password rejection, fresh recovery, other-session revocation, consumed-code reuse, supported reset, cleared enrollment/codes/session freshness, password-confirmed re-enrollment, old authenticator rejection, old-generation freshness denial, persistent recovery lockout across sessions, audit and fixture cleanup. Earlier [production-http-results.json](production-http-results.json) independently records three-tenant/environment and TOTP replay/lockout negatives. It is a historical audit with obsolete missing-feature entries; the new completion report closes those implementation gaps.
+
+Fixture sessions are seeded in the deployed control plane using the application's real format; this tests authorization and actual supported MFA actions, **not** signup/login issuance or a physical authenticator app. Real HTTP effects and Neon assertions are not mocked. Only dedicated test identities/workspaces are created and removed; existing owner and financial records are untouched. CI atomic-consumption evidence is not represented as a simultaneous production HTTP race.
+
+### Reproducible browser walkthrough
+
+Use a dedicated verified test administrator, never the sole real owner. Sign in normally and open `/en/admin` or `/bn/admin`: before MFA it must redirect to `/admin/mfa`. Confirm password, enroll a test authenticator and submit a current code. Open `/admin/security`; the Go session status must become connected. Confirm password and generate recovery codes; save privately because they appear once. Rotate; the previous set must fail.
+
+Sign in in a new browser profile and use a current unused recovery code on `/admin/mfa`. It should redirect to Security; the other session must lose access. Try that code in another fresh session: invalid/used. On Security, confirm password and reset the authenticator; current admin privilege and other sessions must be invalidated. Enroll a new authenticator with password; the old key must not restore access. Use only test accounts for five-failure cooldown testing; a new session cannot clear the lockout.
+
+For exact automated HTTP reproduction, from `apps/web` set `PG01_ALLOW_PRODUCTION_FIXTURES=true` and run Node with the securely pulled ignored env file: `node --env-file=<ignored-file> scripts/pg01-completion-http.mjs`. Default target is the approved production web and Go. It creates and cleans dedicated fixtures; it is deliberately not an ordinary CI test. No laptop Docker is used.
+
+If all recovery codes and the authenticator are lost, there is deliberately no public password-only bypass. Escalate through an identity-verified authorized operator; do not delete the sole owner's MFA record ad hoc. An operator break-glass workflow is not claimed implemented by PG01 recovery-code support.
+
+Remaining manual UI/device checks and latest-source deployment parity are centralized in [MANUAL-VERIFICATION.md](../../MANUAL-VERIFICATION.md). Security implementation and passing automated live evidence do not assert completed physical-device/browser QA or payment gateway release acceptance.
+Final production run: **51/51 assertions PASS**, including dedicated fixture cleanup. All required HTTP security/lifecycle cases passed; remaining acceptance distinctions above still apply.

@@ -1,12 +1,73 @@
 {
-  "tested_at": "2026-10-11T08:16:18.602Z",
+  "tested_at": "2026-10-11T08:23:14.658Z",
   "api": "https://ekmivo-go-api.onrender.com",
-  "web": "http://127.0.0.1:3001",
-  "web_evidence": "Local production Next build against deployed Go/Neon; NOT deployed Vercel parity",
+  "web": "https://ekmivo-web-masharzys-projects.vercel.app",
+  "web_evidence": "Deployed Vercel web",
   "results": [
+    {
+      "name": "Anonymous session denied",
+      "pass": true,
+      "role": "anonymous",
+      "endpoint": "GET /v1/session",
+      "expected_status": 401,
+      "actual_status": 401,
+      "safe_response": {
+        "code": "UNAUTHENTICATED",
+        "message": "Sign in required"
+      }
+    },
+    {
+      "name": "Expired session denied",
+      "pass": true,
+      "role": "dedicated Super Admin / workspace owner",
+      "endpoint": "GET /v1/session",
+      "expected_status": 401,
+      "actual_status": 401,
+      "safe_response": {
+        "code": "UNAUTHENTICATED",
+        "message": "Sign in required"
+      }
+    },
+    {
+      "name": "Revoked session denied",
+      "pass": true,
+      "role": "dedicated Super Admin / workspace owner",
+      "endpoint": "GET /v1/session",
+      "expected_status": 401,
+      "actual_status": 401,
+      "safe_response": {
+        "code": "UNAUTHENTICATED",
+        "message": "Sign in required"
+      }
+    },
+    {
+      "name": "MFA bypass denied",
+      "pass": true,
+      "role": "dedicated Super Admin / workspace owner",
+      "endpoint": "GET /v1/platform/access",
+      "expected_status": 403,
+      "actual_status": 403,
+      "safe_response": {
+        "code": "MFA_REQUIRED",
+        "message": "Administrator verification required"
+      }
+    },
+    {
+      "name": "Removed membership actual write denied",
+      "pass": true,
+      "role": "workspace viewer",
+      "endpoint": "PATCH /v1/workspaces/<test-workspace>/settings?environment=sandbox",
+      "expected_status": 403,
+      "actual_status": 403,
+      "safe_response": {
+        "code": "ACCESS_DENIED",
+        "message": "Not authorized"
+      }
+    },
     {
       "name": "Owner actual settings write",
       "pass": true,
+      "role": "dedicated Super Admin / workspace owner",
       "endpoint": "PATCH /v1/workspaces/<test-workspace>/settings?environment=sandbox",
       "expected_status": 200,
       "actual_status": 200,
@@ -17,6 +78,7 @@
     {
       "name": "Viewer actual settings write denied",
       "pass": true,
+      "role": "workspace viewer",
       "endpoint": "PATCH /v1/workspaces/<test-workspace>/settings?environment=sandbox",
       "expected_status": 403,
       "actual_status": 403,
@@ -33,6 +95,7 @@
     {
       "name": "Wrong-tenant actual write denied",
       "pass": true,
+      "role": "dedicated Super Admin / workspace owner",
       "endpoint": "PATCH /v1/workspaces/<foreign-workspace>/settings?environment=sandbox",
       "expected_status": 403,
       "actual_status": 403,
@@ -44,6 +107,7 @@
     {
       "name": "Authenticated Next-to-Go proxy",
       "pass": true,
+      "role": "dedicated Super Admin / workspace owner",
       "endpoint": "GET /api/go/session",
       "expected_status": 200,
       "actual_status": 200,
@@ -52,6 +116,7 @@
     {
       "name": "Proxy missing session denied",
       "pass": true,
+      "role": "anonymous",
       "endpoint": "GET /api/go/session",
       "expected_status": 401,
       "actual_status": 401,
@@ -62,6 +127,7 @@
     {
       "name": "Real proxy settings write",
       "pass": true,
+      "role": "dedicated Super Admin / workspace owner",
       "endpoint": "PATCH /api/go/workspaces/<test-workspace>/settings?environment=sandbox",
       "expected_status": 200,
       "actual_status": 200,
@@ -72,6 +138,7 @@
     {
       "name": "Proxy viewer write denied",
       "pass": true,
+      "role": "workspace viewer",
       "endpoint": "PATCH /api/go/workspaces/<test-workspace>/settings?environment=sandbox",
       "expected_status": 403,
       "actual_status": 403,
@@ -83,6 +150,7 @@
     {
       "name": "Cross-origin proxy write denied",
       "pass": true,
+      "role": "dedicated Super Admin / workspace owner",
       "endpoint": "PATCH /api/go/workspaces/<test-workspace>/settings?environment=sandbox",
       "expected_status": 403,
       "actual_status": 403,
@@ -93,6 +161,7 @@
     {
       "name": "Proxy destination injection denied",
       "pass": true,
+      "role": "dedicated Super Admin / workspace owner",
       "endpoint": "GET /api/go/https:attacker.invalid",
       "expected_status": 404,
       "actual_status": 404,
@@ -111,6 +180,7 @@
     {
       "name": "Verified MFA Go access",
       "pass": true,
+      "role": "dedicated Super Admin / workspace owner",
       "endpoint": "GET /v1/platform/access",
       "expected_status": 200,
       "actual_status": 200,
@@ -194,6 +264,7 @@
     {
       "name": "Recovered session Go access",
       "pass": true,
+      "role": "dedicated Super Admin / workspace owner",
       "endpoint": "GET /v1/platform/access",
       "expected_status": 200,
       "actual_status": 200,
@@ -204,6 +275,7 @@
     {
       "name": "Recovery revokes old sessions",
       "pass": true,
+      "role": "dedicated Super Admin / workspace owner",
       "endpoint": "GET /v1/session",
       "expected_status": 401,
       "actual_status": 401,
@@ -215,6 +287,7 @@
     {
       "name": "Proxy rejects revoked session",
       "pass": true,
+      "role": "dedicated Super Admin / workspace owner",
       "endpoint": "GET /api/go/session",
       "expected_status": 401,
       "actual_status": 401,
@@ -247,6 +320,7 @@
     {
       "name": "Reset blocks current admin privilege",
       "pass": true,
+      "role": "dedicated Super Admin / workspace owner",
       "endpoint": "GET /v1/platform/access",
       "expected_status": 403,
       "actual_status": 403,
@@ -258,6 +332,7 @@
     {
       "name": "Reset revokes other sessions",
       "pass": true,
+      "role": "dedicated Super Admin / workspace owner",
       "endpoint": "GET /v1/session",
       "expected_status": 401,
       "actual_status": 401,
@@ -298,6 +373,7 @@
     {
       "name": "Re-enrolled current session works",
       "pass": true,
+      "role": "dedicated Super Admin / workspace owner",
       "endpoint": "GET /v1/platform/access",
       "expected_status": 200,
       "actual_status": 200,
@@ -308,6 +384,7 @@
     {
       "name": "Old MFA generation cannot regain access",
       "pass": true,
+      "role": "dedicated Super Admin / workspace owner",
       "endpoint": "GET /v1/platform/access",
       "expected_status": 403,
       "actual_status": 403,

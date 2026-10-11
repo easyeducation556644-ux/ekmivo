@@ -1,3 +1,6 @@
+// Historical pre-completion audit: its three NOT_IMPLEMENTED outcomes describe
+// the earlier build, not current acceptance. Use pg01-completion-http.mjs for
+// implemented write/proxy/recovery/reset lifecycle verification.
 import postgres from 'postgres';
 import { createRequire } from 'node:module';
 const { encodeReply } = createRequire(import.meta.url)('next/dist/compiled/react-server-dom-webpack/client.node');
