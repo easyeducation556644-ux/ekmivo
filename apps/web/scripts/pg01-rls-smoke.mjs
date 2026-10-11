@@ -28,10 +28,8 @@ async function run(){
     await tx`INSERT INTO app_users(id,email,display_name,password_hash) VALUES (${f.user}::uuid,${f.email},'PG01 Isolated Tester','not-a-credential')`;
     await tx`INSERT INTO workspaces(id,name,service_mode,created_by) VALUES (${f.workspace}::uuid,'PG01 Tenant','commerce',${f.user}::uuid)`;
     await tx`INSERT INTO workspace_members(workspace_id,user_id,role) VALUES (${f.workspace}::uuid,${f.user}::uuid,'owner')`;
-    for(const env of ["sandbox","live"]){
-     await tx`INSERT INTO workspace_environments(workspace_id,environment) VALUES (${f.workspace}::uuid,${env})`;
-     await tx`INSERT INTO workspace_environment_settings(workspace_id,environment) VALUES (${f.workspace}::uuid,${env})`;
-    }
+    const seeded=await tx`SELECT count(*)::int AS n FROM workspace_environments WHERE workspace_id=${f.workspace}::uuid`;
+    if(seeded[0].n!==2)throw Error("New workspace did not automatically seed sandbox and live contexts");
    }
    const first=fixtures[0],second=fixtures[1],third=fixtures[2];
    async function asRuntime(user,workspace,env,run){
