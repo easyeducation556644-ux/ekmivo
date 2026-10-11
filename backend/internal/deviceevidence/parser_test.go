@@ -65,3 +65,32 @@ func TestBengaliAmountAllowedOnlyByApprovedParser(t *testing.T) {
 		t.Fatal("fictional sandbox parser accepted into live")
 	}
 }
+
+func TestParserSafetyLimitsAndPreCaptureScope(t *testing.T) {
+	r := ParserRule{
+		ID: "fixture", Version: 1, Source: "fixture", Method: "bkash",
+		Pattern: `^Received (?P<amount>[0-9.]+) from (?P<payer>\\+880[0-9]+) at (?P<time>[0-9: -]+) ref (?P<reference>[A-Z0-9]+)$`,
+		TimeLayout: "2006-01-02 15:04:05", TimeZone: "Asia/Dhaka", Precision: "second",
+		Approved: true, SandboxOnly: true,
+	}
+	if err := r.Validate(); err != nil {
+		t.Fatalf("approved bounded parser invalid: %v", err)
+	}
+	r.CapturePattern = "^.*$"
+	if err := r.Validate(); err == nil {
+		t.Fatal("broader capture filter could persist OTP or unrelated SMS")
+	}
+	r.CapturePattern = r.Pattern
+	if err := r.Validate(); err != nil {
+		t.Fatalf("identical safe capture filter denied: %v", err)
+	}
+	r.CapturePattern = ""
+	r.Pattern = "^" + string(make([]byte, 2048)) + "$"
+	if err := r.Validate(); err == nil {
+		t.Fatal("oversize regex accepted")
+	}
+	r.Pattern = `^Received (?P<amount>[0-9.]+) from (?P<payer>\\+880[0-9]+) at (?P<time>[0-9: -]+) ref (?P<reference>[A-Z0-9]+)$`
+	if _, err := r.Parse("fixture", "sandbox", string([]byte{0xff, 0xfe})); err == nil {
+		t.Fatal("invalid UTF-8 receipt accepted")
+	}
+}
