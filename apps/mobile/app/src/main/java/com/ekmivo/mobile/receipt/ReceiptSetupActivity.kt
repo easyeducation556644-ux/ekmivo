@@ -38,7 +38,7 @@ class ReceiptSetupActivity:ComponentActivity(){
    val bn=language==Language.BN
    EkmivoTheme(dark=when(appearance){Appearance.SYSTEM->isSystemInDarkTheme();Appearance.DARK->true;Appearance.LIGHT->false}){
     val scope=rememberCoroutineScope();var token by remember{mutableStateOf("")};var consent by remember{mutableStateOf(false)};var busy by remember{mutableStateOf(false)}
-    var proposed by remember{mutableStateOf<JSONObject?>(null)};var active by remember{mutableStateOf(ReceiptStore(applicationContext).use{it.enrollment()})}
+    var proposed by remember{mutableStateOf(ReceiptStore(applicationContext).use{it.pendingEnrollment()})};var active by remember{mutableStateOf(ReceiptStore(applicationContext).use{it.enrollment()})}
     var message by remember{mutableStateOf("")}
     var history by remember{mutableStateOf<List<JSONObject>>(emptyList())}
     val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){granted ->message=if(granted){if(bn)"SMS অনুমতি দেওয়া হয়েছে।" else "SMS permission granted."}else{if(bn)"SMS অনুমতি নেই; সেটিংস থেকে অনুমতি দিন।" else "SMS permission denied; review device settings."}}
@@ -57,7 +57,13 @@ class ReceiptSetupActivity:ComponentActivity(){
            val body=JSONObject().put("pairing_token",token).put("public_key",Base64.encodeToString(key,Base64.NO_WRAP)).toString().toByteArray()
            ReceiptTransport.post("claim","",UUID.randomUUID().toString(),body)
           }
-          token="";if(result.first==200){proposed=JSONObject(result.second)}else{message=if(bn)"Pair হয়নি। মেয়াদ, token ও server connection দেখুন।" else "Pairing failed. Check expiry, token and server connection."}
+          token="";if(result.first==200){
+           // Consume no second token on recreation; show account confirmation
+           // from disk, with collection OFF until the user consents to enable.
+           val bound=JSONObject(result.second)
+           withContext(Dispatchers.IO){ReceiptStore(applicationContext).use{it.savePendingEnrollment(bound)}}
+           proposed=bound
+          }else{message=if(bn)"Pair হয়নি। মেয়াদ, token ও server connection দেখুন।" else "Pairing failed. Check expiry, token and server connection."}
          }catch(_:Exception){message=if(bn)"Server unavailable। আবার চেষ্টা করুন।" else "Server unavailable. Retry."}finally{busy=false}
         }
        }){Text(if(bn)"Pair করুন" else "Pair device")}
@@ -68,6 +74,12 @@ class ReceiptSetupActivity:ComponentActivity(){
       }else{
        Text(active!!.optString("environment")+" · "+active!!.optString("source")+" · "+active!!.optString("binding"))
        Text((if(bn)"অপেক্ষমাণ receipt: " else "Queued receipts: ")+ReceiptStore(applicationContext).use{it.count()})
+       val overflow=ReceiptStore(applicationContext).use{it.overflowCount()}
+       if(overflow>0)Text(
+        (if(bn)"সতর্কতা: queue পূর্ণ থাকায় অন্তত $overflow টি receipt সংগ্রহ হয়নি। Server-এ এগুলো জমা হয়নি; account ও device health পরীক্ষা করুন।"
+         else "Warning: $overflow receipts were missed while the offline queue was full. They were not uploaded; review the account and device health."),
+        color=MaterialTheme.colorScheme.error
+       )
        Button(onClick={if(active!!.optString("binding").startsWith("sms:"))permission.launch(Manifest.permission.RECEIVE_SMS)else startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))}){Text(if(bn)"সংগ্রহের অনুমতি / settings" else "Collection permission / settings")}
        Button(onClick={ReceiptSyncWorker.schedule(applicationContext);message=if(bn)"Sync schedule করা হয়েছে; ACK পেলে queue থেকে সরবে।" else "Sync scheduled; receipts leave the queue only after durable ACK."}){Text(if(bn)"এখন Sync করুন" else "Sync now")}
        Button(enabled=!busy,onClick={busy=true;scope.launch{try{
