@@ -7,6 +7,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -81,7 +82,7 @@ func publicIP(ip netip.Addr) bool {
 }
 func ValidateURL(raw string) (*url.URL, error) {
 	u, e := url.Parse(raw)
-	if e != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.Fragment != "" || len(raw) > 2048 || u.Port() != "" && u.Port() != "443" {
+	if e != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.Fragment != "" || u.Opaque != "" || len(raw) > 2048 || u.Port() != "" && u.Port() != "443" || strings.ContainsAny(u.Hostname(), " \t\r\n") {
 		return nil, errors.New("HTTPS public endpoint required")
 	}
 	if strings.HasSuffix(strings.ToLower(u.Hostname()), ".localhost") || strings.EqualFold(u.Hostname(), "localhost") {
@@ -95,12 +96,22 @@ func ValidateURL(raw string) (*url.URL, error) {
 
 // Resolve every attempt and pin one allowed address. Never follow redirects,
 // proxy environment variables, alternate hosts or a subsequent DNS resolution.
+type resolvePublicHost func(context.Context, string, string) ([]netip.Addr, error)
+type dialPinnedIP func(context.Context, string, string) (net.Conn, error)
+
+// Network hooks are package-private: production always uses the system DNS
+// and a real TCP dialer. Tests simulate public DNS without external requests.
 func Send(ctx context.Context, raw string, secret, body []byte, eventID, deliveryID string) (int, string) {
+	return sendWithNetwork(ctx, raw, secret, body, eventID, deliveryID,
+		net.DefaultResolver.LookupNetIP, (&net.Dialer{Timeout: 3 * time.Second}).DialContext, nil)
+}
+func sendWithNetwork(ctx context.Context, raw string, secret, body []byte, eventID, deliveryID string,
+	resolve resolvePublicHost, dial dialPinnedIP, roots *x509.CertPool) (int, string) {
 	u, e := ValidateURL(raw)
 	if e != nil {
 		return 0, "endpoint_rejected"
 	}
-	addresses, e := net.DefaultResolver.LookupNetIP(ctx, "ip", u.Hostname())
+	addresses, e := resolve(ctx, "ip", u.Hostname())
 	if e != nil || len(addresses) == 0 {
 		return 0, "dns_unavailable"
 	}
@@ -110,9 +121,8 @@ func Send(ctx context.Context, raw string, secret, body []byte, eventID, deliver
 		}
 	}
 	pinned := addresses[0]
-	dialer := &net.Dialer{Timeout: 3 * time.Second}
-	transport := &http.Transport{Proxy: nil, TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12, ServerName: u.Hostname()}, DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
-		return dialer.DialContext(ctx, "tcp", net.JoinHostPort(pinned.String(), "443"))
+	transport := &http.Transport{Proxy: nil, TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12, ServerName: u.Hostname(), RootCAs: roots}, DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
+		return dial(ctx, "tcp", net.JoinHostPort(pinned.String(), "443"))
 	}, DisableKeepAlives: true, ResponseHeaderTimeout: 5 * time.Second}
 	defer transport.CloseIdleConnections()
 	client := &http.Client{Transport: transport, Timeout: 8 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
