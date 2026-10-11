@@ -14,6 +14,6 @@ export default async function ServiceSection({ params, searchParams }: {
  const query=await searchParams;
  const env=Array.isArray(query.env)?null:query.env;
  if(service==="payments" && env===null)notFound();
- const paymentContext=service==="payments"?await paymentContextFor(workspace,env):undefined;
+ const paymentContext=service==="payments"?await paymentContextFor(workspace,user.id,env):undefined;
  return <DashboardContent locale={locale} user={user} workspace={workspace} service={service} section={section} paymentContext={paymentContext}/>;
 }
