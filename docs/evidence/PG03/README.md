@@ -58,3 +58,17 @@ All manual PG03 and PG00–PG17 requirements are kept in `docs/MANUAL-VERIFICATI
 ### Neon PG03 migration preflight — 2026-10-11
 
 Prepared migration 0007 on an **isolated Neon temporary branch** of the Ekmivo production branch (database `ekmivo`), without applying schema writes to production. Migration creation succeeded. An independent preflight query confirmed both new tables have ENABLE/FORCE RLS, there are 0 existing test credentials, `ekmivo_financial_runtime` **cannot** SELECT credentials/audit tables, and it **can** execute only the restricted resolve/use functions. The prepared migration identifier is `165dd7db-48ff-4f5a-89e9-a935551b2a5a`. **Application to production is awaiting explicit owner approval** as required by the database migration workflow; do not mark 0007 applied or key issuance operational. Temporary branch cleanup/application is the pending completion action.
+
+
+### Production rollout verified after owner approval — 2026-10-11
+
+**Migration 0007: APPLIED SUCCESSFULLY.** Owner explicitly authorized application. Neon migration completion ID `165dd7db-48ff-4f5a-89e9-a935551b2a5a` reported success on Ekmivo `production` branch `br-solitary-river-b3ztvg8j`, database `ekmivo`; preflight branch `br-floral-poetry-b3j6rhqi` deleted. Production read-back confirmed:
+- Both `merchant_api_keys` and `merchant_api_key_audit` exist, `relrowsecurity=true` and `relforcerowsecurity=true` for both.
+- `ekmivo_financial_runtime` has NO SELECT on the key table; `resolve_merchant_api_key(text)` EXECUTE is granted. No raw merchant API credentials created as part of migration; key count was **0**.
+- No existing user or real payment record mutation was made by the PG03 schema migration.
+
+**Web deployment parity now verified:** Git-connected Vercel production deployment `ekmivo-iux4w3gxj-masharzys-projects.vercel.app` for `c441dca16243dce46b6896efabb5870d42cdf26d` is **READY**, newer than merged PG03 code `19c7a011`. The previously recorded manual deployment API HTTP 402 was real, but the later Git-triggered deployment succeeded; it no longer blocks source parity.
+
+**Go deployment parity:** Render `dep-db5kno15efls73ao9bm0` for `c441dca` reported **live**. Latest code includes PG03 merchant key route, but no live authenticated key positive/negative probe was executed.
+
+**PG03 remaining gate:** Real owner/admin password-confirmed sandbox key issuance, once-only reveal, direct Go probe (valid/wrong-env/revoked/expired), viewer/editor and cross-business forbidden, 320px/EN/BN/themes/browser screen-reader manual QA. Keep PG03 **source complete / deployed / manual acceptance OPEN**. Payment/checkout/verified receipts/webhooks not yet built.
