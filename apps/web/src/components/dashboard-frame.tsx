@@ -237,7 +237,8 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
       <summary aria-label={bn?"অ্যাকাউন্ট মেনু":"Account menu"} title={userName}><span className="ds-person-avatar">{userName.slice(0,1).toUpperCase()}</span></summary>
       <div className="ds-profile-popover">
        <strong>{userName}</strong><small>{workspace.name}</small>
-       <Link href={contextHref("settings")}><Icon name="settings"/>{bn?"অ্যাকাউন্ট ও ওয়ার্কস্পেস সেটিংস":"Account and workspace settings"}</Link>
+       <Link href={`/${locale}/account`}><Icon name="settings"/>{bn?"অ্যাকাউন্ট ও নিরাপত্তা":"Account & security"}</Link>
+       <Link href={contextHref("settings")}><Icon name="settings"/>{bn?"ওয়ার্কস্পেস সেটিংস · নির্মাণাধীন":"Workspace settings · In development"}</Link>
        <Link href={contextHref("help")}><Icon name="help"/>{bn?"সাহায্য":"Help"}</Link>
        {platformAdmin&&<Link href={`/${locale}/admin`}><Icon name="shield"/>{bn?"প্ল্যাটফর্ম অ্যাডমিন":"Platform admin"}</Link>}
        {logout}
