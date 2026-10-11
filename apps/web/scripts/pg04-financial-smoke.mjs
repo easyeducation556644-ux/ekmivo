@@ -1235,9 +1235,9 @@ try{
   await tx.unsafe("SELECT set_config('ekmivo.workspace_id',$1,true),set_config('ekmivo.environment','sandbox',true)",[pg07WS]);
   return (await tx.unsafe(
    "SELECT pg09_action($1::uuid,'sandbox',$2,$3::uuid,$4,$5::jsonb,$6) AS data",
-   [pg07WS,resource,id,action,JSON.stringify(payload),secret]))[0].data;
+   [pg07WS,resource,id,action,pg07DB.json(payload),secret]))[0].data;
  });
- const pg09RenamePayload=JSON.stringify({name:"PG09 renamed fictional handset"});
+ const pg09RenamePayload=pg07DB.json({name:"PG09 renamed fictional handset"});
  same((await pg07DB.unsafe("SELECT $1::jsonb->>'name' AS value",[pg09RenamePayload]))[0].value,"PG09 renamed fictional handset","PG09 name JSON parameter was not encoded correctly");
  same((await pg09Action("devices",device,"rename",{name:"PG09 renamed fictional handset"})).updated,true,
   "PG09 device rename operation unavailable");
