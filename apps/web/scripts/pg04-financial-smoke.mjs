@@ -782,6 +782,152 @@ try{
   beforeDevices,"PG06 transaction fixture leaked into financial realm");
  console.log("PG06 isolated PostgreSQL signed-ingress function smoke PASS: same-key claim recovery, different-key deny, overflow health, durable replay, changed digest deny, revoke and rollback (SIMULATED only)");
 
+
+ // PG07: real PostgreSQL matcher regression, fictional sandbox-only evidence.
+ // Owner's disposable finance DB only; no provider/device, customer, or money.
+ const pg07DB=dbs.sandbox,pg07WS=controls[0][1];
+ const pg07Version=Number((await pg07DB.unsafe(
+  "SELECT entitlement_version AS version FROM financial_workspace_registry WHERE workspace_id=$1::uuid AND environment='sandbox'",
+  [pg07WS]))[0].version);
+ const pg07Now=Date.now();
+ const pg07Account=(await pg07DB.unsafe(
+  "INSERT INTO financial_receiving_accounts(workspace_id,environment,method,identity_hmac,display_suffix) "+
+  "VALUES($1::uuid,'sandbox','bkash',$2,'7744') RETURNING id",
+  [pg07WS,hmac()]))[0].id;
+ const pg07SecondAccount=(await pg07DB.unsafe(
+  "INSERT INTO financial_receiving_accounts(workspace_id,environment,method,identity_hmac,display_suffix) "+
+  "VALUES($1::uuid,'sandbox','bkash',$2,'7755') RETURNING id",
+  [pg07WS,hmac()]))[0].id;
+ const pg07Endpoint=(await pg07DB.unsafe(
+  "INSERT INTO pg08_endpoints(workspace_id,environment,url,secret) VALUES($1::uuid,'sandbox','https://example.invalid/ci-receiver',$2) RETURNING id",
+  [pg07WS,Buffer.alloc(32,7)]))[0].id;
+ async function pg07Attempt(opts={}){
+  const amount=opts.amount??5500;
+  const t0=new Date(pg07Now-3600000);
+  const start=opts.start??new Date(pg07Now-120000);
+  const end=opts.end??new Date(pg07Now+1800000);
+  const created=opts.created??t0;
+  const expires=opts.expires??new Date(pg07Now+3600000);
+  const payer=opts.payer??hmac();
+  const account=opts.account??pg07Account;
+  const method=opts.method??"bkash";
+  const intent=(await pg07DB.unsafe(
+   "INSERT INTO payment_intents(workspace_id,environment,merchant_reference,amount_minor,created_at,expires_at) "+
+   "VALUES($1::uuid,'sandbox',$2,$3,$4,$5) RETURNING id",
+   [pg07WS,"PG07-CI-"+randomUUID(),amount,created,expires]))[0].id;
+  const attempt=(await pg07DB.unsafe(
+   "INSERT INTO payment_attempts(workspace_id,environment,intent_id,receiving_account_id,payer_hmac,payer_suffix,amount_minor,method,window_start,window_end,policy_version,issued_at) "+
+   "VALUES($1::uuid,'sandbox',$2::uuid,$3::uuid,$4,'1234',$5,$6,$7,$8,1,$9) RETURNING id",
+   [pg07WS,intent,account,payer,amount,method,start,end,opts.issued??start]))[0].id;
+  return {intent,attempt,payer,account,amount,method,start,end};
+ }
+ async function pg07Receipt(a,opts={}){
+  const sourceKind=opts.sourceKind??"sandbox_fixture";
+  const stamp=opts.at===undefined?new Date(pg07Now+60000):opts.at;
+  const inbound=(await pg07DB.unsafe(
+   "INSERT INTO financial_inbound_events(workspace_id,environment,source_kind,source_event_id,event_digest,original_source_at,encrypted_evidence) "+
+   "VALUES($1::uuid,'sandbox',$2,$3,$4,$5,$6) RETURNING id",
+   [pg07WS,sourceKind,"ci-"+randomUUID(),hmac(),stamp,Buffer.alloc(48,13)]))[0].id;
+  const observation=(await pg07DB.unsafe(
+   "INSERT INTO financial_receipt_observations(workspace_id,environment,inbound_event_id,receiving_account_id,provider_reference_hmac,payer_hmac,amount_minor,method,direction,original_transaction_at,time_precision,parser_version) "+
+   "VALUES($1::uuid,'sandbox',$2::uuid,$3::uuid,$4,$5,$6,$7,$8,$9,$10,1) RETURNING id",
+   [pg07WS,inbound,opts.account??a.account,hmac(),opts.payer===undefined?a.payer:opts.payer,
+    opts.amount===undefined?a.amount:opts.amount,opts.method??a.method,
+    opts.direction??"incoming",stamp,opts.precision??"second"]))[0].id;
+  await pg07DB.unsafe(
+   "INSERT INTO pg07_receipt_results(workspace_id,environment,observation_id) VALUES($1::uuid,'sandbox',$2::uuid)",
+   [pg07WS,observation]);
+  return observation;
+ }
+ async function pg07Match(id,version=pg07Version,db=pg07DB){
+  return (await db.unsafe("SELECT pg07_match($1::uuid,$2) AS status",[id,version]))[0].status;
+ }
+ const pg07Base=await pg07Attempt();
+ const pg07ReceiptID=await pg07Receipt(pg07Base);
+ same(await pg07Match(pg07ReceiptID),"matched","PG07 complete exact match did not auto-verify");
+ same(await pg07Match(pg07ReceiptID),"matched","PG07 duplicate matcher invocation was not stable");
+ const complete=await pg07DB.unsafe(
+  "SELECT p.id,p.verification_method,p.verified_amount_minor,a.intent_id,e.id AS event_id,e.payload->'data'->>'verification_method' AS payload_method,d.id AS delivery_id "+
+  "FROM financial_payments p JOIN financial_allocations a ON a.payment_id=p.id "+
+  "JOIN pg07_events e ON e.payment_id=p.id "+
+  "JOIN pg08_deliveries d ON d.event_id=e.id AND d.endpoint_id=$3::uuid "+
+  "WHERE p.observation_id=$1::uuid AND a.intent_id=$2::uuid",
+  [pg07ReceiptID,pg07Base.intent,pg07Endpoint]);
+ same(complete.length,1,"PG07 atomic payment/allocation/event/delivery missing or duplicated");
+ same(complete[0].verification_method,"sandbox_fixture","PG07 attributed synthetic source as real provider");
+ same(complete[0].payload_method,"sandbox_fixture","PG07 event source attribution mismatch");
+ same(Number(complete[0].verified_amount_minor),pg07Base.amount,"PG07 verified funds changed amount");
+ same((await pg07DB.unsafe(
+  "SELECT pg05_intent_state($1::uuid,'sandbox',$2::uuid) AS state",[pg07WS,pg07Base.intent]))[0].state,
+  "completed","PG07 didn't automatically complete fully allocated intent");
+ // A second otherwise-identical receipt for one funded attempt must be
+ // classified duplicate and never issue a second payment, event or webhook.
+ const pg07Duplicate=await pg07Receipt(pg07Base);
+ same(await pg07Match(pg07Duplicate),"duplicate","PG07 second provider ref double-funded attempt");
+ const pg07Negative=[
+  ["payer",{payer:hmac()}],["account",{account:pg07SecondAccount}],
+  ["amount_under",{amount:5499}],["amount_over",{amount:5501}],
+  ["method",{method:"nagad"}],["outgoing",{direction:"outgoing"}],
+  ["masked_payer",{payer:null}],["unknown_time",{at:null,precision:"unknown"}],
+  ["late_outside",{at:new Date(pg07Now+3600001)}]
+ ];
+ for(const [scenario,change] of pg07Negative){
+  const attempt=await pg07Attempt();
+  const evidence=await pg07Receipt(attempt,change);
+  same(await pg07Match(evidence),"unmatched","PG07 "+scenario+" unexpectedly verified");
+  same((await pg07DB.unsafe(
+   "SELECT count(*)::int n FROM financial_payments WHERE observation_id=$1::uuid",[evidence]))[0].n,
+   0,"PG07 "+scenario+" mutated funds");
+ }
+ // A full minute interval must fit within the immutable payment window.
+ const pg07Minute=await pg07Attempt({
+  start:new Date(pg07Now+120000),end:new Date(pg07Now+180000),
+  issued:new Date(pg07Now+120000),expires:new Date(pg07Now+3600000)
+ });
+ const pg07Overhang=await pg07Receipt(pg07Minute,{
+  at:new Date(pg07Now+120001),precision:"minute"
+ });
+ same(await pg07Match(pg07Overhang),"unmatched","PG07 partial minute overhang verified");
+ const pg07Boundary=await pg07Receipt(pg07Minute,{
+  at:new Date(pg07Now+120000),precision:"minute"
+ });
+ same(await pg07Match(pg07Boundary),"matched","PG07 exact whole minute boundary rejected");
+ // A cancellation wins if committed before matcher; no manual mark-paid escape.
+ const pg07Cancelled=await pg07Attempt();
+ await pg07DB.unsafe(
+  "INSERT INTO pg05_intent_events(workspace_id,environment,intent_id,event_type) "+
+  "VALUES($1::uuid,'sandbox',$2::uuid,'cancelled')",[pg07WS,pg07Cancelled.intent]);
+ const pg07CancelledReceipt=await pg07Receipt(pg07Cancelled);
+ same(await pg07Match(pg07CancelledReceipt),"cancelled","PG07 cancelled intent auto-verified");
+ // Provider's original time, not late device upload time, determines status.
+ const pg07Late=await pg07Attempt({
+  created:new Date(pg07Now-7200000),
+  start:new Date(pg07Now-5400000),
+  issued:new Date(pg07Now-5400000),
+  end:new Date(pg07Now-3600000),
+  expires:new Date(pg07Now-3600000)
+ });
+ const pg07LateReceipt=await pg07Receipt(pg07Late,{at:new Date(pg07Now-4500000)});
+ same(await pg07Match(pg07LateReceipt),"matched","PG07 valid original timestamp rejected after expiry");
+ const lateEvent=(await pg07DB.unsafe(
+  "SELECT e.payload->'data'->>'late_sync' AS late FROM pg07_events e "+
+  "JOIN financial_payments p ON p.id=e.payment_id WHERE p.observation_id=$1::uuid",
+  [pg07LateReceipt]))[0];
+ same(lateEvent.late,"true","PG07 late arrival not attributed");
+ // Authority cannot be guessed from body or a stale workspace projection.
+ const pg07Stale=await pg07Attempt(),pg07StaleReceipt=await pg07Receipt(pg07Stale);
+ await reject(pg07DB,()=>pg07Match(pg07StaleReceipt,pg07Version+1),"42501");
+ same(await pg07Match(pg07StaleReceipt),"matched","PG07 stale worker corrupted pending receipt");
+ // Simulated second realm with the same UUID must not be queryable by worker.
+ const pg07Wrong=await pg07DB.unsafe(
+  "SELECT count(*)::int n FROM pg07_receipt_results WHERE observation_id=$1::uuid AND environment='live'",
+  [pg07ReceiptID]);
+ same(pg07Wrong[0].n,0,"PG07 sandbox observation appeared in live");
+ const paidCount=(await pg07DB.unsafe(
+  "SELECT count(*)::int n FROM financial_payments WHERE observation_id=$1::uuid",[pg07ReceiptID]))[0].n;
+ same(paidCount,1,"PG07 replay issued multiple verified payments");
+ console.log("PG07 isolated matching PASS: atomic verified payment/allocation/event/queued delivery, idempotency, five fields, minute boundary, late, cancellation, stale projection (FICTIONAL SANDBOX only)");
+
  const controlEmpty=await admin`SELECT to_regclass('public.payment_intents') IS NULL AS no_payments`;
  ok(controlEmpty[0].no_payments,"financial tables leaked into control DB");
  console.log(`PG04 isolated finance+River PASS: ${count} assertions; 2 DBs, no shared auth, registry, realm/cross-role isolation, PGX River rollback/idempotency`);
