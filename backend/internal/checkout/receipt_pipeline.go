@@ -241,7 +241,11 @@ func (s *Service) HandleOperations(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
-			return tx.QueryRow(r.Context(), "SELECT pg09_read($1::uuid,$2,$3,$4::uuid,$5::uuid,$6,$7::uuid,$8,$9::timestamptz,$10::timestamptz)", ws, realm, resource, nullableID(id), nullableID(cursor), nullableID(query.Get("status")), nullableID(account), nullableID(query.Get("method")), from, to).Scan(&raw)
+			search := strings.TrimSpace(query.Get("q"))
+			if len([]rune(search)) > 96 {
+				return errors.New("invalid search filter")
+			}
+			return tx.QueryRow(r.Context(), "SELECT pg09_read($1::uuid,$2,$3,$4::uuid,$5::uuid,$6,$7::uuid,$8,$9::timestamptz,$10::timestamptz,$11::text)", ws, realm, resource, nullableID(id), nullableID(cursor), nullableID(query.Get("status")), nullableID(account), nullableID(query.Get("method")), from, to, nullableID(search)).Scan(&raw)
 		}
 		var body struct {
 			Method    string `json:"method"`
