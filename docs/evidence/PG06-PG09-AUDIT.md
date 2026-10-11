@@ -1,11 +1,11 @@
 # PG06–PG09 implementation / verification audit
 
 Date: 2026-10-11. **PG06, PG07, PG08 and PG09 acceptance remain OPEN.**
-No production deployment, money movement, migration 0014 execution or device/provider test was performed as part of this audit. Earlier successful PG04/PG05 tests cannot verify this newer source. Do not merge this draft or infer production safety.
+No production deployment, money movement, production migration 0014 application or device/provider test was performed. Migration 0014 **was applied and replayed only in disposable CI sandbox/live financial databases** at source commit `8aaf240be72920c7508502e2f67d75f400da18a8`. Earlier successful PG04/PG05 tests cannot verify this newer source. Do not merge this draft or infer production safety.
 
 ## 1. Source identity and changed files
 
-Repository: masharzy/ekmivo; branch: codex/pg06-pg09-code. Baseline main: 9e0e4d3; original checkpoint: 513ae04e8a3a8058f308cb935a57400e80c6d8e5. Follow-up source corrections: 7a585889 (parser), 6143506f (test), ede0f0ca (test regex), 24cb641a (live-parser pairing check). Subsequent documentation commits may advance branch HEAD. Verification-only [draft PR #9](https://github.com/masharzy/ekmivo/pull/9) triggers CI without merge or deploy.
+Repository: masharzy/ekmivo; branch: codex/pg06-pg09-code. Baseline main: 9e0e4d3; original checkpoint: 513ae04e8a3a8058f308cb935a57400e80c6d8e5. Follow-up source corrections: 7a585889 (parser), 6143506f (test), ede0f0ca (test regex), 24cb641a (live-parser pairing check). Current verified source commit: `8aaf240be72920c7508502e2f67d75f400da18a8` (GitHub Actions [38158507367](https://github.com/masharzy/ekmivo/actions/runs/38158507367), 4/4 PASS). Subsequent documentation-only commits may advance branch HEAD. Verification-only [draft PR #9](https://github.com/masharzy/ekmivo/pull/9) triggers CI without merge or deploy.
 
 - PG06 (X08, S31): backend/internal/deviceevidence/parser.go, parser_test.go, backend/internal/checkout/receipt_pipeline.go; apps/mobile/app/src/main/java/com/ekmivo/mobile/receipt/ReceiptCapture.kt, ReceiptStore.kt, ReceiptSyncWorker.kt, ReceiptSetupActivity.kt and other receipt files. Fixes: strict Bengali/Arabic/Persian numeral parsing without relaxing decimal bounds; explicitly refuse SandboxOnly parser enrollment in live.
 - PG07 (P02,P03,X08,S32): backend/internal/financial/pipeline_worker.go, matching.go, infra/migrations/0014_pg06_pg09_receipt_pipeline.sql (matching, allocation and domain event functions).
@@ -18,21 +18,21 @@ Allowed statuses: IMPLEMENTED+VERIFIED, IMPLEMENTED+UNVERIFIED, MISSING CODE, BL
 
 | ID | Requirement | Status | Evidence / exact gap |
 |---|---|---|---|
-| SH01 | Go compile/test/race/vet | IMPLEMENTED+UNVERIFIED | Existing CI configured; newest exact-source results need capture |
-| SH02 | Next lint/TypeScript/build | IMPLEMENTED+UNVERIFIED | Existing CI configured; newest exact-source results need capture |
-| SH03 | Kotlin test/debug APK, permission/manifest/OEM | IMPLEMENTED+UNVERIFIED | CI configured; no physical device check |
-| SH04 | OpenAPI parsed, schema/handler/generated-client conformance | IMPLEMENTED+UNVERIFIED | Existing openapi-check script; generated/client conformance unverified |
-| SH05 | 0014 empty/prior schema, two isolated realms, RLS/grants/rollback | IMPLEMENTED+UNVERIFIED | Only SQL static inspection; not executed against disposable DB |
-| SH06 | PG04/PG05 regressions, wrong tenant/realm, revoked projection | IMPLEMENTED+UNVERIFIED | Prior runs older SHA; current-branch pass unconfirmed |
+| SH01 | Go compile/test/race/vet | IMPLEMENTED+VERIFIED | Exact-source 8aaf240 CI backend PASS: `go test ./...`, checkout race test and `go vet ./...`; no real network/provider evidence |
+| SH02 | Next lint/TypeScript/build | IMPLEMENTED+VERIFIED | Exact-source 8aaf240 CI web PASS lint, TS noEmit, production build; no PG09 rendered browser acceptance |
+| SH03 | Kotlin test/debug APK, permission/manifest/OEM | IMPLEMENTED+UNVERIFIED | Unit tests and debug APK assembly **VERIFIED** at 8aaf240; actual permissions/OS/OEM remain MANUAL PENDING |
+| SH04 | OpenAPI parsed, schema/handler/generated-client conformance | IMPLEMENTED+UNVERIFIED | Strict OpenAPI parser **PASS** on 8aaf240 with typed PG06 schemas; generated SDK and endpoint response conformance still missing |
+| SH05 | 0014 empty/prior schema, two isolated realms, RLS/grants/rollback | IMPLEMENTED+UNVERIFIED | Disposable sandbox/live finance 0014 apply+rereun, FORCE RLS, restricted direct-table rejection and control absence **PASS** on 8aaf240; full migration rollback/recovery and independent PG05 function diff review pending |
+| SH06 | PG04/PG05 regressions, wrong tenant/realm, revoked projection | IMPLEMENTED+VERIFIED | 8aaf240 CI PG04/PG05 automated regression **PASS** in disposable DB; does not cover full PG07 payout/reconciliation workflow |
 | SH07 | Lock/deadlock/bounds/error mapping, secret-safe logs and actor audit | IMPLEMENTED+UNVERIFIED | Selective source review only; exhaustive review missing |
 | SH08 | Chronological stable time-based cursor under concurrent inserts | MISSING CODE | pg09_read orders by descending UUID; not chronological |
 | SH09 | Ciphertext/device/queue/event/delivery retention/export/delete, backup/alerts | MISSING CODE | No verified complete cross-store lifecycle and key recovery |
-| SH10 | Current exact-source CI and skipped tests recorded | MANUAL PENDING | See run ledger in section 3; cancelled is not PASS |
-| 06A | Consent + restricted SMS/notification + pre-save filtering | IMPLEMENTED+UNVERIFIED | Native ReceiptCapture and setup source; not handset tested |
-| 06B | Keystore one-use pairing, device source/account/SIM binding | IMPLEMENTED+UNVERIFIED | SQL/Go/Kotlin source; genuine SIM/OEM and lost-response recovery unverified |
-| 06C | Approved parser, full payer, original time, precise minor units | IMPLEMENTED+UNVERIFIED | Fixture and new numeral tests; no genuine approved provider format |
-| 06D | Tamper/stale/replay/sequence/crash ACK and offline retry | IMPLEMENTED+UNVERIFIED | Some source tests, no complete signed ingress SQL+device suite |
-| 06E | Queue overflow, poison event and operator health alert | MISSING CODE | ReceiptStore.enqueue silently returns false at 500 queued |
+| SH10 | Current exact-source CI and skipped tests recorded | IMPLEMENTED+VERIFIED | CI [38158507367](https://github.com/masharzy/ekmivo/actions/runs/38158507367), `8aaf240`, 4/4 jobs PASS, PG04–PG06 mixed 223 DB assertions; physical device/provider/merchant, comprehensive browser and SDK tests SKIPPED/NOT RUN |
+| 06A | Consent + restricted SMS/notification + pre-save filtering | IMPLEMENTED+UNVERIFIED | Native filter checks equality to approved complete parser and rejects malformed rules; Android build PASS; consent/OEM capture MANUAL PENDING |
+| 06B | Keystore one-use pairing, device source/account/SIM binding | IMPLEMENTED+UNVERIFIED | SQL same-key lost-response recovery, changed-key denial/revocation **PASS synthetic**, Go P-256 helper tests PASS; physical SIM/Keystore manual proof pending |
+| 06C | Approved parser, full payer, original time, precise minor units | IMPLEMENTED+UNVERIFIED | Go parser **PASS** strict BN/Arabic/Persian numeral, bounds, malformed UTF-8, fixture live rejection; genuinely approved bKash/Nagad/Rocket samples unavailable |
+| 06D | Tamper/stale/replay/sequence/crash ACK and offline retry | IMPLEMENTED+UNVERIFIED | Durable SQL ACK/replay/changed-digest rejection and rollback **PASS synthetic**; signing helpers unit PASS; actual raw signed HTTP/socket and offline reboot/crash device tests still OPEN |
+| 06E | Queue overflow, poison event and operator health alert | IMPLEMENTED+UNVERIFIED | Android overflow tally, permanent rejection code, merchant Devices warning, PostgreSQL heartbeat persistence **source + synthetic SQL verified**; production health alarming and physical quota behavior NOT RUN |
 | 06F | Actual incoming source, dual SIM, reboot/force-stop/permission tests | MANUAL PENDING | No consented phone/provider evidence |
 | 07A | Five-field auto-verification + atomic payment/allocation/event | IMPLEMENTED+UNVERIFIED | SQL pg07_match + River code; no current isolated DB run |
 | 07B | Exact boundaries, partial/over/advance, cancel and late sync | IMPLEMENTED+UNVERIFIED | Some SQL decisions; full reconciliation/race matrix absent |
@@ -53,9 +53,9 @@ Allowed statuses: IMPLEMENTED+VERIFIED, IMPLEMENTED+UNVERIFIED, MISSING CODE, BL
 
 ## 3. Commands, runs, environment, and simulations
 
-Verification PR: [#9](https://github.com/masharzy/ekmivo/pull/9). Observed early CI runs: [38156076191](https://github.com/masharzy/ekmivo/actions/runs/38156076191) and [38156100792](https://github.com/masharzy/ekmivo/actions/runs/38156100792) were CANCELLED on superseding commits; [38156128600](https://github.com/masharzy/ekmivo/actions/runs/38156128600) was IN PROGRESS when first inspected, later cancelled by a new edit. A cancelled run is neither a pass nor a diagnosed test failure. Check most recent exact head and append actual outcomes. Not all testing tasks below were independently run.
+Verification PR: [#9](https://github.com/masharzy/ekmivo/pull/9). **Latest completed exact-source run [38158507367](https://github.com/masharzy/ekmivo/actions/runs/38158507367), SHA `8aaf240be72920c7508502e2f67d75f400da18a8`, 4/4 PASS.** Native Android unit+assemble PASS; Go unit/race/vet PASS; Docker runtime/migration image PASS; web lint/tsc/build, strict OpenAPI and disposable three-DB migration/PG04–PG06 tests PASS. Log confirms `PG06 isolated PostgreSQL signed-ingress function smoke PASS` and 223 total mixed finance assertions, including negative tests intentionally provoking SQL errors. Actual Android device, provider, deployed HTTP signing E2E, generated SDK and full PG09 real browser work **NOT RUN**. Observed early CI runs: [38156076191](https://github.com/masharzy/ekmivo/actions/runs/38156076191) and [38156100792](https://github.com/masharzy/ekmivo/actions/runs/38156100792) were CANCELLED on superseding commits; [38156128600](https://github.com/masharzy/ekmivo/actions/runs/38156128600) was IN PROGRESS when first inspected, later cancelled by a new edit. A cancelled run is neither a pass nor a diagnosed test failure. Check most recent exact head and append actual outcomes. Not all testing tasks below were independently run.
 
-Handoff commands: backend: go test ./...; go vet ./...; apps/web: npm run lint; npx tsc --noEmit; npm run build; node scripts/openapi-check.mjs; apps/mobile: Gradle :app:testDebugUnitTest :app:assembleDebug. CI may execute a subset; note omissions. Database smoke must use disposable *three separate* control/sandbox/live instances, with restricted roles, explicit 0014 migration gate and role/security/concurrency/rollback/restore assertions. No 0014 migration smoke was run here. No PG09 browser backend setup, real Android phone, real provider/account or HTTPS receiver was used.
+Handoff commands: backend: go test ./...; go vet ./...; apps/web: npm run lint; npx tsc --noEmit; npm run build; node scripts/openapi-check.mjs; apps/mobile: Gradle :app:testDebugUnitTest :app:assembleDebug. CI may execute a subset; note omissions. Database smoke must use disposable *three separate* control/sandbox/live instances, with restricted roles, explicit 0014 migration gate and role/security/concurrency/rollback/restore assertions. 0014 was applied/rerun in two disposable finance realms under the existing coordinator; **not** applied to any production realm. The control schema was verified free of receipt tables. No PG09 browser backend setup, real Android phone, real provider/account or HTTPS receiver was used.
 
 **Simulation boundaries:** examples/receipt-parser/sandbox-fixture.json is FICTIONAL SANDBOX-ONLY; automated fixture receipt/PG04/PG05 simulated checkout/isolated browser tests are not genuine provider receipts. No claim is made about bKash/Nagad/Rocket signatures, delivery confirmation, device collection, production queue throughput, real payment or customer notices. No secrets, payer numbers or message bodies belong in CI/evidence.
 
@@ -63,9 +63,9 @@ Handoff commands: backend: go test ./...; go vet ./...; apps/web: npm run lint; 
 
 | Severity | Location | Reproduction / actual | Expected / next action |
 |---|---|---|---|
-| Fixed source, test not yet confirmed | deviceevidence.MinorUnits and NormalizeNumber | Bengali/Arabic/Persian amount digits previously failed ASCII-only matcher | Normalize specified decimal numeral scripts before exact bounds, new fixture test; capture passing exact-SHA CI |
-| Fixed source, integration not yet confirmed | checkout.HandleOperations (device pair) | An approved SandboxOnly fixture could be selected in live pairing | Reject at enrollment, not only on Parse |
-| HIGH | ReceiptStore.enqueue / ReceiptCapture.accept | When count reaches 500, accepts no new event with no durable overflow signal | Expose persisted overflow/queue-error health, alert and recovery test |
+| Fixed and tested 8aaf240 | deviceevidence.MinorUnits and NormalizeNumber | Bengali/Arabic/Persian amount digits previously failed ASCII-only matcher | Normalize specified decimal numeral scripts before exact bounds, new fixture test; capture passing exact-SHA CI |
+| Fixed source, web integration pending | checkout.HandleOperations (device pair) | An approved SandboxOnly fixture could be selected in live pairing | Reject at enrollment, not only on Parse |
+| Fixed source and SQL smoke; phone pending | ReceiptStore.enqueue / ReceiptCapture.accept / pg06_heartbeat | Original overflow dropped silently, now persisted and shown in Android + Web Devices, with poison code | Android test build and SQL heartbeat PASS; physical 500-event pressure and operational alerts still pending |
 | HIGH | pg09_read pagination | ORDER BY UUID DESC produces arbitrary rather than chronological history | Use stable timestamp+ID keyset, test inserts/page boundaries |
 | HIGH / release blocker | 0014 migration/functions | No actual isolated SQL/role execution verified | Implement 0014 disposable migration harness, run RLS/races/rollback before deploy |
 | HIGH | PG07 payment matching | SQL helper reviewed, concurrent transactional flow not run | Test independent mismatches and worker race in distinct finance DBs |
@@ -92,3 +92,10 @@ Never deploy or merge for a completion label. Do not touch existing migrations o
 5. Update per-PG evidence/status and one manual ledger with the observed latest exact-source outcomes. Complete a single combined owner/provider/device/browser/operator test session, never substitute simulations.
 
 **Bottom line:** code checkpoint plus targeted source fixes; the four PGs have not met acceptance or verified real monetary functionality.
+
+
+### PG06 focused closure of available code and automated verification
+
+The former code-first, UNVERIFIED checkpoint remains historical. PG06 source bugs fixed before the verified source SHA include: live rejection of SandboxOnly enrollment, BN/Arabic/Persian amount normalization, malformed/broad OTP-catching parser filtering, Java Regex failure safety, same-public-key 5-minute lost-claim response recovery, crash-persistent pending user confirmation with collection OFF, encrypted queue 500-event overflow count and poison HTTP reason, signed heartbeat to finance and operator-facing Devices status, disabled receiving-account enforcement and exact ACK/no-delete-until-commit behavior. The repair also corrected intermediate CI defects (Go readyz test drift, React effect lint, SQL reserved precision parameter and an inadvertent editing expansion) before the final **4/4 green** run; cancelled intermediate runs are not PASS.
+
+**Not claimed:** actual signed HTTP/API↔PostgreSQL end-to-end receipt chain, real Android Keystore permission/SIM OEM test, approved live provider parser, genuine full payer/original timestamp availability, force-stop/backlog limits, receipt authenticity or production use. No SMS samples exist in the evidence. For a lost pairing response after the five-minute same-key recovery period, owner/admin must revoke the stale enrollment and re-pair; never auto-collect from an unconfirmed device. Retention/backup/rotation/deletion plan and owner operational alerting require explicit policy and security review. PG06 can be called *automated source verified* but **cannot be ACCEPTED** without those device/provider and policy gates.
