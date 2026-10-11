@@ -65,6 +65,13 @@ func main() {
 	}
 	defer db.Close()
 	client := &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	mux := newReceiverHandler(db,client,origin,realm,workspace,key,secrets,previousUntil)
+	server := &http.Server{Addr: ":8081", Handler: mux, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 12 * time.Second, IdleTimeout: 60 * time.Second}
+	log.Fatal(server.ListenAndServe())
+}
+
+// Receive code is identical in production and disposable merchant integration tests.
+func newReceiverHandler(db *sql.DB,client *http.Client,origin *url.URL,realm,workspace,key string,secrets [][]byte,previousUntil time.Time) http.Handler {
 	uuid := regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /webhooks/ekmivo", func(w http.ResponseWriter, r *http.Request) {
@@ -151,6 +158,5 @@ func main() {
 		}
 		w.WriteHeader(204)
 	})
-	server := &http.Server{Addr: ":8081", Handler: mux, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 12 * time.Second, IdleTimeout: 60 * time.Second}
-	log.Fatal(server.ListenAndServe())
+	return mux
 }
