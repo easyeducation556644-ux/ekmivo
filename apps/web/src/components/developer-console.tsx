@@ -45,6 +45,6 @@ export async function DeveloperConsole({locale,workspace,environment,userId}:{
   </div>:unavailable?<div role="alert" className="ds-empty">
    <h3>{bn?"Credential service পাওয়া যাচ্ছে না":"Credential service unavailable"}</h3>
    <p>{bn?"ডাটাবেস migration এবং service readiness নিশ্চিত করতে হবে। কোনো demo কী দেখানো হচ্ছে না।":"Database migration and service readiness must be checked. No demo keys are shown."}</p>
-  </div>:<ApiKeyManager locale={locale} userId={userId} workspaceId={workspace.id} environment={environment} keys={keys}/>}
+  </div>:<ApiKeyManager key={`${workspace.id}:${environment}`} locale={locale} userId={userId} workspaceId={workspace.id} environment={environment} keys={keys}/>}
  </section>;
 }

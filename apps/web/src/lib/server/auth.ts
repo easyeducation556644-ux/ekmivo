@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { randomBytes, createHash, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { database } from "./db";
 import { verificationEnabled } from "./email";
+import { cache } from "react";
 
 function derive(password: string, salt: Buffer): Promise<Buffer> {
  return new Promise((resolve,reject)=>{
@@ -44,7 +45,7 @@ export async function revokeSession() {
  if(token && token.length<=256) await database()`UPDATE auth_sessions SET revoked_at=now() WHERE token_hash=${hashToken(token)} AND revoked_at IS NULL`;
  jar.delete(COOKIE);
 }
-export async function currentUser():Promise<User|null> {
+export const currentUser=cache(async function currentUser():Promise<User|null> {
  const token=(await cookies()).get(COOKIE)?.value;
  if(!token || token.length>256) return null;
  const rows=await database()`
@@ -56,13 +57,13 @@ export async function currentUser():Promise<User|null> {
  if(!rows.length)return null;
  const row=rows[0];
  return {id:String(row.id),email:String(row.email),name:String(row.display_name),verified:!!row.email_verified_at};
-}
-export async function requireUser(locale:"bn"|"en"):Promise<User> {
+});
+export const requireUser=cache(async function requireUser(locale:"bn"|"en"):Promise<User> {
  const u=await currentUser();
  if(!u)redirect(`/${locale}/login`);
  if(!u.verified && await verificationEnabled())redirect(`/${locale}/verify-email`);
  return u;
-}
+});
 export async function workspacesFor(userId:string):Promise<Workspace[]>{
  const rows=await database()`SELECT w.id,w.name,CASE WHEN COALESCE(ai.enabled,false) AND COALESCE(pay.enabled,false) THEN 'both'
  WHEN COALESCE(ai.enabled,false) THEN 'ai'
@@ -73,7 +74,7 @@ export async function workspacesFor(userId:string):Promise<Workspace[]>{
  WHERE m.user_id=${userId} ORDER BY w.created_at DESC`;
  return rows.map(w=>({id:String(w.id),name:String(w.name),mode:w.service_mode as Workspace["mode"],role:w.role as Workspace["role"]}));
 }
-export async function requireWorkspace(locale:"bn"|"en",id:string){
+export const requireWorkspace=cache(async function requireWorkspace(locale:"bn"|"en",id:string){
  const user=await requireUser(locale);
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))redirect(`/${locale}/workspaces`);
  const rows=await database()`
@@ -87,7 +88,7 @@ export async function requireWorkspace(locale:"bn"|"en",id:string){
  if(!rows.length)redirect(`/${locale}/workspaces`);
  const w=rows[0];
  return {user,workspace:{id:String(w.id),name:String(w.name),mode:w.service_mode as Workspace["mode"],role:w.role as Workspace["role"]}};
-}
+});
 export async function isPlatformAdmin(userId:string):Promise<boolean>{
  const rows=await database()`SELECT user_id FROM platform_administrators WHERE user_id=${userId}::uuid LIMIT 1`;
  return rows.length>0;

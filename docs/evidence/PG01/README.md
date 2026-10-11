@@ -115,3 +115,6 @@ If all recovery codes and the authenticator are lost, there is deliberately no p
 
 Remaining manual UI/device checks and latest-source deployment parity are centralized in [MANUAL-VERIFICATION.md](../../MANUAL-VERIFICATION.md). Security implementation and passing automated live evidence do not assert completed physical-device/browser QA or payment gateway release acceptance.
 Final production run: **51/51 assertions PASS**, including dedicated fixture cleanup. All required HTTP security/lifecycle cases passed; remaining acceptance distinctions above still apply.
+
+### Owner confirmation — 2026-10-11
+Owner reported **All pass** for the supplied PG01/PG02/PG03 combined checklist. Record this as owner-reported browser smoke, not agent-observed physical authenticator/device/provider testing. PG01 security lifecycle was independently repeated against deployed HTTP with dedicated fixtures: 51/51 PASS, cleanup included; existing owner enrollment/recovery data were untouched. The owner subsequently deferred admin UI work. Admin UI expansion remains out of this checkpoint. PG02 route latency and full-shell loading were reported separately and are being corrected; do not erase that performance follow-up.

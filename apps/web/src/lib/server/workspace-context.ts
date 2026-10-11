@@ -18,6 +18,7 @@ export async function paymentContextFor(
  workspace: Workspace,
  userId: string,
  rawEnvironment: string | undefined | null,
+ shellOnly=false,
 ): Promise<WorkspacePaymentContext> {
  const environment=canonicalEnvironment(rawEnvironment);
  if(!environment || (workspace.mode!=="commerce"&&workspace.mode!=="both")) notFound();
@@ -32,6 +33,7 @@ export async function paymentContextFor(
  AND env.environment IN ('sandbox','live')
  ORDER BY env.environment`;
  const permitted=result.filter(row=>row.status==="active").map(row=>String(row.environment)) as PaymentEnvironment[];
- if(!permitted.includes(environment)) notFound();
- return {environment,status:"active",availableEnvironments:permitted,liveOperational:false};
+ const selected=shellOnly?(permitted.includes("sandbox")?"sandbox":permitted[0]):environment;
+ if(!selected||!permitted.includes(selected)) notFound();
+ return {environment:selected,status:"active",availableEnvironments:permitted,liveOperational:false};
 }

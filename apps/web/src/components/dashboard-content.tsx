@@ -11,11 +11,11 @@ import type { WorkspacePaymentContext } from "../lib/server/workspace-context";
 export function EmptyState({title,description}:{locale:Locale;title:string;description:string}) {
  return <div className="ds-empty"><h2>{title}</h2><p>{description}</p></div>;
 }
-export async function DashboardContent({locale,user,workspace,section,service=defaultService(workspace.mode),paymentContext}:{locale:Locale;user:User;workspace:Workspace;section:SectionKey;service?:Service;paymentContext?:WorkspacePaymentContext}) {
+export async function DashboardContent({locale,user,workspace,section,service=defaultService(workspace.mode),paymentContext,framed=false}:{locale:Locale;user:User;workspace:Workspace;section:SectionKey;service?:Service;paymentContext?:WorkspacePaymentContext;framed?:boolean}) {
  const bn=locale==="bn",detail=sections[section];
  const steps:SectionKey[]=service==="ai"?["channels","knowledge","ai-agent","inbox"]:["gateways","devices","requests","webhooks"];
  const metrics=service==="ai"?[["Conversations","কথোপকথন"],["Waiting for reply","উত্তরের অপেক্ষায়"],["New leads","নতুন লিড"],["AI usage","AI ব্যবহার"]]:[["Verified volume","যাচাইকৃত পেমেন্ট"],["Pending requests","অপেক্ষমাণ রিকোয়েস্ট"],["Unmatched receipts","না মেলা পেমেন্ট"],["Device health","ডিভাইসের অবস্থা"]];
- return <AppShell locale={locale} user={user} workspace={workspace} section={section} service={service} paymentContext={paymentContext}>
+ const content=<>
   <div className="ds-page-heading"><div><p className="ds-eyebrow">{serviceNames[service][locale]}</p><h1>{section==="overview"?(bn?"আপনার কাজের সারসংক্ষেপ":"Your working overview"):detail[locale]}</h1><p>{section==="overview"?(service==="ai"?(bn?"গ্রাহকের মেসেজ, AI ও বিক্রয়ের অগ্রগতি এক জায়গায়।":"Conversations, your AI and sales progress in one place."):(bn?"পেমেন্ট যাচাই, টাকা গ্রহণের মাধ্যম ও ডিভাইসের অবস্থা।":"Payment verification, receiving accounts and device health.")):detail.detail[locale]}</p></div></div>
   {section==="overview"?<>
    <div className="ds-metrics">{metrics.map(([en,bengali])=><article key={en}><span>{bn?bengali:en}</span><strong>—</strong><small>{bn?"ডেটার উৎস সংযুক্ত হয়নি":"Data source not connected"}</small></article>)}</div>
@@ -23,5 +23,6 @@ export async function DashboardContent({locale,user,workspace,section,service=de
    {service==="payments"&&<section className="ds-verification-summary"><Icon name="shield"/><div><h2>{bn?"স্বয়ংক্রিয় পেমেন্ট যাচাই":"Automatic payment verification"}</h2><p>{bn?"প্রকৃত sender number, লেনদেনের সময়, amount, receiving account ও method একসঙ্গে মেলানো হবে। একটিমাত্র বৈধ match হলে confirmation ও merchant webhook পাঠানো হবে।":"Match actual sender number, transaction time, amount, receiving account and method. A single valid match confirms payment and dispatches the merchant webhook."}</p><small>{bn?"Verification engine এখনো সংযুক্ত হয়নি।":"Verification engine is not connected yet."}</small></div></section>}
    <section className="ds-panel"><div className="ds-panel-heading"><h2>{bn?"সাম্প্রতিক কার্যক্রম":"Recent activity"}</h2></div><EmptyState locale={locale} title={bn?"এখনো কার্যক্রম নেই":"No activity yet"} description={bn?"সেবা সংযুক্ত হলে এই dashboard-এর কার্যক্রম এখানে দেখা যাবে।":"Activity for this product appears here after its services are connected."}/></section>
   </>:section==="developers"&&service==="payments"&&paymentContext?<DeveloperConsole locale={locale} userId={user.id} workspace={workspace} environment={paymentContext.environment}/>:moduleViews[section]?<DashboardModule locale={locale} service={service} workspaceId={workspace.id} section={section} view={moduleViews[section]!} environment={paymentContext?.environment}/>:<section className="ds-panel"><EmptyState locale={locale} title={detail[locale]} description={bn?"এই অংশের backend কাজ চলছে। কোনো পরিবর্তন সংরক্ষণ করা হচ্ছে না।":"This module's backend is in development. Changes cannot be saved yet."}/></section>}
- </AppShell>;
+ </>;
+ return framed?content:<AppShell locale={locale} user={user} workspace={workspace} section={section} service={service} paymentContext={paymentContext}>{content}</AppShell>;
 }

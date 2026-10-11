@@ -1,11 +1,12 @@
 "use client";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { sections, type SectionKey } from "../lib/dashboard-sections";
 import { dashboardHref, navigation, searchableNavigation, searchableBusinesses, serviceEnabled, serviceNames, sectionInService, type Locale, type Service, type PaymentEnvironment } from "../lib/dashboard-navigation";
 import { DashboardIcon as Icon } from "./dashboard-icon";
 import { SiteControls } from "./site-controls";
+import { DashboardPageSkeleton } from "./dashboard-page-skeleton";
 import { activeDrafts,saveActiveDrafts,discardActiveDrafts } from "../lib/client/draft-navigation";
 
 type Space = { id: string; name: string; mode: "ai" | "commerce" | "both" | "off"; role: "owner" | "admin" | "editor" | "viewer" };
@@ -23,9 +24,13 @@ function rememberedSection(workspaceId:string,service:Service): SectionKey {
  }catch{ /* Browser storage unavailable: safe overview fallback. */ }
  return "overview";
 }
-export function DashboardFrame({ locale, service, section, workspace, spaces, userName, platformAdmin, theme, paymentContext, children, logout }: Props) {
+export function DashboardFrame({ locale, service, section:initialSection, workspace, spaces, userName, platformAdmin, theme, paymentContext, children, logout }: Props) {
  const bn=locale==="bn",router=useRouter(),pathname=usePathname();
- const environment=paymentContext?.environment??"sandbox";
+ const query=useSearchParams(),requestedSection=pathname.split("/")[5];
+ const section=sectionInService(service,requestedSection??"")?requestedSection as SectionKey:initialSection;
+ const requestedEnvironment=query.getAll("env");
+ const selectedEnvironment=requestedEnvironment.length===1?requestedEnvironment[0]:undefined;
+ const environment=paymentContext?.availableEnvironments.includes(selectedEnvironment as PaymentEnvironment)?selectedEnvironment as PaymentEnvironment:paymentContext?.environment??"sandbox";
  const [mobileOpen,setMobileOpen]=useState(false);
  const [businessQuery,setBusinessQuery]=useState("");
  const [sidebarQuery,setSidebarQuery]=useState("");
@@ -33,6 +38,7 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
  const [activeResult,setActiveResult]=useState(0);
  const [searchOpen,setSearchOpen]=useState(false);
  const [isNavigating,startTransition]=useTransition();
+ const [pendingSection,setPendingSection]=useState<SectionKey>(initialSection);
  const [noticeOpen,setNoticeOpen]=useState(false);
  const [blockedRoute,setBlockedRoute]=useState<string|null>(null);
  const [draftError,setDraftError]=useState("");
@@ -62,6 +68,7 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
   if(businessMenu.current)businessMenu.current.open=false;
   const next=dashboardHref(locale,businessId,product,nextSection,env);
   if(activeDrafts().length){setBlockedRoute(next);setDraftError("");return;}
+  setPendingSection(nextSection);
   startTransition(()=>router.push(next));
  },[locale,router,startTransition]);
 
@@ -304,7 +311,7 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
    </div>}
    <div className="ds-breadcrumb"><span>{workspace.name}</span><Icon name="chevron"/><span>{serviceNames[service][locale]}</span><Icon name="chevron"/><strong>{sections[section][locale]}</strong></div>
    {isNavigating&&<div className="ds-navigation-progress" role="status">{bn?"পৃষ্ঠা খুলছে…":"Opening page…"}</div>}
-   <main id="dashboard-content" className="ds-content" tabIndex={-1}>{children}</main>
+   <main id="dashboard-content" className="ds-content" tabIndex={-1}>{isNavigating?<DashboardPageSkeleton targetSection={pendingSection}/>:children}</main>
    <footer className="ds-footnote"><span>{serviceNames[service][locale]} · {workspace.name}</span><span>Asia/Dhaka</span></footer>
   </div>
   <dialog ref={searchDialog} className="ds-search-dialog" aria-label={bn?"ওয়ার্কস্পেস খুঁজুন":"Search workspace"} onCancel={()=>setSearchOpen(false)} onClose={()=>setSearchOpen(false)}>

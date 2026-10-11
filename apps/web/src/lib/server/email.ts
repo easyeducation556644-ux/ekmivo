@@ -1,15 +1,16 @@
 import "server-only";
 import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
 import { database } from "./db";
+import { cache } from "react";
 
 export type CodePurpose = "verify_email" | "reset_password";
 export function mailReady() {
  return Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM && process.env.OTP_PEPPER && process.env.OTP_PEPPER.length >= 32);
 }
-export async function verificationEnabled():Promise<boolean> {
+export const verificationEnabled=cache(async function verificationEnabled():Promise<boolean> {
  const rows=await database()`SELECT email_verification_enabled FROM platform_auth_settings WHERE singleton=true`;
  return rows.length > 0 && rows[0].email_verification_enabled === true;
-}
+});
 function signature(userId:string,purpose:CodePurpose,code:string) {
  const pepper=process.env.OTP_PEPPER;
  if(!pepper || pepper.length<32) throw Error("EMAIL_CONFIG_MISSING");

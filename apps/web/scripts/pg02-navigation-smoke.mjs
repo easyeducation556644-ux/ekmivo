@@ -61,3 +61,4 @@ assert.equal(nav.searchableBusinesses(memberships,"north")[0].id,memberships[1].
 assert.equal(nav.searchableBusinesses(memberships,"অগ্র")[0].id,memberships[0].id,"Bengali authorized business names must be searchable");
 assert.equal(nav.searchableBusinesses(memberships,"outside-tenant").length,0,"No unauthorized business can be inferred");
 console.log("PG02 PASS: payment-first default, authorized products, sandbox/live URL scope, invalid query denial, EN/BN navigation and product-limited search");
+import "./pg02-loading-smoke.mjs";
