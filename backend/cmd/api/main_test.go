@@ -17,10 +17,10 @@ func TestHealthIsLiveButFinancialReadinessIsNot(t *testing.T){
  if live["status"]!="ok"||live["service"]!="ekmivo-api"{t.Fatalf("invalid health response: %#v",live)}
  ready:=httptest.NewRecorder()
  handler.ServeHTTP(ready,httptest.NewRequest(http.MethodGet,"/readyz",nil))
- if ready.Code!=http.StatusServiceUnavailable{t.Fatalf("readiness HTTP %d; expected 503 until PG financial components implemented",ready.Code)}
+ if ready.Code!=http.StatusServiceUnavailable{t.Fatalf("readiness HTTP %d; expected 503 until financial release verification passes",ready.Code)}
  var state map[string]string
  if err:=json.Unmarshal(ready.Body.Bytes(),&state);err!=nil{t.Fatal(err)}
- if state["status"]!="not_ready"||state["reason"]!="financial_services_not_implemented"{t.Fatalf("readiness misrepresented: %#v",state)}
+ if state["status"]!="not_ready"||state["reason"]!="financial_release_verification_pending"{t.Fatalf("readiness misrepresented: %#v",state)}
 }
 
 func TestPG03MerchantContextIsRealAuthorizationNotFakePayment(t *testing.T){
