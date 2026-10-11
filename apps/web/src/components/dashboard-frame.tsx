@@ -39,6 +39,9 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
  const [draftSaving,setDraftSaving]=useState(false);
  const drawer=useRef<HTMLDialogElement>(null);
  const searchDialog=useRef<HTMLDialogElement>(null);
+ const searchReturnFocus=useRef<HTMLElement|null>(null);
+ const menuTrigger=useRef<HTMLButtonElement>(null);
+ const searchInput=useRef<HTMLInputElement>(null);
  const draftDialog=useRef<HTMLDialogElement>(null);
  const serviceMenu=useRef<HTMLDetailsElement>(null);
  const businessMenu=useRef<HTMLDetailsElement>(null);
@@ -65,13 +68,18 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
  useEffect(()=>{
   const d=drawer.current;
   if(mobileOpen && d && !d.open)d.showModal();
-  if(!mobileOpen && d?.open)d.close();
+  if(!mobileOpen && d?.open){d.close();menuTrigger.current?.focus();}
   return ()=>{if(d?.open)d.close();};
  },[mobileOpen]);
  useEffect(()=>{
   const d=searchDialog.current;
-  if(searchOpen && d && !d.open)d.showModal();
-  if(!searchOpen && d?.open)d.close();
+  if(searchOpen && d && !d.open){d.showModal();searchInput.current?.focus();}
+  if(!searchOpen){
+   if(d?.open)d.close();
+   const previous=searchReturnFocus.current;
+   if(previous?.isConnected)previous.focus();
+   searchReturnFocus.current=null;
+  }
   return ()=>{if(d?.open)d.close();};
  },[searchOpen]);
  useEffect(()=>{
@@ -129,7 +137,9 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
  useEffect(()=>{
   const key=(event:KeyboardEvent)=>{
    if((event.metaKey||event.ctrlKey)&&event.key.toLocaleLowerCase()==="k"){
-    event.preventDefault();setSearchOpen(true);
+    event.preventDefault();
+    searchReturnFocus.current=document.activeElement instanceof HTMLElement?document.activeElement:null;
+    setGlobalQuery("");setActiveResult(0);setSearchOpen(true);
    }
    if(event.key==="Escape"){
     if(serviceMenu.current)serviceMenu.current.open=false;
@@ -200,7 +210,7 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
   <div className="ds-main">
    <header className="ds-topbar">
     <div className="ds-topbar-leading">
-     <button type="button" className="ds-icon-button ds-mobile-trigger" aria-label={bn?"মেনু খুলুন":"Open menu"} aria-haspopup="dialog" aria-expanded={mobileOpen} onClick={()=>setMobileOpen(true)}><Icon name="menu"/></button>
+     <button type="button" className="ds-icon-button ds-mobile-trigger" ref={menuTrigger} aria-label={bn?"মেনু খুলুন":"Open menu"} aria-haspopup="dialog" aria-expanded={mobileOpen} onClick={()=>setMobileOpen(true)}><Icon name="menu"/></button>
      <details className="ds-service-picker" ref={serviceMenu}>
       <summary><span className="ds-service-icon"><Icon name={service==="ai"?"ai-agent":"payments"}/></span><span><small>{bn?"সেবা নির্বাচন":"Product"}</small><strong>{serviceNames[service][locale]}</strong></span><Icon name="chevron"/></summary>
       <div className="ds-service-menu">
@@ -231,7 +241,7 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
      </label>}
     </div>
     <div className="ds-topbar-tools">
-     <button type="button" className="ds-global-search-button" onClick={()=>{setSearchOpen(true);setGlobalQuery("");setActiveResult(0);}}><Icon name="search"/><span>{bn?"খুঁজুন":"Search"}</span><kbd>⌘ K</kbd></button>
+     <button type="button" className="ds-global-search-button" onClick={()=>{searchReturnFocus.current=document.activeElement instanceof HTMLElement?document.activeElement:null;setSearchOpen(true);setGlobalQuery("");setActiveResult(0);}}><Icon name="search"/><span>{bn?"খুঁজুন":"Search"}</span><kbd>⌘ K</kbd></button>
      <SiteControls locale={locale} initialTheme={theme}/>
      <details className="ds-notifications" open={noticeOpen} onToggle={event=>setNoticeOpen(event.currentTarget.open)}>
       <summary className="ds-icon-button" aria-label={bn?"নোটিফিকেশন":"Notifications"}><Icon name="bell"/></summary>
@@ -262,7 +272,7 @@ export function DashboardFrame({ locale, service, section, workspace, spaces, us
    <footer className="ds-footnote"><span>{serviceNames[service][locale]} · {workspace.name}</span><span>Asia/Dhaka</span></footer>
   </div>
   <dialog ref={searchDialog} className="ds-search-dialog" aria-label={bn?"ওয়ার্কস্পেস খুঁজুন":"Search workspace"} onCancel={()=>setSearchOpen(false)} onClose={()=>setSearchOpen(false)}>
-   <div className="ds-search-top"><Icon name="search"/><input autoFocus value={globalQuery} onChange={event=>{setGlobalQuery(event.target.value);setActiveResult(0);}} placeholder={bn?"এই সেবার পৃষ্ঠা খুঁজুন…":"Search this product's pages…"} aria-label={bn?"পৃষ্ঠা খুঁজুন":"Find a page"}
+   <div className="ds-search-top"><Icon name="search"/><input ref={searchInput} autoFocus value={globalQuery} onChange={event=>{setGlobalQuery(event.target.value);setActiveResult(0);}} placeholder={bn?"এই সেবার পৃষ্ঠা খুঁজুন…":"Search this product's pages…"} aria-label={bn?"পৃষ্ঠা খুঁজুন":"Find a page"}
      onKeyDown={event=>{
       if(event.key==="ArrowDown"){event.preventDefault();setActiveResult(i=>foundKeys.length?(i+1)%foundKeys.length:0);}
       if(event.key==="ArrowUp"){event.preventDefault();setActiveResult(i=>foundKeys.length?(i+foundKeys.length-1)%foundKeys.length:0);}
