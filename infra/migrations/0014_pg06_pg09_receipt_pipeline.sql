@@ -224,6 +224,7 @@ DECLARE
  source text;
  verification text;
  status_name text;
+ no_match_reason text;
  result pg07_receipt_results;
  locked_intent uuid;
 BEGIN
@@ -285,10 +286,29 @@ BEGIN
  AND (o.time_precision<>'minute' OR o.original_transaction_at+interval '1 minute'<=p.window_end);
  IF candidate_count<>1 THEN
   status_name:=CASE WHEN candidate_count=0 THEN 'unmatched' ELSE 'ambiguous' END;
-  UPDATE pg07_receipt_results SET status=status_name,
-   reason=CASE WHEN candidate_count=0 THEN 'no_exact_five_field_candidate'
-     ELSE 'multiple_exact_candidates' END,processed_at=now()
-   WHERE observation_id=o_id;
+  no_match_reason:='no_exact_five_field_candidate';
+  IF candidate_count>1 THEN no_match_reason:='multiple_exact_candidates';
+  ELSE
+   -- A partial/overpayment is NOT success; keep incoming evidence available
+   -- for reconciliation without providing a manual mark-paid bypass.
+   IF EXISTS(SELECT 1 FROM payment_attempts p WHERE p.workspace_id=o.workspace_id
+     AND p.environment=o.environment AND p.receiving_account_id=o.receiving_account_id
+     AND p.payer_hmac=o.payer_hmac AND p.method=o.method AND p.currency=o.currency
+     AND p.amount_minor>o.amount_minor
+     AND o.original_transaction_at>=p.window_start AND o.original_transaction_at<p.window_end
+     AND (o.time_precision<>'minute' OR o.original_transaction_at+interval '1 minute'<=p.window_end)
+   ) THEN no_match_reason:='partial_amount_requires_reconciliation';
+   ELSIF EXISTS(SELECT 1 FROM payment_attempts p WHERE p.workspace_id=o.workspace_id
+     AND p.environment=o.environment AND p.receiving_account_id=o.receiving_account_id
+     AND p.payer_hmac=o.payer_hmac AND p.method=o.method AND p.currency=o.currency
+     AND p.amount_minor<o.amount_minor
+     AND o.original_transaction_at>=p.window_start AND o.original_transaction_at<p.window_end
+     AND (o.time_precision<>'minute' OR o.original_transaction_at+interval '1 minute'<=p.window_end)
+   ) THEN no_match_reason:='excess_amount_requires_reconciliation';
+   END IF;
+  END IF;
+  UPDATE pg07_receipt_results SET status=status_name,reason=no_match_reason,
+   processed_at=now() WHERE observation_id=o_id;
   RETURN status_name;
  END IF;
  SELECT p.* INTO a FROM payment_attempts p WHERE p.workspace_id=o.workspace_id
