@@ -15,7 +15,8 @@ async function run(){
  const version=await sql`SELECT to_regclass('public.platform_auth_settings') IS NOT NULL AS ready`;
  if(!version[0]?.ready)throw Error("PG00 0001/0002 must run first");
  await sql.unsafe("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='ekmivo_runtime') THEN CREATE ROLE ekmivo_runtime NOLOGIN NOSUPERUSER NOBYPASSRLS; END IF; END $$");
- await sql.unsafe(await readFile(fileURLToPath(new URL("../../../infra/migrations/0003_pg01_tenant_environment_mfa.sql",import.meta.url)),"utf8"));
+ await sql.unsafe(await readFile(fileURLToPath(new URL("../../../infra/migrations/0003_pg01_admin_mfa.sql",import.meta.url)),"utf8"));
+ await sql.unsafe(await readFile(fileURLToPath(new URL("../../../infra/migrations/0004_pg01_environment_rls.sql",import.meta.url)),"utf8"));
  const roles=await sql`SELECT rolcanlogin,rolsuper,rolbypassrls FROM pg_roles WHERE rolname='ekmivo_runtime'`;
  if(roles.length!==1||roles[0].rolcanlogin||roles[0].rolsuper||roles[0].rolbypassrls)throw Error("RLS runtime role is privileged");
  const force=await sql`SELECT relname,relrowsecurity,relforcerowsecurity FROM pg_class WHERE relname IN ('workspace_environments','workspace_environment_settings')`;

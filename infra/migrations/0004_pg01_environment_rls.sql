@@ -1,27 +1,8 @@
--- PG01 additive tenant/environment authorization baseline.
--- IMPORTANT: provision the dedicated ekmivo_runtime role separately before applying.
--- Never use table owner, postgres superuser or BYPASSRLS for financial API transactions.
--- Auth identity and pre-existing 0001/0002 tables remain intact.
+-- PG01 part B: tenant/environment model and FORCE RLS. Do NOT apply
+-- until a dedicated nonowner, non-BYPASSRLS, non-elevated LOGIN SQL role
+-- named ekmivo_runtime is provisioned and verified. Neon-managed roles may
+-- inherit neon_superuser/BYPASSRLS: NEVER use them for financial runtime.
 BEGIN;
-
-ALTER TABLE auth_sessions
- ADD COLUMN IF NOT EXISTS mfa_verified_at timestamptz;
-
-CREATE TABLE IF NOT EXISTS platform_admin_mfa (
- user_id uuid PRIMARY KEY REFERENCES app_users(id) ON DELETE CASCADE,
- secret_ciphertext text NOT NULL,
- confirmed_at timestamptz,
- last_used_step bigint NOT NULL DEFAULT -1,
- created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS platform_admin_mfa_attempts (
- user_id uuid PRIMARY KEY REFERENCES app_users(id) ON DELETE CASCADE,
- attempts integer NOT NULL DEFAULT 0 CHECK (attempts>=0),
- blocked_until timestamptz,
- updated_at timestamptz NOT NULL DEFAULT now()
-);
-
 CREATE TABLE IF NOT EXISTS workspace_environments (
  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
  environment text NOT NULL CHECK(environment IN ('sandbox','live')),
@@ -46,6 +27,22 @@ CREATE TABLE IF NOT EXISTS workspace_environment_settings (
 );
 INSERT INTO workspace_environment_settings(workspace_id,environment)
  SELECT workspace_id,environment FROM workspace_environments ON CONFLICT DO NOTHING;
+
+
+-- Seed both logical contexts when a workspace is created; they are NOT
+-- claims that payment providers or live financial operations are enabled.
+CREATE OR REPLACE FUNCTION seed_workspace_environments() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $
+BEGIN
+ INSERT INTO workspace_environments(workspace_id,environment)
+ VALUES(NEW.id,'sandbox'),(NEW.id,'live') ON CONFLICT DO NOTHING;
+ INSERT INTO workspace_environment_settings(workspace_id,environment)
+ VALUES(NEW.id,'sandbox'),(NEW.id,'live') ON CONFLICT DO NOTHING;
+ RETURN NEW;
+END
+$;
+CREATE TRIGGER workspace_environment_seed_after_insert
+ AFTER INSERT ON workspaces FOR EACH ROW EXECUTE FUNCTION seed_workspace_environments();
 
 -- The runtime SQL role is provisioned OUTSIDE migration as a NOLOGIN / nonsuperuser
 -- role with NO BYPASSRLS and no table ownership. Applying this without that role
@@ -117,5 +114,7 @@ CREATE POLICY workspace_environment_settings_scope_update ON workspace_environme
    AND m.role IN ('owner','admin')
   )
  );
+
+COMMIT;
 
 COMMIT;
