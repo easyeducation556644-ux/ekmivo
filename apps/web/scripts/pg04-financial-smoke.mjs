@@ -1072,6 +1072,50 @@ try{
  same((await pg08DB.unsafe(
   "SELECT count(*)::int n FROM financial_payments WHERE id=$1::uuid",[complete[0].id]))[0].n,
   1,"PG08 delivery failure changed verified financial payment");
+
+ // Merchant rotation must be staged/explicit; a newly shown secret must not
+ // start signing while the receiver still uses the old key.
+ const rotationEndpoint=(await pg08DB.unsafe(
+  "INSERT INTO pg08_endpoints(workspace_id,environment,url,secret) VALUES($1::uuid,'sandbox','https://example.invalid/rotation',$2) RETURNING id",
+  [pg07WS,Buffer.alloc(32,41)]))[0].id;
+ const nextKey=Buffer.alloc(32,42);
+ await pg08DB.begin(async tx=>{
+  await tx.unsafe("SELECT set_config('ekmivo.workspace_id',$1,true),set_config('ekmivo.environment','sandbox',true)",[pg07WS]);
+  const result=(await tx.unsafe(
+   "SELECT pg09_action($1::uuid,'sandbox','webhooks',$2::uuid,'rotate','{}'::jsonb,$3) AS result",
+   [pg07WS,rotationEndpoint,nextKey]))[0].result;
+  same(result.updated,true,"PG08 staged key was not audited");
+ });
+ let secrets=(await pg08DB.unsafe(
+  "SELECT secret,pending_secret,previous_secret FROM pg08_endpoints WHERE id=$1::uuid",
+  [rotationEndpoint]))[0];
+ same(Buffer.compare(secrets.secret,Buffer.alloc(32,41)),0,"PG08 stage prematurely replaced active key");
+ same(Buffer.compare(secrets.pending_secret,nextKey),0,"PG08 next key not staged");
+ same(secrets.previous_secret,null,"PG08 staged key illegally activated overlap");
+ await pg08DB.begin(async tx=>{
+  await tx.unsafe("SELECT set_config('ekmivo.workspace_id',$1,true),set_config('ekmivo.environment','sandbox',true)",[pg07WS]);
+  same((await tx.unsafe(
+   "SELECT pg09_action($1::uuid,'sandbox','webhooks',$2::uuid,'activate_rotation','{}'::jsonb,NULL) AS result",
+   [pg07WS,rotationEndpoint]))[0].result.updated,true,"PG08 explicit activation failed");
+ });
+ secrets=(await pg08DB.unsafe(
+  "SELECT secret,pending_secret,previous_secret,previous_until FROM pg08_endpoints WHERE id=$1::uuid",
+  [rotationEndpoint]))[0];
+ same(Buffer.compare(secrets.secret,nextKey),0,"PG08 activation did not switch signing key");
+ same(secrets.pending_secret,null,"PG08 activated pending key persisted");
+ same(Buffer.compare(secrets.previous_secret,Buffer.alloc(32,41)),0,"PG08 overlap old key unavailable");
+ ok(secrets.previous_until&&new Date(secrets.previous_until).getTime()>Date.now()+23*3600000,
+  "PG08 previous-key overlap missing");
+ await pg08DB.begin(async tx=>{
+  await tx.unsafe("SELECT set_config('ekmivo.workspace_id',$1,true),set_config('ekmivo.environment','sandbox',true)",[pg07WS]);
+  same((await tx.unsafe(
+   "SELECT pg09_action($1::uuid,'sandbox','webhooks',$2::uuid,'revoke_previous','{}'::jsonb,NULL) AS result",
+   [pg07WS,rotationEndpoint]))[0].result.updated,true,"PG08 emergency revoke failed");
+ });
+ same((await pg08DB.unsafe(
+  "SELECT previous_secret FROM pg08_endpoints WHERE id=$1::uuid",[rotationEndpoint]))[0].previous_secret,
+  null,"PG08 emergency revoke left old secret in database");
+
  console.log("PG08 isolated webhook state machine PASS: 2xx, terminal 403, 500/429/unknown retry, 1m/5m delay, expired/stale lease, max retries, disabled endpoint, event-stable replay and independent verified funds (SYNTHETIC)");
 
 
