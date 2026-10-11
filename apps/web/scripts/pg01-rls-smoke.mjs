@@ -14,10 +14,10 @@ const sql=postgres(raw,{max:1,prepare:false});
 async function run(){
  const version=await sql`SELECT to_regclass('public.platform_auth_settings') IS NOT NULL AS ready`;
  if(!version[0]?.ready)throw Error("PG00 0001/0002 must run first");
- await sql.unsafe("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='ekmivo_runtime') THEN CREATE ROLE ekmivo_runtime NOLOGIN NOSUPERUSER NOBYPASSRLS; END IF; END $$");
+ await sql.unsafe("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='ekmivo_financial_runtime') THEN CREATE ROLE ekmivo_financial_runtime NOLOGIN NOSUPERUSER NOBYPASSRLS; END IF; END $$");
  await sql.unsafe(await readFile(fileURLToPath(new URL("../../../infra/migrations/0003_pg01_admin_mfa.sql",import.meta.url)),"utf8"));
  await sql.unsafe(await readFile(fileURLToPath(new URL("../../../infra/migrations/0004_pg01_environment_rls.sql",import.meta.url)),"utf8"));
- const roles=await sql`SELECT rolcanlogin,rolsuper,rolbypassrls FROM pg_roles WHERE rolname='ekmivo_runtime'`;
+ const roles=await sql`SELECT rolcanlogin,rolsuper,rolbypassrls FROM pg_roles WHERE rolname='ekmivo_financial_runtime'`;
  if(roles.length!==1||roles[0].rolcanlogin||roles[0].rolsuper||roles[0].rolbypassrls)throw Error("RLS runtime role is privileged");
  const force=await sql`SELECT relname,relrowsecurity,relforcerowsecurity FROM pg_class WHERE relname IN ('workspace_environments','workspace_environment_settings')`;
  if(force.length!==2||force.some(r=>!r.relrowsecurity||!r.relforcerowsecurity))throw Error("Tenant tables must FORCE RLS");
@@ -33,7 +33,7 @@ async function run(){
    }
    const first=fixtures[0],second=fixtures[1],third=fixtures[2];
    async function asRuntime(user,workspace,env,run){
-    await tx`SET LOCAL ROLE ekmivo_runtime`;
+    await tx`SET LOCAL ROLE ekmivo_financial_runtime`;
     try {
      await tx`SELECT set_config('ekmivo.user_id',${user},true),
       set_config('ekmivo.workspace_id',${workspace},true),
@@ -85,7 +85,7 @@ async function run(){
    await asRuntime(third.user,third.workspace,"live",async()=>{
     if((await tx`SELECT * FROM workspace_environments`).length)throw Error("Disabled user retained access");
    });
-   await tx`SET LOCAL ROLE ekmivo_runtime`;
+   await tx`SET LOCAL ROLE ekmivo_financial_runtime`;
    const empty=await tx`SELECT * FROM workspace_environment_settings`;
    if(empty.length)throw Error("Missing context leaked rows");
    await tx`RESET ROLE`;
@@ -95,12 +95,12 @@ async function run(){
  const left=await sql`SELECT count(*)::int AS n FROM app_users WHERE id=${fixtures[0].user}::uuid`;
  if(left[0].n!==0)throw Error("Rollback leaked user fixture");
  // Context reset after rollback must not carry across pooled requests.
- await sql`SET ROLE ekmivo_runtime`;
+ await sql`SET ROLE ekmivo_financial_runtime`;
  try {
   const rows=await sql`SELECT * FROM workspace_environment_settings`;
   if(rows.length)throw Error("Pooled connection leaked transaction context");
  }finally{await sql`RESET ROLE`;}
- await sql.unsafe("ALTER ROLE ekmivo_runtime LOGIN PASSWORD 'pg01-ci-only-password'");
+ await sql.unsafe("ALTER ROLE ekmivo_financial_runtime LOGIN PASSWORD 'pg01-ci-only-password'");
  console.log("PG01 PASS: 3 tenants x 2 environments; FORCE RLS; missing context; removed/disabled/viewer; cross-env; rollback/pool cleanup");
 }
 try{await run();}catch(e){console.error("PG01 FAIL:",e instanceof Error?e.message.replace(/postgres(?:ql)?:\/\/[^\s]+/g,"[redacted]"):"unknown");process.exitCode=1;}finally{await sql.end({timeout:3});}

@@ -69,8 +69,8 @@ func (r *Repository) ValidateRuntimeRole(ctx context.Context)error{
  FROM pg_roles r WHERE r.rolname=current_user`).Scan(
   &current,&super,&bypass,&login,&createRole,&createDB,&elevatedMember,&tableOwner)
  if err!=nil{return fmt.Errorf("%w: cannot inspect database role",ErrUnavailable)}
- if current!="ekmivo_runtime"||super||bypass||createRole||createDB||elevatedMember||tableOwner||!login {
-  return fmt.Errorf("%w: financial API requires dedicated unprivileged ekmivo_runtime login",ErrUnavailable)
+ if current!="ekmivo_financial_runtime"||super||bypass||createRole||createDB||elevatedMember||tableOwner||!login {
+  return fmt.Errorf("%w: financial API requires dedicated unprivileged ekmivo_financial_runtime login",ErrUnavailable)
  }
  return nil
 }

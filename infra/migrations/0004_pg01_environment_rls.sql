@@ -1,6 +1,6 @@
 -- PG01 part B: tenant/environment model and FORCE RLS. Do NOT apply
 -- until a dedicated nonowner, non-BYPASSRLS, non-elevated LOGIN SQL role
--- named ekmivo_runtime is provisioned and verified. Neon-managed roles may
+-- named ekmivo_financial_runtime is provisioned and verified. Neon-managed roles may
 -- inherit neon_superuser/BYPASSRLS: NEVER use them for financial runtime.
 BEGIN;
 CREATE TABLE IF NOT EXISTS workspace_environments (
@@ -47,19 +47,19 @@ CREATE TRIGGER workspace_environment_seed_after_insert
 -- The runtime SQL role is provisioned OUTSIDE migration as a NOLOGIN / nonsuperuser
 -- role with NO BYPASSRLS and no table ownership. Applying this without that role
 -- deliberately fails; do not silently fall back to privileged application queries.
-GRANT USAGE ON SCHEMA public TO ekmivo_runtime;
+GRANT USAGE ON SCHEMA public TO ekmivo_financial_runtime;
 -- Column-scoped access: never grant the runtime password_hash, MFA secrets
 -- or admin settings writes. The financial service may read only the minimum
 -- control-plane values needed for a fresh authorization decision.
-GRANT SELECT (id,email,email_verified_at,disabled_at) ON app_users TO ekmivo_runtime;
-GRANT SELECT (id,user_id,token_hash,expires_at,revoked_at,mfa_verified_at) ON auth_sessions TO ekmivo_runtime;
-GRANT SELECT (workspace_id,user_id,role) ON workspace_members TO ekmivo_runtime;
-GRANT SELECT (id,service_mode) ON workspaces TO ekmivo_runtime;
-GRANT SELECT (user_id,role) ON platform_administrators TO ekmivo_runtime;
-GRANT SELECT (user_id,confirmed_at) ON platform_admin_mfa TO ekmivo_runtime;
-GRANT SELECT ON workspace_environments,workspace_environment_settings TO ekmivo_runtime;
+GRANT SELECT (id,email,email_verified_at,disabled_at) ON app_users TO ekmivo_financial_runtime;
+GRANT SELECT (id,user_id,token_hash,expires_at,revoked_at,mfa_verified_at) ON auth_sessions TO ekmivo_financial_runtime;
+GRANT SELECT (workspace_id,user_id,role) ON workspace_members TO ekmivo_financial_runtime;
+GRANT SELECT (id,service_mode) ON workspaces TO ekmivo_financial_runtime;
+GRANT SELECT (user_id,role) ON platform_administrators TO ekmivo_financial_runtime;
+GRANT SELECT (user_id,confirmed_at) ON platform_admin_mfa TO ekmivo_financial_runtime;
+GRANT SELECT ON workspace_environments,workspace_environment_settings TO ekmivo_financial_runtime;
 GRANT UPDATE (checkout_expiry_minutes,updated_at)
- ON workspace_environment_settings TO ekmivo_runtime;
+ ON workspace_environment_settings TO ekmivo_financial_runtime;
 
 ALTER TABLE workspace_environments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workspace_environments FORCE ROW LEVEL SECURITY;
@@ -70,7 +70,7 @@ ALTER TABLE workspace_environment_settings FORCE ROW LEVEL SECURITY;
 -- Go must authorize the opaque session, workspace role/capability and environment
 -- before setting LOCAL transaction context on a nonowner connection.
 CREATE POLICY workspace_environments_scope_select ON workspace_environments
- FOR SELECT TO ekmivo_runtime
+ FOR SELECT TO ekmivo_financial_runtime
  USING (
   workspace_id = NULLIF(current_setting('ekmivo.workspace_id',true),'')::uuid
   AND environment = current_setting('ekmivo.environment',true)
@@ -83,7 +83,7 @@ CREATE POLICY workspace_environments_scope_select ON workspace_environments
   )
  );
 CREATE POLICY workspace_environment_settings_scope_select ON workspace_environment_settings
- FOR SELECT TO ekmivo_runtime
+ FOR SELECT TO ekmivo_financial_runtime
  USING (
   workspace_id = NULLIF(current_setting('ekmivo.workspace_id',true),'')::uuid
   AND environment=current_setting('ekmivo.environment',true)
@@ -94,7 +94,7 @@ CREATE POLICY workspace_environment_settings_scope_select ON workspace_environme
   )
  );
 CREATE POLICY workspace_environment_settings_scope_update ON workspace_environment_settings
- FOR UPDATE TO ekmivo_runtime
+ FOR UPDATE TO ekmivo_financial_runtime
  USING (
   workspace_id = NULLIF(current_setting('ekmivo.workspace_id',true),'')::uuid
   AND environment=current_setting('ekmivo.environment',true)
