@@ -982,6 +982,98 @@ try{
 
  console.log("PG07 isolated matching PASS: atomic verified payment/allocation/event/queued delivery, idempotency, five fields, minute boundary, late, cancellation, stale projection (FICTIONAL SANDBOX only)");
 
+
+ // PG08: isolated real PostgreSQL durable webhook lease, retry and replay.
+ // ALL events are fictional sandbox receipts; no external HTTP or customer.
+ const pg08DB=pg07DB;
+ const pg08Delivery=complete[0].delivery_id;
+ const pg08Event=complete[0].event_id;
+ const pg08Claim=async id=>(await pg08DB.unsafe(
+  "SELECT pg08_claim($1::uuid,$2) AS claim",[id,pg07Version]))[0].claim;
+ const pg08Finish=async(id,lease,status,reason)=>(await pg08DB.unsafe(
+  "SELECT pg08_finish($1::uuid,$2::uuid,$3,$4) AS saved",[id,lease,status,reason]))[0].saved;
+ const claim=await pg08Claim(pg08Delivery);
+ ok(claim&&claim.lease_id&&claim.event_id===pg08Event,"PG08 delivery not claimed with immutable event");
+ same(claim.body.id,pg08Event,"PG08 event ID did not bind signed body");
+ same(claim.attempt,1,"PG08 first claim attempt incorrect");
+ same(await pg08Claim(pg08Delivery),null,"PG08 active lease was claimed twice");
+ same(await pg08Finish(pg08Delivery,randomUUID(),204,""),false,"PG08 stale/wrong lease finished delivery");
+ same(await pg08Finish(pg08Delivery,claim.lease_id,204,""),true,"PG08 2xx delivery not committed");
+ same(await pg08Finish(pg08Delivery,claim.lease_id,204,""),false,"PG08 ACK replay double-completed");
+ const state=(await pg08DB.unsafe(
+  "SELECT status,attempts,completed_at FROM pg08_deliveries WHERE id=$1::uuid",[pg08Delivery]))[0];
+ same(state.status,"delivered","PG08 persisted wrong successful delivery state");
+ same(state.attempts,1,"PG08 success attempts wrong");
+ ok(!!state.completed_at,"PG08 delivered_at missing");
+ const pg08Insert=async()=>(
+  await pg08DB.unsafe("INSERT INTO pg08_deliveries(workspace_id,environment,endpoint_id,event_id) "+
+  "VALUES($1::uuid,'sandbox',$2::uuid,$3::uuid) RETURNING id",
+  [pg07WS,pg07Endpoint,pg08Event]))[0].id;
+ const retryID=await pg08Insert();
+ const firstClaim=await pg08Claim(retryID);
+ same(await pg08Finish(retryID,firstClaim.lease_id,500,"non_success_response"),true,
+  "PG08 500 did not record retry");
+ let retry=(await pg08DB.unsafe(
+  "SELECT status,attempts,next_at,reason FROM pg08_deliveries WHERE id=$1::uuid",[retryID]))[0];
+ same(retry.status,"pending","PG08 retryable 500 terminally failed");
+ ok(new Date(retry.next_at).getTime()-Date.now()>50000,"PG08 500 retry delay was not >=1 minute");
+ await pg08DB.unsafe("UPDATE pg08_deliveries SET next_at=now()-interval '1 second' WHERE id=$1::uuid",[retryID]);
+ const secondClaim=await pg08Claim(retryID);
+ same(secondClaim.attempt,2,"PG08 retry did not increment attempt");
+ same(await pg08Finish(retryID,secondClaim.lease_id,429,"rate_limited"),true,"PG08 retryable 429 denied");
+ retry=(await pg08DB.unsafe(
+  "SELECT status,attempts,next_at FROM pg08_deliveries WHERE id=$1::uuid",[retryID]))[0];
+ same(retry.status,"pending","PG08 retryable 429 became permanent failure");
+ ok(new Date(retry.next_at).getTime()-Date.now()>280000,"PG08 second retry was not near 5 minutes");
+ // Terminal HTTP does NOT exhaust eight pointless attempts.
+ const denied=await pg08Insert();
+ const deniedClaim=await pg08Claim(denied);
+ same(await pg08Finish(denied,deniedClaim.lease_id,403,"client_rejected"),true,"PG08 terminal 403 could not finalize");
+ same((await pg08DB.unsafe("SELECT status FROM pg08_deliveries WHERE id=$1::uuid",[denied]))[0].status,
+  "failed","PG08 terminal 4xx kept retrying");
+ const transportFailure=await pg08Insert();
+ const failedClaim=await pg08Claim(transportFailure);
+ same(await pg08Finish(transportFailure,failedClaim.lease_id,0,"transport_unknown"),true,
+  "PG08 unknown network outcome not queued for retry");
+ same((await pg08DB.unsafe("SELECT status FROM pg08_deliveries WHERE id=$1::uuid",[transportFailure]))[0].status,
+  "pending","PG08 unknown HTTP outcome lost");
+ const crash=await pg08Insert();
+ const deadClaim=await pg08Claim(crash);
+ await pg08DB.unsafe("UPDATE pg08_deliveries SET lease_until=now()-interval '1 second' WHERE id=$1::uuid",[crash]);
+ const reclaimed=await pg08Claim(crash);
+ ok(reclaimed&&reclaimed.lease_id!==deadClaim.lease_id&&reclaimed.attempt===2,
+  "PG08 killed/incomplete HTTP claim not recovered with new lease");
+ same(await pg08Finish(crash,deadClaim.lease_id,204,""),false,
+  "PG08 stale worker ACK could overwrite reclaimed lease");
+ same(await pg08Finish(crash,reclaimed.lease_id,204,""),true,
+  "PG08 reclaimed second delivery failed");
+ const exhausted=await pg08Insert();
+ await pg08DB.unsafe("UPDATE pg08_deliveries SET status='sending',attempts=8,lease_id=$2::uuid,"+
+  "lease_until=now()-interval '1 second' WHERE id=$1::uuid",[exhausted,randomUUID()]);
+ same(await pg08Claim(exhausted),null,"PG08 process crash after max attempts retried forever");
+ same((await pg08DB.unsafe(
+  "SELECT status,reason FROM pg08_deliveries WHERE id=$1::uuid",[exhausted]))[0].status,
+  "failed","PG08 exhausted crash did not finalize");
+ const disabled=await pg08Insert();
+ await pg08DB.unsafe("UPDATE pg08_endpoints SET active=false WHERE id=$1::uuid",[pg07Endpoint]);
+ same(await pg08Claim(disabled),null,"PG08 disabled endpoint still issued secret and delivery");
+ same((await pg08DB.unsafe(
+  "SELECT status FROM pg08_deliveries WHERE id=$1::uuid",[disabled]))[0].status,
+  "disabled","PG08 disabled endpoint did not get terminal status");
+ await pg08DB.unsafe("UPDATE pg08_endpoints SET active=true WHERE id=$1::uuid",[pg07Endpoint]);
+ const staleAuthority=await pg08Insert();
+ await reject(pg08DB,()=>pg08DB.unsafe("SELECT pg08_claim($1::uuid,$2)",
+  [staleAuthority,pg07Version+1]),"42501");
+ const replayID=await pg08Insert();
+ ok(replayID!==pg08Delivery,"PG08 manual replay reused delivery row ID");
+ same((await pg08DB.unsafe(
+  "SELECT event_id FROM pg08_deliveries WHERE id=$1::uuid",[replayID]))[0].event_id,
+  pg08Event,"PG08 replay illegally created a new domain event");
+ same((await pg08DB.unsafe(
+  "SELECT count(*)::int n FROM financial_payments WHERE id=$1::uuid",[complete[0].id]))[0].n,
+  1,"PG08 delivery failure changed verified financial payment");
+ console.log("PG08 isolated webhook state machine PASS: 2xx, terminal 403, 500/429/unknown retry, 1m/5m delay, expired/stale lease, max retries, disabled endpoint, event-stable replay and independent verified funds (SYNTHETIC)");
+
  const controlEmpty=await admin`SELECT to_regclass('public.payment_intents') IS NULL AS no_payments`;
  ok(controlEmpty[0].no_payments,"financial tables leaked into control DB");
  console.log(`PG04 isolated finance+River PASS: ${count} assertions; 2 DBs, no shared auth, registry, realm/cross-role isolation, PGX River rollback/idempotency`);
