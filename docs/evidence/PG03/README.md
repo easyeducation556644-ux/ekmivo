@@ -104,3 +104,6 @@ The two PG03 runtime/contract blockers are **CLOSED**. PG03 is **implemented, ma
 
 ### Owner confirmation — 2026-10-11
 Owner reported **All pass** for the supplied PG01/PG02/PG03 combined checklist. Record this as owner-reported browser smoke, not agent-observed physical authenticator/device/provider testing. PG01 security lifecycle was independently repeated against deployed HTTP with dedicated fixtures: 51/51 PASS, cleanup included; existing owner enrollment/recovery data were untouched. The owner subsequently deferred admin UI work. Admin UI expansion remains out of this checkpoint. PG02 route latency and full-shell loading were reported separately and are being corrected; do not erase that performance follow-up.
+
+### Local production performance-regression checkpoint
+Exact source de68839: local Next production build against real Neon and deployed Go passes 37/37 assertions, including cleanup; see [results](local-performance-control-plane.json). Web deployment is blocked by the Vercel daily deployment limit. This is local source regression evidence, not a new deployed web/browser acceptance. Owner reported supplied functional checklist All pass; admin UI expansion deferred.

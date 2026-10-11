@@ -5,7 +5,8 @@ import {createRequire} from 'node:module';
 import {writeFile,readFile} from 'node:fs/promises';
 const {encodeReply}=createRequire(import.meta.url)('next/dist/compiled/react-server-dom-webpack/client.node');
 if(process.env.PG23_ALLOW_PRODUCTION_FIXTURES!=='true')throw Error('Explicit fixture guard required');
-const web='https://ekmivo-web-masharzys-projects.vercel.app',api='https://ekmivo-go-api.onrender.com';
+const web=process.env.PG23_WEB_BASE||'https://ekmivo-web-masharzys-projects.vercel.app',api='https://ekmivo-go-api.onrender.com';
+if(!['https://ekmivo-web-masharzys-projects.vercel.app','http://127.0.0.1:3001'].includes(web))throw Error('Unapproved web target');
 const sql=postgres(process.env.DATABASE_URL,{ssl:'require',max:1,prepare:false});
 const ids=Array.from({length:5},()=>randomUUID()),workspaces=Array.from({length:3},()=>randomUUID());
 const [owner,admin,editor,viewer,foreign]=ids,[ws,second,other]=workspaces;
@@ -147,6 +148,6 @@ try{
 finally{
  if(seeded)try{await sql.begin(async tx=>{for(const w of workspaces)await tx`DELETE FROM workspaces WHERE id=${w}`;for(const id of ids)await tx`DELETE FROM app_users WHERE id=${id}`;});const left=await sql`SELECT count(*)::int AS n FROM app_users WHERE id=ANY(${ids}::uuid[])`;record('PG23','Disposable fixture cleanup',left[0].n===0);}catch{record('PG23','Disposable fixture cleanup',false,{safe_response:'Operator cleanup required; fixture identifiers suppressed.'});}
  await sql.end();
- for(const pg of ['PG02','PG03'])await writeFile('../../docs/evidence/'+pg+'/'+(process.env.PG23_REPORT_NAME||'independent-production-audit.json'),JSON.stringify({tested_at:new Date().toISOString(),source:process.env.PG23_SOURCE_SHA||'4f1c4d6',deployed_web_sha:process.env.PG23_WEB_SHA||'c441dca',deployed_api_sha:process.env.PG23_API_SHA||'4f1c4d6',web,api,method:'Dedicated disposable fixtures; actual deployed RSC actions and Go HTTP; secrets memory-only. UI interactions tracked separately.',results:records.filter(r=>r.pg===pg||r.pg==='PG23')},null,2)+'\n');
+ for(const pg of ['PG02','PG03'])await writeFile('../../docs/evidence/'+pg+'/'+(process.env.PG23_REPORT_NAME||'independent-production-audit.json'),JSON.stringify({tested_at:new Date().toISOString(),source:process.env.PG23_SOURCE_SHA||'4f1c4d6',deployed_web_sha:process.env.PG23_WEB_SHA||'c441dca',deployed_api_sha:process.env.PG23_API_SHA||'4f1c4d6',web,api,method:(web.startsWith('http://127.0.0.1')?'Local Next production build against real Neon and deployed Go HTTP; dedicated disposable fixtures; not deployed web parity.':'Dedicated disposable fixtures; actual deployed RSC actions and Go HTTP; secrets memory-only. UI interactions tracked separately.'),results:records.filter(r=>r.pg===pg||r.pg==='PG23')},null,2)+'\n');
  if(records.some(r=>!r.pass))process.exitCode=1;
 }
