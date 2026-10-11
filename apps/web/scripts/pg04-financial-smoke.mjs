@@ -1064,6 +1064,12 @@ try{
  const staleAuthority=await pg08Insert();
  await reject(pg08DB,()=>pg08DB.unsafe("SELECT pg08_claim($1::uuid,$2)",
   [staleAuthority,pg07Version+1]),"42501");
+ // Two simultaneous initial dispatches for one endpoint/event must be
+ // rejected, but explicit manual replay after terminal outcome is permitted.
+ await reject(pg08DB,()=>pg08Insert(),"23505");
+ await pg08DB.unsafe(
+  "UPDATE pg08_deliveries SET status='failed',reason='ci_projection_rejection' WHERE id=$1::uuid",
+  [staleAuthority]);
  const replayID=await pg08Insert();
  ok(replayID!==pg08Delivery,"PG08 manual replay reused delivery row ID");
  same((await pg08DB.unsafe(
