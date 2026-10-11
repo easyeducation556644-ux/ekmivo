@@ -275,3 +275,6 @@ Kotlin/Compose debug assemble and unit tests succeeded in [Actions run 381154518
 
 ### PG06 source safety check (not accepted)
 An opt-in native intake security foundation now exists in `apps/mobile/.../receipt` with non-authoritative evidence field validation and Android Keystore P-256 request signing; Go `internal/deviceevidence` supplies signature/timestamp verification. Neither structural completeness nor a device signature proves a payment. Real Android permission, enrollment/binding, approved parser samples, Go server ingestion, offline recovery, receipt matching and live-device tests remain mandatory in PG06/PG07/PG16. See [PG06 evidence](evidence/PG06/README.md).
+
+### CI evidence for receipt security source
+Tests passed for Android receipt completeness and Kotlin/Go P-256 canonical request verification helpers in [run 38115889313](https://github.com/masharzy/ekmivo/actions/runs/38115889313). These protect future device ingress but do not deliver PG06/PG07; the sequential money/security release gates remain open.

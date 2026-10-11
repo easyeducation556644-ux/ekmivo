@@ -22,3 +22,8 @@ Only **structural evidence readiness** and cryptographic helper functions have b
 
 ## Verification
 CI source checks must be linked here after the current Kotlin and Go test run passes. The earlier Kotlin foundation debug APK: [38115451816](https://github.com/masharzy/ekmivo/actions/runs/38115451816) is not a PG06 device test.
+
+
+## Verified helper tests — 2026-10-11
+
+**Source/test PASS**, not receipt collection acceptance. GitHub Actions [run 38115889313](https://github.com/masharzy/ekmivo/actions/runs/38115889313), commit `55ab39d5dbcda2487140f0fb0d3e35bbdd5dd103`: Go `go test ./...` including device canonical-signature/tamper/stale timestamp tests; Kotlin `:app:testDebugUnitTest` including incomplete five-field and altered-body cases; Kotlin `:app:assembleDebug`; web lint/build and PostgreSQL isolated migration/rollback smoke **all passed**. Debug APK [artifact 11693770119](https://github.com/masharzy/ekmivo/actions/runs/38115889313/artifacts/11693770119). Device Keystore runtime, device enrollment, network transport and actual merchant receipt verification were **not tested**.

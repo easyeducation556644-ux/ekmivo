@@ -38,3 +38,5 @@ First verified native debug APK: [Actions artifact 11693123111](https://github.c
 
 ### Native receipt security foundation (not a collector)
 `receipt/EvidenceGate.kt` rejects incomplete/ambiguous amount, actual-payer, time, incoming direction and source-binding fields. `AndroidKeystoreSigner.kt` creates a non-exportable P-256 key *only when enrollment is invoked*; `DeviceSignature.kt` canonicalizes the exact raw HTTP body. Go `internal/deviceevidence` has matching P-256 DER verification and transport replay freshness helpers. None of these helpers reads notifications, starts a background service or marks money paid. PG06 remains open until real authorized device/receipt tests.
+
+Native APK rebuilt with strict receipt prefilter/signature helpers: [CI 38115889313](https://github.com/masharzy/ekmivo/actions/runs/38115889313) / [debug artifact 11693770119](https://github.com/masharzy/ekmivo/actions/runs/38115889313/artifacts/11693770119). Go signer-verification unit tests also passed; Android device/Keystore runtime tests are not yet done.
