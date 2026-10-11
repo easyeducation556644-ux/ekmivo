@@ -122,5 +122,3 @@ CREATE POLICY workspace_environment_settings_scope_update ON workspace_environme
  );
 
 COMMIT;
-
-COMMIT;
