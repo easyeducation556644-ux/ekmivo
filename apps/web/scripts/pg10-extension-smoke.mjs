@@ -7,7 +7,15 @@ export async function runPaymentExtensions({db,live,control,workspace,otherWorks
  let count=0;const equal=(a,b,message)=>{assert.deepEqual(a,b,message);count++};
  const scoped=(ws,run)=>db.begin(async tx=>{await tx.unsafe("SET LOCAL ROLE ekmivo_finance_reader");await tx.unsafe("SELECT set_config('ekmivo.workspace_id',$1,true),set_config('ekmivo.environment','sandbox',true)",[ws]);return run(tx)});
  const reject=async fn=>{await assert.rejects(fn);count++};
- const create=async(kind,body,key=randomUUID())=>scoped(workspace,async tx=>(await tx.unsafe("SELECT pg10_write($1::uuid,'sandbox',$2,NULL,'create',$3::jsonb,$4,$5,$6,NULL) result",[workspace,kind,JSON.stringify(body),key,hash(JSON.stringify(body)),hash(key)]))[0].result);
+ const create=async(kind,body,key=randomUUID())=>scoped(workspace,async tx=>{
+  const input=[workspace,kind,JSON.stringify(body),key,hash(JSON.stringify(body)),hash(key)];
+  try{return (await tx.unsafe("SELECT pg10_write($1::uuid,'sandbox',$2,NULL,'create',$3::jsonb,$4,$5,$6,NULL) result",input))[0].result;}
+  catch(error){
+   // Log only safe structure and SQLSTATE; no customer details or body values.
+   console.error('PG10 create rejected:',JSON.stringify({kind,bodyKeys:Object.keys(body),keyLength:key.length,requestHashLength:input[4].length,capabilityHashLength:input[5].length,sqlstate:error.code,pgMessage:error.message}));
+   throw error;
+  }
+ });
  const customerBody={reference:'CUSTOMER-'+randomUUID(),name:'CI fictional customer',email:'fictional@example.invalid'};
  const key=randomUUID(),customer=await create('customers',customerBody,key);
  equal((await create('customers',customerBody,key)).id,customer.id,'Lost-response customer retry must return one record');
