@@ -510,6 +510,10 @@ func (s *Service) HandleDevice(w http.ResponseWriter, r *http.Request) {
 			fail(w, 503, "PARSER_UNAVAILABLE")
 			return
 		}
+		if !rule.AcceptCapture(body.Source, d.Realm, body.Evidence) {
+			fail(w, 422, "IRRELEVANT_RECEIPT_REJECTED")
+			return
+		}
 		receipt, parseErr := rule.Parse(body.Source, d.Realm, body.Evidence)
 		reason := ""
 		var payer, ref any

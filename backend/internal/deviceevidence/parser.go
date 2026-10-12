@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 	_ "time/tzdata" // Keep receipt timezone parsing independent of host tzdata.
+	"unicode/utf8"
 )
 
 // Parser rules are versioned server configuration backed by consented samples.
@@ -40,6 +40,18 @@ type ParsedReceipt struct {
 	Reference     string
 	Method        string
 	Version       int
+}
+
+// AcceptCapture rejects unrelated personal/OTP text before even its transport
+// digest is persisted. Relevant but semantically invalid receipts may proceed
+// to Parse and a safe exception; they never become verified funds.
+func (r ParserRule) AcceptCapture(source, realm, text string) bool {
+	if r.Validate() != nil || source != r.Source || (realm != "sandbox" && realm != "live") ||
+		(r.SandboxOnly && realm != "sandbox") || !utf8.ValidString(text) || len(text) > 8192 {
+		return false
+	}
+	pattern, err := regexp.Compile(r.Pattern)
+	return err == nil && pattern.MatchString(text)
 }
 
 var phonePattern = regexp.MustCompile(`^\+8801[3-9][0-9]{8}$`)

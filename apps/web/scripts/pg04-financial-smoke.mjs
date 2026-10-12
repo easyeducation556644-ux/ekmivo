@@ -1401,6 +1401,7 @@ try{
   same((await signedPost("events",packet,randomUUID(),undefined,true)).status,403,"tampered signed HTTP packet accepted");
   same((await signedPost("events",{...packet,environment:"live"})).status,403,"signed HTTP packet crossed physical realm");
   same((await signedPost("events",{...packet,source:"WRONG_SOURCE"})).status,422,"signed wrong-source HTTP packet accepted");
+  same((await signedPost("events",{...packet,evidence:"Your OTP is 123456"})).status,422,"unrelated signed OTP text persisted");
   const eventID=randomUUID();const ingest=await signedPost("events",packet,eventID);
   same(ingest.status,202,"signed HTTP receipt did not obtain durable ACK");
   const ack=await ingest.json();ok(ack.observation_id,"signed receipt was not parsed into an observation");
