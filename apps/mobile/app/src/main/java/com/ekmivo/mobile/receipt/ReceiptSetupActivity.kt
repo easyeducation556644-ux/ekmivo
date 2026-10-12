@@ -38,9 +38,11 @@ class ReceiptSetupActivity:ComponentActivity(){
    val bn=language==Language.BN
    EkmivoTheme(dark=when(appearance){Appearance.SYSTEM->isSystemInDarkTheme();Appearance.DARK->true;Appearance.LIGHT->false}){
     val scope=rememberCoroutineScope();var token by remember{mutableStateOf("")};var consent by remember{mutableStateOf(false)};var busy by remember{mutableStateOf(false)}
-    var proposed by remember{mutableStateOf(ReceiptStore(applicationContext).use{it.pendingEnrollment()})};var active by remember{mutableStateOf(ReceiptStore(applicationContext).use{it.enrollment()})}
+    var proposed by remember{mutableStateOf(ReceiptStore(applicationContext).use{it.pendingEnrollment()})};var active by remember{mutableStateOf(ReceiptStore(applicationContext).use{it.phone()?:it.enrollment()})}
     var message by remember{mutableStateOf("")}
     var history by remember{mutableStateOf<List<JSONObject>>(emptyList())}
+    var configured by remember{mutableStateOf(ReceiptStore(applicationContext).use{it.bindings()})}
+    var selectedSources by remember{mutableStateOf(ReceiptStore(applicationContext).use{it.selectedBindingIds()})}
     val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){granted ->message=if(granted){if(bn)"SMS অনুমতি দেওয়া হয়েছে।" else "SMS permission granted."}else{if(bn)"SMS অনুমতি নেই; সেটিংস থেকে অনুমতি দিন।" else "SMS permission denied; review device settings."}}
     Surface(Modifier.fillMaxSize()){
      Column(Modifier.verticalScroll(rememberScrollState()).padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
@@ -68,11 +70,39 @@ class ReceiptSetupActivity:ComponentActivity(){
         }
        }){Text(if(bn)"Pair করুন" else "Pair device")}
        proposed?.let{bound ->
-        Text((if(bn)"নিশ্চিত করুন: " else "Confirm: ")+bound.optString("environment")+" · "+bound.optString("account_id")+" · "+bound.optString("source")+" · "+bound.optString("binding"))
+        Text((if(bn)"নিশ্চিত করুন: " else "Confirm: ")+bound.optString("environment")+" · "+(if(bound.optBoolean("physical_device"))(if(bn)"একটি ফোন — একাধিক account" else "One phone, multiple accounts") else bound.optString("account_id")+" · "+bound.optString("source")+" · "+bound.optString("binding")))
         Button(onClick={ReceiptStore(applicationContext).use{it.saveEnrollment(bound)};active=bound;proposed=null;ReceiptSyncWorker.schedule(applicationContext)}){Text(if(bn)"Account নিশ্চিত করে চালু করুন" else "Confirm account and enable")}
        }
       }else{
-       Text(active!!.optString("environment")+" · "+active!!.optString("source")+" · "+active!!.optString("binding"))
+       Text(active!!.optString("environment")+" · "+(if(active!!.optBoolean("physical_device"))(if(bn)"Physical device" else "Physical device") else active!!.optString("source")+" · "+active!!.optString("binding")))
+       if(active!!.optBoolean("physical_device")){
+        Text(if(bn)"একটি ফোনে একাধিক receiving account যুক্ত করুন। Website থেকে source/SIM mapping সংরক্ষণ করার পর এখানে অনুমোদন দিন।" else "Use one paired phone for multiple receiving accounts. Approve each website-configured source/SIM binding here.")
+        Button(enabled=!busy,onClick={busy=true;scope.launch{
+         try{
+          val phone=active!!
+          val payload=JSONObject().put("enrollment_id",phone.getString("id")).put("environment",phone.getString("environment"))
+          val response=withContext(Dispatchers.IO){ReceiptTransport.post("configuration",phone.getString("id"),UUID.randomUUID().toString(),payload.toString().toByteArray())}
+          if(response.first!=200)throw IllegalStateException()
+          withContext(Dispatchers.IO){ReceiptStore(applicationContext).use{it.savePhoneConfiguration(JSONObject(response.second))}}
+          ReceiptStore(applicationContext).use{configured=it.bindings();selectedSources=it.selectedBindingIds()}
+          message=if(bn)"Account/source তালিকা আপডেট হয়েছে।" else "Account/source list refreshed."
+         }catch(_:Exception){message=if(bn)"Binding list পাওয়া যায়নি; server বা অনুমতি পরীক্ষা করুন।" else "Binding refresh unavailable. Check server and authorization."}finally{busy=false}
+        }}){Text(if(bn)"Accounts refresh করুন" else "Refresh available accounts")}
+        if(configured.isEmpty())Text(if(bn)"কোনো account যুক্ত হয়নি। Website → SMS Devices → Manage থেকে যুক্ত করুন।" else "No receiving account linked. Add it under Website → SMS Devices → Manage.")
+        configured.forEach{binding->
+         val id=binding.optString("id")
+         Row(verticalAlignment=androidx.compose.ui.Alignment.CenterVertically){
+          Checkbox(checked=selectedSources.contains(id),enabled=!busy,onCheckedChange={checked->
+           ReceiptStore(applicationContext).use{it.selectBinding(id,checked);selectedSources=it.selectedBindingIds()}
+           ReceiptSyncWorker.schedule(applicationContext)
+          })
+          Column{
+           Text((binding.optString("label").ifBlank{binding.optString("method")})+" · "+binding.optString("source"))
+           Text("•••• "+binding.optString("display_suffix")+" · "+binding.optString("binding"),style=MaterialTheme.typography.bodySmall)
+          }
+         }
+        }
+       }
        Text((if(bn)"অপেক্ষমাণ receipt: " else "Queued receipts: ")+ReceiptStore(applicationContext).use{it.count()})
        val overflow=ReceiptStore(applicationContext).use{it.overflowCount()}
        val queueError=ReceiptStore(applicationContext).use{it.queueError()}
@@ -85,11 +115,14 @@ class ReceiptSetupActivity:ComponentActivity(){
          else "Warning: $overflow receipts were missed while the offline queue was full. They were not uploaded; review the account and device health."),
         color=MaterialTheme.colorScheme.error
        )
-       Button(onClick={if(active!!.optString("binding").startsWith("sms:"))permission.launch(Manifest.permission.RECEIVE_SMS)else startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))}){Text(if(bn)"সংগ্রহের অনুমতি / settings" else "Collection permission / settings")}
+       Button(onClick={permission.launch(Manifest.permission.RECEIVE_SMS)}){Text(if(bn)"SMS permission দিন" else "Grant SMS permission")}
+       Button(onClick={startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))}){Text(if(bn)"Notification listener settings" else "Notification listener settings")}
        Button(onClick={ReceiptSyncWorker.schedule(applicationContext);message=if(bn)"Sync schedule করা হয়েছে; ACK পেলে queue থেকে সরবে।" else "Sync scheduled; receipts leave the queue only after durable ACK."}){Text(if(bn)"এখন Sync করুন" else "Sync now")}
        Button(enabled=!busy,onClick={busy=true;scope.launch{try{
-        val bound=active!!;val body=JSONObject().put("enrollment_id",bound.getString("id")).put("environment",bound.getString("environment"))
-        val result=withContext(Dispatchers.IO){ReceiptTransport.post("history",bound.getString("id"),UUID.randomUUID().toString(),body.toString().toByteArray())}
+        val bound=active!!
+        val enrollmentId=if(bound.optBoolean("physical_device"))configured.firstOrNull()?.optString("id")?:throw IllegalStateException("No binding") else bound.getString("id")
+        val body=JSONObject().put("enrollment_id",enrollmentId).put("environment",bound.getString("environment"))
+        val result=withContext(Dispatchers.IO){ReceiptTransport.post("history",enrollmentId,UUID.randomUUID().toString(),body.toString().toByteArray())}
         if(result.first!=200)throw IllegalStateException()
         val items=JSONObject(result.second).getJSONArray("items");history=(0 until items.length()).map{items.getJSONObject(it)}
        }catch(_:Exception){message=if(bn)"Receipt history unavailable।" else "Receipt history unavailable."}finally{busy=false}}}){Text(if(bn)"Server receipt log দেখুন" else "View server receipt log")}
@@ -97,7 +130,10 @@ class ReceiptSetupActivity:ComponentActivity(){
        Text(if(bn)"Durable ACK মানে সংরক্ষিত হয়েছে; payment নিশ্চিত হওয়ার অর্থ নয়।" else "Durable ACK means stored; it does not mean payment confirmed.")
        var disconnect by remember{mutableStateOf(false)}
        OutlinedButton(onClick={disconnect=true}){Text(if(bn)"সংযোগ বিচ্ছিন্ন করুন" else "Disconnect")}
-       if(disconnect)AlertDialog(onDismissRequest={disconnect=false},title={Text(if(bn)"এই device বন্ধ করবেন?" else "Disconnect this device?")},text={Text(if(bn)"স্থানীয় queue ও key মুছবে। Web Devices-এ enrollment revoke করুন।" else "Deletes this device's local queue and key. Revoke its enrollment in Web Devices.")},confirmButton={TextButton(onClick={ReceiptStore(applicationContext).use{it.disconnect()};active=null;disconnect=false}){Text(if(bn)"বিচ্ছিন্ন করুন" else "Disconnect")}},dismissButton={TextButton(onClick={disconnect=false}){Text(if(bn)"ফিরে যান" else "Cancel")}})
+       if(disconnect)AlertDialog(onDismissRequest={disconnect=false},title={Text(if(bn)"এই device বন্ধ করবেন?" else "Disconnect this device?")},text={Text(if(bn)"স্থানীয় queue ও key মুছবে। Web Devices-এ enrollment revoke করুন।" else "Deletes this device's local queue and key. Revoke its enrollment in Web Devices.")},confirmButton={TextButton(onClick={val cleared=ReceiptStore(applicationContext).use{it.disconnect()}
+         if(cleared){active=null;configured=emptyList();selectedSources=emptySet()}
+         else message=if(bn)"অপেক্ষমাণ receipt আছে; sync/সমাধান না করে disconnect করা যাবে না।" else "Pending receipt evidence must be synced or resolved before disconnecting."
+         disconnect=false}){Text(if(bn)"বিচ্ছিন্ন করুন" else "Disconnect")}},dismissButton={TextButton(onClick={disconnect=false}){Text(if(bn)"ফিরে যান" else "Cancel")}})
       }
       if(busy)LinearProgressIndicator(Modifier.fillMaxWidth())
       if(message.isNotEmpty())Text(message)
