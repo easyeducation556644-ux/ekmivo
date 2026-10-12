@@ -33,7 +33,13 @@ func migratePhysicalPhones(ctx context.Context, realm, dsn, filename string) err
  if err!=nil||actual!=realm||!prior||!owner{
   return errors.New("physical-device migration requires matching isolated realm, receipt pipeline and migration owner")
  }
- if installed{return nil}
+ if installed{
+  repair:=os.Getenv("PG06_PHYSICAL_PHONES_REPAIR_FILE")
+  if repair==""{return nil}
+  if filepath.Base(repair)!="0046_pg06_account_cipher_text.sql"{return errors.New("explicit 0046 account-cipher repair file required")}
+  sql,err:=os.ReadFile(filepath.Clean(repair));if err!=nil{return err}
+  _,err=conn.Conn().PgConn().Exec(ctx,string(sql)).ReadAll();return err
+ }
  sql,err:=os.ReadFile(filepath.Clean(filename))
  if err!=nil{return err}
  _,err=conn.Conn().PgConn().Exec(ctx,string(sql)).ReadAll()

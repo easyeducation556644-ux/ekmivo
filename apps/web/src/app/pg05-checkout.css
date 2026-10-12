@@ -1,4 +1,47 @@
 /* PG05. Token-only Ink & Bone checkout and merchant operations. */
+/* Public checkout is independent from the marketing and dashboard shells. */
+.pg05-standalone{--checkout-accent:#0089c7;min-height:100dvh;padding:32px 16px;background:#edf8ff;color:#172334}
+.pg05-standalone .pg05-checkout-wrap{max-width:640px;margin:auto}
+.pg05-standalone .pg05-checkout-back{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #d9edf9;border-radius:12px;padding:8px 16px;margin-bottom:20px}
+.pg05-standalone .pg05-checkout-back button{border:0;background:none;color:#455669;font-size:28px;min-width:44px;min-height:44px}
+.pg05-standalone .pg05-checkout-back a{color:#006aa2;text-decoration:none;padding:12px}
+.pg05-standalone .pg05-checkout-heading{padding:0;text-align:center;margin:20px 0}
+.pg05-standalone .pg05-checkout-heading h1{font-size:24px}
+.pg05-standalone .pg05-checkout-grid{display:grid;grid-template-columns:1fr;gap:0;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 12px 35px #18334c18}
+.pg05-standalone .pg05-checkout-card{border:0;border-radius:0;background:#fff;color:#172334;padding:24px 30px}
+.pg05-standalone .pg05-checkout-card:first-child{text-align:center}
+.pg05-standalone .pg05-checkout-card:first-child section img{margin:auto;border-radius:50%}
+.pg05-standalone .pg05-checkout-card:first-child section nav{display:flex;justify-content:center;gap:12px;margin:16px 0}
+.pg05-standalone .pg05-checkout-card:first-child section nav a{padding:10px 18px;border:1px solid #d9edf9;border-radius:10px;text-decoration:none;color:#006aa2;min-height:44px}
+.pg05-standalone .pg05-summary-overline,.pg05-standalone .pg05-summary,.pg05-standalone .pg05-timer{display:none}
+.pg05-standalone .pg05-reference{font-size:14px;overflow-wrap:anywhere}
+.pg05-standalone .pg05-amount{border:0;margin:16px 0 0;padding:12px;background:#e2f3ff;border-radius:8px}
+.pg05-standalone .pg05-method-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:20px 0}
+.pg05-standalone .pg05-method-options button{background:#fff;border:2px solid #e5ecf1;border-radius:12px;min-height:78px;font-size:25px;font-weight:700}
+.pg05-standalone .pg05-method-options button[data-method=bkash]{color:#d70b67}
+.pg05-standalone .pg05-method-options button[data-method=nagad]{color:#c32318}
+.pg05-standalone .pg05-method-options button[data-method=rocket]{color:#77249a}
+.pg05-standalone .pg05-method-options button[aria-pressed=true]{border-color:var(--checkout-accent);box-shadow:0 0 0 2px #0089c718}
+.pg05-standalone .pg05-pay{width:100%;padding:16px;border:0;border-radius:8px;background:var(--checkout-accent);color:white;font-size:18px;font-weight:700}
+.pg05-standalone[data-method=bkash]{--checkout-accent:#e50b70;background:#e9e9e9}
+.pg05-standalone[data-method=nagad]{--checkout-accent:#bf171b;background:#e9e9e9}
+.pg05-standalone[data-method=rocket]{--checkout-accent:#77249a}
+.pg05-standalone:not([data-method=selection]) .pg05-checkout-card:nth-child(2){background:var(--checkout-accent);color:#fff}
+.pg05-standalone[data-method=nagad] .pg05-checkout-card:nth-child(2){background:linear-gradient(180deg,#b5141e,#991b06)}
+.pg05-standalone:not([data-method=selection]) .pg05-form label,.pg05-standalone:not([data-method=selection]) .pg05-form small{color:white}
+.pg05-standalone .pg05-form input{background:white;color:#172334;text-align:center;font-size:22px;min-height:52px;border:0}
+.pg05-standalone .pg05-form .ek-action{background:white;color:var(--checkout-accent);border:0;width:100%}
+.pg05-standalone .pg05-simulated{background:#00000012;border:1px solid #ffffff70;color:white;border-radius:10px;padding:16px}
+.pg05-standalone .pg05-simulated p{font-size:30px;font-weight:700;color:white;overflow-wrap:anywhere}
+.pg05-standalone .pg05-simulated small{color:white}
+.pg05-standalone .pg05-simulated button{background:white;color:var(--checkout-accent);padding:10px 16px;border:0;border-radius:6px;min-height:44px}
+.pg05-standalone .pg05-payment-steps{padding-left:24px;line-height:1.8;margin:24px 0}
+.pg05-standalone .pg05-payment-steps li{padding:6px 0}
+.pg05-standalone .pg05-session{text-align:center;font-weight:600}
+.pg05-standalone .pg05-checkout-foot{display:none}
+.pg05-standalone button:focus-visible,.pg05-standalone a:focus-visible,.pg05-standalone input:focus-visible{outline:3px solid #172334;outline-offset:3px}
+@media(min-width:540px){.pg05-standalone .pg05-method-options{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:400px){.pg05-standalone{padding:16px 10px}.pg05-standalone .pg05-checkout-card{padding:20px 16px}}
 .pg05-merchant{display:grid;gap:24px}
 .pg05-section{display:grid;gap:22px}
 .pg05-topline{display:flex;align-items:start;justify-content:space-between;flex-wrap:wrap;gap:16px}

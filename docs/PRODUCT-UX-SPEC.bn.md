@@ -128,6 +128,16 @@ Default table row click opens detail; keyboard accessible explicit link। Amoun
 
 ## ৫. Customer checkout / receipts
 
+### Owner correction — 2026-10-12: standalone branded payment experience
+
+- `/pay/{token}` এবং পরবর্তী checkout-এ marketing/dashboard header, footer, sidebar থাকবে না। Checkout-এর নিজস্ব back/close এবং EN/BN controls থাকবে। Close কেবল validated merchant return destination-এ যাবে; financial state পরিবর্তন করবে না।
+- প্রথম screen: payment গ্রহণকারী workspace-এর নাম/logo, configured platform contact buttons, enabled receiving methods-এর logo/image cards এবং server-derived payable amount-সহ Pay action। Disabled/unavailable method selectable হবে না। Contact address বা availability বানানো যাবে না।
+- Method নির্বাচন → Pay → প্রকৃত payer number input → server-side confirmation → receiving number ও transfer instructions। bKash-এর pink/white card layout এবং Nagad-এর red card layout owner-এর 2026-10-12 screenshot references অনুসরণ করবে; merchant নাম/reference/amount/contact অবশ্যই actual data। Provider-branded visual মানে official provider API integration দাবি নয়।
+- Instruction screen-এ full receiving number ও copy button, configured account transfer type, method-specific instructional image, exact amount, automatic-verification waiting state এবং server-time expiry থাকবে। নতুন receiving method যোগ হলে supported actual flow ছাড়া fake working tile নয়।
+- Customer PIN/OTP/TrxID/screenshot চাইবে না। Browser action কখনো paid status লিখবে না। Cancel/close-এ refund বা payment failure ধরে নেওয়া যাবে না।
+- Bangla QR owner পরে যুক্ত করবেন; এই correction-এর implementation-এ QR requirement নেই।
+- Full method logos/contact configuration/instruction assets এবং real browser flow evidence না থাকলে screenshot-equivalent design complete বলা যাবে না।
+
 Public routes: /{locale}/checkout/{opaqueToken}, /{locale}/pay/{opaqueToken}, /{locale}/receipt/{opaqueToken}, /{locale}/invoice/{opaqueToken}। High-entropy scoped capability, no secret/PII in query/return URLs। URL logging and referrer leakage minimized।
 
 1. **Summary:** merchant identity/logo/support, description/reference/total/currency/fees/legal; actual available methods, route unavailable reason।

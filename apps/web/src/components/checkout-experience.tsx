@@ -39,6 +39,7 @@ function describe(code:string,bn:boolean){
  INVALID_PAYER_OR_METHOD:["Enter the complete number you will send money from.","যে পূর্ণ নম্বর থেকে টাকা পাঠাবেন, সেটি লিখুন।"],
  CHECKOUT_SERVICE_UNAVAILABLE:["Checkout is unavailable. Check your connection and retry. Do not send money.","চেকআউট সেবা পাওয়া যাচ্ছে না। নেটওয়ার্ক দেখে আবার চেষ্টা করুন। টাকা পাঠাবেন না।"],
  FINANCIAL_SERVICE_UNAVAILABLE:["Payment service is not connected. Do not send money.","পেমেন্টের সেবা সংযুক্ত হয়নি। টাকা পাঠাবেন না।"]
+ ,COPY_FAILED:["Could not copy. Select and copy the receiving number manually.","কপি করা যায়নি। গ্রহণকারী নম্বর নির্বাচন করে কপি করুন।"]
  };
  return (labels[code]||["Could not complete this action. Nothing has been confirmed.","কাজটি সম্পন্ন হয়নি। কোনো পেমেন্ট নিশ্চিত হয়নি।"])[bn?1:0];
 }
@@ -49,6 +50,8 @@ export function CheckoutExperience({locale,token}:{locale:Locale;token:string}){
  const [code,setCode]=useState("");
  const [payer,setPayer]=useState("");
  const [method,setMethod]=useState("bkash");
+ const [step,setStep]=useState<"methods"|"payer">("methods");
+ const [destinationCopied,setDestinationCopied]=useState(false);
  const [locking,setLocking]=useState(false);
  const [clock,setClock]=useState(0);
  const [serverAnchor,setServerAnchor]=useState({time:0,monotonic:0});
@@ -123,13 +126,11 @@ export function CheckoutExperience({locale,token}:{locale:Locale;token:string}){
  const state=info?(ended&&["requires_payer","awaiting_payment"].includes(info.state)?"expired":info.state):"";
  const title=statusLabels[state]?.[bn?1:0]||(bn?"পেমেন্টের তথ্য":"Payment details");
  const canLock=state==="requires_payer"&&(info?.environment==="sandbox"||info?.environment==="live"&&info.verification_available);
- return <main className="pg05-checkout" lang={locale} style={{paddingTop:120}}>
+ return <main className="pg05-checkout pg05-standalone" data-method={step==="payer"||state!=="requires_payer"?info?.method||method:"selection"} lang={locale}>
   <div className="pg05-checkout-wrap">
-   <nav className="pg05-checkout-back"><Link href={"/"+locale}>{bn?"← Ekmivo মূল পৃষ্ঠা":"← Ekmivo home"}</Link></nav>
+   <nav className="pg05-checkout-back"><button type="button" onClick={()=>{if(state==="requires_payer"&&step==="payer")setStep("methods");else if(info?.return_url)location.assign(info.return_url);else setCode(bn?"বিক্রেতার সঙ্গে যোগাযোগ করুন।":"Contact the merchant to leave this checkout.")}} aria-label={bn?"পেছনে":"Back"}>←</button><Link href={`/${bn?"en":"bn"}/pay/${token}`} hrefLang={bn?"en":"bn"}>{bn?"English":"বাংলা"}</Link></nav>
    <header className="pg05-checkout-heading">
-    <p className="ds-eyebrow">{bn?"EKMIVO · নিরাপদ চেকআউট":"EKMIVO · SECURE CHECKOUT"}</p>
-    <h1>{bn?"পেমেন্ট সম্পন্ন করুন":"Complete your payment"}</h1>
-    <p>{bn?"শুধু সার্ভারের তথ্যই এখানে দেখানো হয়; কোনো মেসেজ বা রিডাইরেক্ট পেমেন্ট প্রমাণ করে না।":"Only authoritative server state is shown here. A message or redirect does not prove payment."}</p>
+    <h1>{state==="requires_payer"&&step==="methods"?(bn?"পেমেন্টের মাধ্যম বেছে নিন":"Choose your payment method"):methods[info?.method||method]||title}</h1>
    </header>
    {info?.environment==="sandbox"&&<div className="pg05-banner pg05-warning" role="note">
     <strong>{bn?"স্যান্ডবক্স — আসল টাকা পাঠাবেন না":"SANDBOX — DO NOT SEND REAL MONEY"}</strong>
@@ -157,27 +158,24 @@ export function CheckoutExperience({locale,token}:{locale:Locale;token:string}){
      <div className="pg05-timer" role="timer" aria-label={bn?"অবশিষ্ট সময়":"Time remaining"}>{["requires_payer","awaiting_payment"].includes(state)?remaining(info.expires_at,serverClock):"—"}</div>
     </section>
     <section className="pg05-checkout-card" aria-live="polite">
-     {canLock&&<>
-      <h2>{bn?"প্রকৃত প্রেরকের নম্বর লক করুন":"Lock your actual sending number"}</h2>
-      <p>{bn?"আপনি নিজে যে মোবাইল নম্বর থেকে টাকা পাঠাবেন, সেটি দিন। কোনো গ্রাহকের contact নম্বর অনুমান করা হয় না।":"Enter the full mobile number you would send money from. A customer's contact number is never assumed to be the payer."}</p>
+     {canLock&&step==="methods"&&<><h2>{bn?"মোবাইল ব্যাংকিং":"Mobile Banking"}</h2><div className="pg05-method-options">{info.methods.map(option=><button type="button" key={option} data-method={option} aria-pressed={method===option} onClick={()=>setMethod(option)}>{methods[option]||option}</button>)}</div><button type="button" className="pg05-pay" disabled={!info.methods.includes(method)} onClick={()=>setStep("payer")}>{bn?"পরিশোধ করুন":"Pay"} {amount}</button></>}
+     {state==="requires_payer"&&!canLock&&<p role="alert">{bn?"এই মুহূর্তে পেমেন্ট গ্রহণের সংযোগ প্রস্তুত নেই। টাকা পাঠাবেন না; বিক্রেতার সঙ্গে যোগাযোগ করুন।":"Payment collection is currently unavailable. Do not send money; contact the merchant."}</p>}
+     {canLock&&step==="payer"&&<>
+      <h2>{bn?`আপনার ${methods[method]||method} নম্বর`:`Your ${methods[method]||method} account number`}</h2>
       <form onSubmit={lock} className="pg05-form"><fieldset disabled={locking||code==="OFFLINE"}>
-       <label htmlFor="pg05-method">{bn?"পেমেন্ট মাধ্যম":"Payment method"}</label>
-        <select id="pg05-method" value={method} onChange={e=>setMethod(e.target.value)}>
-         {(info.methods||[]).map(option=><option key={option} value={option}>{methods[option]||option}</option>)}
-        </select>
        <label htmlFor="pg05-payer">{bn?"যে নম্বর থেকে টাকা পাঠাবেন":"Number you will pay from"}</label>
         <input id="pg05-payer" required type="tel" inputMode="tel" autoComplete="tel" maxLength={20} value={payer} onChange={e=>setPayer(e.target.value)} placeholder="017XXXXXXXX" aria-describedby="pg05-payer-hint"/>
         <small id="pg05-payer-hint">{bn?"১১ সংখ্যার পূর্ণ বাংলাদেশি মোবাইল নম্বর; বাংলা সংখ্যাও গ্রহণযোগ্য।":"Full 11-digit Bangladesh mobile number; Bengali digits accepted."}</small>
        <button className="ek-action" type="submit" disabled={locking||!info.methods?.length}>{locking?(bn?"সংরক্ষণ হচ্ছে…":"Securing…"):(bn?"নম্বর ও মাধ্যম নিশ্চিত করুন":"Confirm number and method")}</button>
       </fieldset></form></>}
      {state==="awaiting_payment"&&<>
-      <h2>{bn?"প্রেরক নম্বর নিশ্চিত হয়েছে":"Payer and route locked"}</h2>
-      <p>{bn?"আপনার নম্বর, মাধ্যম, পরিমাণ ও সময়সীমা অপরিবর্তনীয় রাখা হয়েছে। কিন্তু কোনো টাকা যাচাই হয়নি।":"Your payer, method, amount and time window are immutable. No funds have been verified."}</p>
+      <h2>{bn?"টাকা পাঠানোর নির্দেশনা":"Payment instructions"}</h2>
       {info.environment==="live"&&info.source_online===false&&<p role="alert">{bn?"গ্রহণকারী device-এর sync দেরি হচ্ছে। আগে টাকা পাঠিয়ে থাকলে আবার পাঠাবেন না। নতুন করে পাঠানোর আগে সংযোগ স্বাভাবিক হওয়া পর্যন্ত অপেক্ষা করুন।":"Receiving-device sync is delayed. If you already sent money, do not send it again. Wait for the connection to recover before sending new funds."}</p>}
       <div className="pg05-simulated"><strong>{info.environment==="sandbox"?(bn?"শুধু পরীক্ষামূলক গন্তব্য":"SIMULATED DESTINATION ONLY"):(bn?"ব্যবসার গ্রহণকারী নম্বর":"Merchant receiving number")}</strong>
-       <div className="pg05-destination-line"><p data-testid="checkout-receiving-number">{info.destination||"SIMULATED — DO NOT SEND MONEY"}</p>{info.destination&&<button type="button" aria-label={bn?"সম্পূর্ণ গ্রহণকারী নম্বর কপি":"Copy complete receiving number"} onClick={()=>void navigator.clipboard.writeText(info.destination!).then(()=>setCopied(true)).catch(()=>setCopied(false))}>{copied?(bn?"নম্বর কপি হয়েছে":"Number copied"):(bn?"নম্বর কপি করুন":"Copy number")}</button>}</div>
+       <p data-testid="checkout-receiving-number">{info.destination||"SIMULATED — DO NOT SEND MONEY"}</p>
+       {info.environment==="live"&&info.destination&&<button type="button" onClick={async()=>{try{await navigator.clipboard.writeText(info.destination!);setDestinationCopied(true)}catch{setCode("COPY_FAILED")}}}>{destinationCopied?(bn?"কপি হয়েছে":"Copied"):(bn?"নম্বর কপি করুন":"Copy number")}</button>}
        <small>{info.environment==="sandbox"?(bn?"কোনো বাস্তব নম্বরে টাকা পাঠাবেন না। এটি sandbox; server-এর receipt evidence ছাড়া payment নিশ্চিত হবে না।":"Do not send real funds from this sandbox checkout. Payment requires verified server receipt evidence."):(bn?"শুধু প্রদর্শিত নম্বর ও নির্দিষ্ট পরিমাণ ব্যবহার করুন। নম্বর, সময়, amount, গ্রহণকারী account ও method মিলে গেলে স্বয়ংক্রিয়ভাবে যাচাই হবে।":"Use only the shown receiving number and exact amount. Actual payer, original time, amount, receiving account and method must match automatically.")}</small></div>
-      <p role="status">{bn?"টাকা পাওয়ার প্রমাণ পাওয়া যায়নি। নিজের থেকে পেমেন্ট নিশ্চিত করার বোতাম নেই।":"No verified receipt yet. There is no self-approval button."}</p>
+      <ol className="pg05-payment-steps"><li>{bn?"উপরের গ্রহণকারী নম্বর কপি করুন।":"Copy the receiving number above."}</li><li>{bn?`${methods[info.method||method]||method} অ্যাপের Send Money নির্বাচন করুন।`:`Open ${methods[info.method||method]||method} and select Send Money.`}</li><li>{bn?`দেখানো নম্বরে ঠিক ${amount} পাঠান। এই পেজ খোলা রাখুন; আবার টাকা পাঠাবেন না।`:`Send exactly ${amount} to the shown number. Keep this page open; do not send twice.`}</li></ol><p role="status">{bn?"আপনার পেমেন্টের জন্য অপেক্ষা করছি…":"Waiting for your payment…"}</p><p className="pg05-session">{bn?"অবশিষ্ট সময়":"Session expires in"} {remaining(info.expires_at,serverClock)}</p>
      </>}
      {state==="processing"&&<><h2>{title}</h2><p>{bn?"সার্ভার পেমেন্টের প্রমাণ যাচাই করছে।":"The server is examining actual payment evidence."}</p></>}
      {state==="completed"&&<><h2>{title}</h2><p>{bn?"এই অবস্থা শুধু সার্ভারের যাচাইকৃত ledger থেকে এসেছে।":"This status is derived only from verified server-side allocations."}</p><button type="button" onClick={()=>window.print()}>{bn?"রসিদ print / PDF":"Print receipt / save PDF"}</button>{info.verification&&<dl><dt>{bn?"যাচাই পদ্ধতি":"Verification method"}</dt><dd>{info.verification.method}</dd><dt>{bn?"আসল transaction সময়":"Original transaction time"}</dt><dd>{new Date(info.verification.original_transaction_at).toLocaleString(locale)} ({info.verification.time_precision})</dd><dt>{bn?"যাচাইয়ের সময়":"Verified at"}</dt><dd>{new Date(info.verification.verified_at).toLocaleString(locale)}</dd><dt>{bn?"Receiving account":"Receiving account"}</dt><dd>••••{info.verification.receiving_suffix}</dd></dl>}{info.return_url&&<a href={info.return_url} rel="noreferrer">{bn?"বিক্রেতার কাছে ফিরুন":"Return to merchant"}</a>}<CustomerRefundRequest locale={locale} token={token} maximumMinor={info.amount_minor}/></>}
