@@ -1,5 +1,19 @@
 # Ekmivo — consolidated manual verification register
 
+## PG06–PG09 receipt notice follow-up — 2026-10-12
+
+Code branch: `codex/pg06-pg09-code`; see current [audit](evidence/PG06-PG09-AUDIT.md) for tested SHA. These rows are **MANUAL PENDING**, not automated PASS. Bundle with the existing PG06–PG09 pass; no production migration/deploy occurred here.
+
+- [ ] Consented real Android device + approved receiving account/parser: original time, actual payer, amount, receiving account and method uniquely match; same receipt replay produces one payment/event/webhook. Test unrelated OTP rejection, permission loss, dual SIM, offline/reboot and durable ACK. The new software-signer HTTP test does not replace this.
+- [ ] Configured staging SMTP + dedicated customer inbox: subscribe with explicit email consent, receive verification code, verify once, reject wrong intent/reuse/expired code. Confirm EN/BN and SANDBOX labeling. Receipt is independent of payer identity and never a payment prerequisite.
+- [ ] Verify before and after payment; initial receipt queued once. Confirm SMTP accepted versus actual inbox delivery separately. No secrets, addresses, codes or raw email bodies in shared evidence.
+- [ ] Drop SMTP DATA acknowledgement / kill notice worker: notice remains unknown; financial matching and webhook continue. Owner/admin must enter reason and acknowledge duplicate risk before recovery; viewer cannot retry, and SQL actor/reason audit must exist.
+- [ ] Withdraw using original checkout and emailed withdrawal code; database recipient ciphertext/digest are NULL, pending notices suppressed, retry denied. Disable SMTP and confirm existing verify/withdraw controls still work. An already transmitted email cannot be recalled.
+- [ ] Controlled public merchant HTTPS endpoint + authentic receipt: independently validate signature/timestamp/scope, query authoritative payment, fulfill once, repeat delivery and key overlap/rotation. Local TLS receiver with fake authoritative API is only simulation evidence.
+- [ ] Combined deployed browser → authorized Go → real restricted finance database: payment detail notice history/recovery, wrong tenant/realm, owner/viewer, EN/BN, Light/Dark/System, 320/768/1024/desktop, keyboard/error/offline/switch/deep-link. Browser CI mocks operations API and is not this combined flow.
+
+PG05 live issuance, PG10–PG13 lifecycle producers, PG14 generated SDK and later full privacy/restore/alerts are **code dependencies**, not manual-only omissions. Record exact deployment/commit, sanitized status/assertion, account role and date for each result.
+
 **Single owner test file.** Updated: 2026-10-11. Source of acceptance: `docs/IMPLEMENTATION-BACKLOG.md`, `docs/PRODUCT-UX-SPEC.bn.md`, and per-PG `docs/evidence/PGxx/README.md`.
 
 ## Rules

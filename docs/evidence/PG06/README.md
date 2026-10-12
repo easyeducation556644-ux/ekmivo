@@ -1,5 +1,13 @@
 # PG06 — native receipt collection & signed evidence (NOT ACCEPTED)
 
+## Current source follow-up — 2026-10-12
+
+**Observed exact-source verification:** `9131284dbb908df3e36a3b188e93f8001f659a36`, [CI 38193033849](https://github.com/masharzy/ekmivo/actions/runs/38193033849), 4/4 PASS. Signed HTTP → restricted Go → SQL matching PASS with software signer/fictional sample; native unit/debug build PASS. Not a physical-device or provider PASS. The final result supersedes the in-progress wording below.
+
+See [current audit](../PG06-PG09-AUDIT.md) for exact code/CI identity. Go now validates the approved full capture pattern/source before persistence and rejects unrelated/OTP text. Signed HTTP integration uses a software P-256 key, genuine restricted Go + PostgreSQL and a **fictional sandbox** receipt; it checks claim, heartbeat, body tamper, wrong realm/source, replay, matching once and revocation. The initial run exposed stale test authority after earlier control mutation; the test now refreshes through the real restricted provisioner, preserving fail-closed production authorization. Latest run must pass before this new coverage is called verified.
+
+Physical Android Keystore/SIM/OEM, real consented samples, offline/reboot/permission-loss and production evidence remain **MANUAL PENDING** in the single ledger. No Android UI expansion, production deploy or real provider test occurred. Historical source-only descriptions below are superseded only where supported by newer evidence.
+
 **Status:** preliminary source-only security work; all PG06 acceptance gates OPEN. Related S31/S32.
 
 ## Implemented

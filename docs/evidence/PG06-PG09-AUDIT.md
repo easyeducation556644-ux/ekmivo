@@ -1,5 +1,26 @@
 # PG06–PG09 implementation / verification audit
 
+## Current checkpoint — 2026-10-12
+
+This section supersedes conflicting rows in the historical checkpoints below. **Verified application source: `9131284dbb908df3e36a3b188e93f8001f659a36`**, branch `codex/pg06-pg09-code`, [draft PR #9](https://github.com/masharzy/ekmivo/pull/9). Exact-source [CI 38193033849](https://github.com/masharzy/ekmivo/actions/runs/38193033849): **4/4 jobs PASS**, observed on 2026-10-12. Subsequent documentation-only commits may advance HEAD without changing this tested source.
+
+Observed logs: **531 combined PG04–PG09 financial assertions** (not 531 per PG), signed HTTP → restricted Go → PG07 matching PASS, customer notice SQL PASS, real Go operations/session HTTP PASS, separate merchant receiver DB + local TLS fake authoritative API PASS. **26 Chromium PG09 UI checks PASS**: authenticated Next shell with mocked operations API, owner notice recovery, viewer read-only, EN/BN × Light/Dark × 320/768/1024/1440 and System/emulated OS dark/light at 1024. Next lint (existing warnings), strict OpenAPI parsing, TypeScript and production build PASS; Go compile/unit/race/vet paths PASS; Kotlin unit/debug assembly and runtime/migration images PASS. Local targeted Go tests/vet and TypeScript also PASS. No real provider, physical phone, SMTP account/inbox, public merchant or combined deployed browser→Go→DB evidence was produced.
+
+Intermediate runs [38191947466](https://github.com/masharzy/ekmivo/actions/runs/38191947466) and [38192564982](https://github.com/masharzy/ekmivo/actions/runs/38192564982) failed: first stale fixture projection after prior control-access mutation (correctly rejected heartbeat), then expected SQL rejection propagated from the outer test transaction. Fixed via real restricted projection refresh and asserting denial after scoped transaction rollback. Neither failed/cancelled run is counted as PASS. Prior `e639b32`/507-assertion result is historical and not substituted for current evidence.
+
+| Area | Implemented source / available verification | Remaining boundary |
+|---|---|---|
+| PG06 | Native collector/signing/pairing and durable ingress; Go rejects unrelated/OTP captures before persistence. Signed HTTP integration PASS uses a software P-256 signer and fictional sandbox parser, then real restricted Go + PostgreSQL matching. | Actual Android Keystore/SIM/OEM/offline/reboot and approved real provider sample tests remain manual pending. Software signing is not physical-device evidence. |
+| PG07 | Exact five-field matching, concurrency, allocation + payment + event atomicity, duplicate/ambiguity/late-time tests in isolated finance databases. | Genuine incoming payment and production crash/restore evidence remain open. PG05 public checkout is still sandbox-only; live issuance is a code dependency, not merely a manual test. |
+| PG08 | Signed merchant webhook, lease/retry/rotation and authoritative receiver example; new consent-verified email contacts, transactional receipt outbox, validated TLS SMTP, separate River notice queue, unknown-outcome handling, masked history and audited reason-required recovery. | Real SMTP inbox/public merchant HTTPS/device-to-payment integration pending. SMTP acceptance does not prove inbox delivery. Expiry/refund/reversal/invoice producers belong to PG10–PG13 and are not implemented here. |
+| PG09 | Real scoped operation APIs/actions; chronological timestamp + UUID cursors and filtering; notice recovery UI. UI harness adds owner/viewer notice interactions, 1024px and System-theme OS changes. | Browser harness mocks operations responses. Combined deployed browser → Go → database, keyboard/offline/OS/device acceptance remains pending. Refund/invoice/export screens retain honest dependency labels. |
+
+Migration `0015_pg08_customer_notice.sql` is additive and not applied to production. Only the existing explicit financial migration coordinator applies it; control DB must remain free of finance tables. Startup detects incomplete intermediate notice schemas rather than overwriting an applied migration. Withdrawal clears recipient ciphertext/digest and suppresses unsent notices; verification/withdrawal remain available when SMTP is disabled. An email already sent or in flight cannot be recalled.
+
+Full cross-store retention/export/deletion, backup/key recovery and operational alerting are still later release dependencies. Strict OpenAPI parsing is not generated SDK/handler conformance (PG14). No PG10–PG17 implementation was started in this follow-up. Overall PG06–PG09 production acceptance remains **OPEN**. Use [the single manual ledger](../MANUAL-VERIFICATION.md) for outstanding external checks, and per-PG evidence for observed automated results.
+
+## Historical checkpoints — superseded where corrected above
+
 Date: 2026-10-11. **PG06, PG07, PG08 and PG09 acceptance remain OPEN.**
 No production deployment, money movement, production migration 0014 application or device/provider test was performed. Migration 0014 **was applied and replayed only in disposable CI sandbox/live financial databases** at source commit `8aaf240be72920c7508502e2f67d75f400da18a8`. Earlier successful PG04/PG05 tests cannot verify this newer source. Do not merge this draft or infer production safety.
 

@@ -1,5 +1,9 @@
 # Agent handoff: implement payment-first
 
+## Current owner scope — 2026-10-12
+
+Finish PG06–PG09 remaining source and available checks, then report. **Do not start PG10–PG17 until the owner instructs.** Branch `codex/pg06-pg09-code` / draft PR #9; no main merge, production deploy or migration performed by this follow-up. Consult the top of [current audit](evidence/PG06-PG09-AUDIT.md), per-PG evidence and [manual ledger](MANUAL-VERIFICATION.md); older missing-notice/UUID-pagination/source-only rows below are historical where corrected. Real Android/provider and SMTP/public merchant/browser evidence remain external gates. The owner said access is ready but its location has not yet been supplied; do not invent access or claim these tests passed.
+
 Updated 2026-10-11. Single canonical implementation plan: **[DUAL-SAAS-MVP-PLAN.bn.md](DUAL-SAAS-MVP-PLAN.bn.md)**. This file is the reading/execution entry, not another product plan.
 
 ## Read order

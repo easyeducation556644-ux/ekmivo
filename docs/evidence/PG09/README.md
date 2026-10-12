@@ -1,5 +1,11 @@
 # PG09 implementation evidence
 
+## Current notice recovery / responsive follow-up — 2026-10-12
+
+**Observed exact-source verification:** `9131284dbb908df3e36a3b188e93f8001f659a36`, [CI 38193033849](https://github.com/masharzy/ekmivo/actions/runs/38193033849), 4/4 PASS. Real SQL + Go HTTP operation tests PASS; **26 Chromium UI-only checks PASS** with mocked operations API, including notice recovery/viewer denial, 1024px and both locales' System/emulated OS change. No combined deployed browser/finance or physical OS acceptance is claimed.
+
+Real Go scoped notice history/retry endpoints and Next proxies now support payment detail receipt recovery; owner/admin reason and duplicate-risk confirmation required, viewer read-only, source-unavailable/offline/loading/error states explicit. Browser harness adds owner/viewer interactions, 1024px and EN/BN System theme following emulated OS dark/light. [Current audit](../PG06-PG09-AUDIT.md) records exact observed CI outcomes. These browser tests mock operation responses; real Go/SQL assertions are a separate layer. They do not prove a deployed combined browser → Go → finance flow. Full physical OS/keyboard/offline/switching sweep remains in [the manual ledger](../../MANUAL-VERIFICATION.md). Overall production acceptance remains OPEN.
+
 ## New code checkpoint — 2026-10-11 (UNVERIFIED)
 
 See [PG06–PG09 source checkpoint](../PG06-PG09-CODE-CHECKPOINT.md). Native collection, server matching, merchant delivery and operational screens are now implementation drafts on `codex/pg06-pg09-code`. These edits have **no build/CI/database/browser/real-device evidence yet** by the owner's explicit code-first instruction. Any older PASS above belongs only to its referenced older commit.

@@ -1,5 +1,11 @@
 # Implementation status and remaining work
 
+### Latest PG06–PG09 code checkpoint — 2026-10-12
+
+Application source `9131284dbb908df3e36a3b188e93f8001f659a36` is pushed to `codex/pg06-pg09-code` ([draft PR #9](https://github.com/masharzy/ekmivo/pull/9)); main/production remain unchanged. This follow-up adds consent-verified customer receipt emails, isolated transactional notice outbox, TLS SMTP and unknown-outcome recovery, owner/admin audited resend, Go pre-persistence unrelated/OTP rejection, and signed HTTP integration coverage. Latest exact-source CI outcome is recorded in the [current audit](evidence/PG06-PG09-AUDIT.md). Earlier foundation-only descriptions below are historical, not current source inventories.
+
+PG06–PG09 production acceptance remains OPEN: real Android/provider, SMTP/public merchant and combined deployed browser checks are not represented by synthetic tests. PG05 live checkout issuance remains a missing earlier code dependency. Later lifecycle producers, complete privacy/retention/recovery and generated SDK remain with their documented owners. PG10–PG17 were not started under this narrowed request. [Notice setup/recovery](evidence/PG08/RECEIPT-NOTICE.md); [manual ledger](MANUAL-VERIFICATION.md).
+
 ### Latest measured performance checkpoint — 2026-10-11
 
 Source de688397886ac2118cd1385f1a32e7f0399e6791 is pushed. [CI 38132058044](https://github.com/masharzy/ekmivo/actions/runs/38132058044): all three jobs PASS, including actual section skeleton rendering, Next production build and isolated database/security checks. Local exact-source production build PASS; local Next production HTTP/RSC against real Neon and deployed Go: PG02 21/21, PG03 37/37, dedicated fixture cleanup PASS. See per-item local-performance-control-plane.json; these are not deployed web parity or browser interaction evidence. Chrome connection unavailable; fallback local browser sign-in was not completed, so no new browser PASS is claimed. Its dedicated fixture was removed and local server stopped.

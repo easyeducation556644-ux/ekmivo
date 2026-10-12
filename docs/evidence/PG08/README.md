@@ -1,5 +1,13 @@
 # PG08 implementation evidence
 
+## Current receipt notice implementation — 2026-10-12
+
+**Observed exact-source verification:** `9131284dbb908df3e36a3b188e93f8001f659a36`, [CI 38193033849](https://github.com/masharzy/ekmivo/actions/runs/38193033849), 4/4 PASS. Notice consent/intent/single-use/dedup/lease/unknown/reason-required recovery/withdrawal minimization and restricted-role/control isolation SQL PASS; validated local TLS SMTP transport tests PASS. Merchant receiver test has its own database and fake authoritative local TLS API. These do not establish actual inbox/public merchant delivery.
+
+Missing customer notice code has been added: explicit email consent, single-use intent-bound verification and separate withdrawal capability, encrypted recipient, transactional deduplicated notice outbox, certificate-validated implicit TLS SMTP, independent River queue, bounded retry and unknown-outcome handling. Payment detail has masked status history and owner/admin reason-required audited recovery with duplicate-risk confirmation. Withdrawal clears address ciphertext/digest; existing verification/withdrawal work even when SMTP is disabled. Email consent is not an automatic-payment-verification opt-in.
+
+[Setup and semantics](RECEIPT-NOTICE.md); [current audit / exact CI](../PG06-PG09-AUDIT.md); [single manual ledger](../../MANUAL-VERIFICATION.md). Local transport tests use actual local validated TLS but no external SMTP account/inbox. SQL tests are disposable and fictional. SMTP acceptance is not inbox delivery; no public merchant/device/provider flow was tested. Later lifecycle producers and full privacy/operational recovery remain their documented dependencies. Production acceptance remains **OPEN**; historical missing-code rows below are superseded by this source, not by a live deployment claim.
+
 ## New code checkpoint — 2026-10-11 (UNVERIFIED)
 
 See [PG06–PG09 source checkpoint](../PG06-PG09-CODE-CHECKPOINT.md). Native collection, server matching, merchant delivery and operational screens are now implementation drafts on `codex/pg06-pg09-code`. These edits have **no build/CI/database/browser/real-device evidence yet** by the owner's explicit code-first instruction. Any older PASS above belongs only to its referenced older commit.
