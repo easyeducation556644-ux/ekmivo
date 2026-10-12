@@ -39,7 +39,7 @@ export function PaymentOperations({locale,workspaceId,userId,environment,resourc
  useEffect(()=>{if(!filterReady)return;try{sessionStorage.setItem(filterKey,JSON.stringify(queryFilters));sessionStorage.setItem(filterKey+":q",filter)}catch{/* private-mode storage may be unavailable */}},[filterKey,filterReady,queryFilters,filter]);
  useEffect(()=>{const handle=setTimeout(()=>setSearchTerm(filter.trim()),250);return()=>clearTimeout(handle)},[filter]);
  const endpoint=useCallback((kind:string,id?:string,action?:string)=>{
-  const parameters=new URLSearchParams({environment});if(kind===resource&&!detailId&&!action){for(const [key,value] of Object.entries(queryFilters)){if(value)parameters.set(key,key==="from"||key==="to"?new Date(value).toISOString():value)}if(searchTerm)parameters.set("q",searchTerm)}
+  const parameters=new URLSearchParams({environment});if(kind===resource&&!detailId&&!action){for(const [key,value] of Object.entries(queryFilters)){if(value){if(key==="from"||key==="to"){const date=new Date(value);if(!Number.isNaN(date.valueOf()))parameters.set(key,date.toISOString())}else parameters.set(key,value)}}if(searchTerm)parameters.set("q",searchTerm)}
   return base+kind+(id?"/"+id:"")+(action?"/"+action:"")+"?"+parameters.toString();
  },[base,environment,queryFilters,resource,detailId,searchTerm]);
  const request=useCallback(async(url:string,body?:unknown)=>{
