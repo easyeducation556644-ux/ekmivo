@@ -1,3 +1,5 @@
+> **Release-readiness audit, 2026-10-12:** Branch push is a source handoff, not a gateway release. The workflow does not run on this feature-branch push. PG10–PG17 source/acceptance remain open, PG02 extended latency work remains open, migrations 0016–0044 are unapplied/unverified, and no controlled real-device bKash/Nagad/Rocket five-field payment, public signed merchant webhook, isolated restore, measured production performance or observed paid cohort is recorded. Latest Kotlin change has no APK build evidence. Production/market readiness is **NO** until the payment release gates pass. Regulatory classification and permitted merchant/provider usage require owner-led review before public launch.
+
 > **Pushed source checkpoint, 2026-10-12:** commit `7a1cc8acefa0bad2b187c2743ab526d7d65f6bbc` is on `origin/codex/pg10-pg17-code`. Older “local only/no push” lines below describe earlier snapshots. Working tree was clean after push. PG10–PG17 source and acceptance remain OPEN; migrations 0016–0044 are unapplied, and no production deployment or real provider/device proof is claimed.
 
 # Implementation status and remaining work
