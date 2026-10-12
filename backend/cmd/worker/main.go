@@ -18,6 +18,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/masharzy/ekmivo/backend/internal/financial"
+	"github.com/masharzy/ekmivo/backend/internal/receiptnotice"
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 )
@@ -170,7 +171,17 @@ func main() {
 		if e != nil || len(key) != 32 {
 			log.Fatal("receipt pipeline encryption key unavailable")
 		}
-		river.AddWorker(workers, &financial.PipelineWorker{Pool: pool, Control: control, Realm: realm, EncryptionKey: key})
+		noticeSMTP, e := receiptnotice.LoadSMTP()
+		if e != nil {
+			log.Fatal("notice worker configuration blocked: ", e)
+		}
+		if noticeSMTP != nil {
+			var installed bool
+			if e = pool.QueryRow(ctx, "SELECT to_regprocedure('pg08_notice_due()') IS NOT NULL").Scan(&installed); e != nil || !installed {
+				log.Fatal("notice worker migration unavailable")
+			}
+		}
+		river.AddWorker(workers, &financial.PipelineWorker{Pool: pool, Control: control, Realm: realm, EncryptionKey: key, NoticeSMTP: noticeSMTP})
 		periodic = append(periodic, river.NewPeriodicJob(river.PeriodicInterval(2*time.Second), func() (river.JobArgs, *river.InsertOpts) {
 			return financial.PipelineArgs{Environment: realm}, &river.InsertOpts{Queue: "financial_" + realm, MaxAttempts: 3, UniqueOpts: river.UniqueOpts{ByArgs: true}}
 		}, &river.PeriodicJobOpts{RunOnStart: true}))

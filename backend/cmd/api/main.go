@@ -15,6 +15,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/masharzy/ekmivo/backend/internal/authz"
 	"github.com/masharzy/ekmivo/backend/internal/checkout"
+	"github.com/masharzy/ekmivo/backend/internal/receiptnotice"
 )
 
 type responseError struct {
@@ -59,6 +60,7 @@ func newHandlerWithRepository(repo *authz.Repository) http.Handler {
 }
 func newHandlerWithCheckout(repo *authz.Repository, pay *checkout.Service) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("POST /v1/public/checkout/{token}/notices/{noticeAction}", pay.HandleNotice)
 	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/operations/{resource}", pay.HandleOperations)
 	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/operations/{resource}/{resourceID}", pay.HandleOperations)
 	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/operations/{resource}", pay.HandleOperations)
@@ -231,12 +233,28 @@ func main() {
 			log.Fatal("PG05 checkout startup preflight failed: ", err)
 		}
 		defer pg05.Close()
+		pg05.NoticeSMTP, err = receiptnotice.LoadSMTP()
+		if err != nil {
+			log.Fatal("notice configuration blocked: ", err)
+		}
 		if os.Getenv("PG06_PIPELINE_ENABLED") == "true" {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			err = pg05.ConfigurePipeline(ctx, os.Getenv("PG06_ENCRYPTION_KEY_HEX"), os.Getenv("PG06_PARSER_RULES_JSON"), os.Getenv("PG06_CONTROL_PROJECTION_URL"), os.Getenv("PG06_LIVE_DATABASE_URL"))
 			cancel()
 			if err != nil {
 				log.Fatal("receipt pipeline startup blocked: ", err)
+			}
+		}
+		if pg05.NoticeSMTP != nil {
+			if pg05.Pipeline == nil {
+				log.Fatal("notices require receipt pipeline")
+			}
+			var installed bool
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			err = pg05.Sandbox.QueryRow(ctx, "SELECT to_regprocedure('pg08_notice_due()') IS NOT NULL").Scan(&installed)
+			cancel()
+			if err != nil || !installed {
+				log.Fatal("notice migration is unavailable")
 			}
 		}
 	}

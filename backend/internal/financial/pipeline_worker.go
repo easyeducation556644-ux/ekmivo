@@ -7,6 +7,7 @@ import (
 	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/masharzy/ekmivo/backend/internal/merchantwebhook"
+	"github.com/masharzy/ekmivo/backend/internal/receiptnotice"
 	"github.com/riverqueue/river"
 	"time"
 )
@@ -22,6 +23,7 @@ type PipelineWorker struct {
 	Pool, Control *pgxpool.Pool
 	Realm         string
 	EncryptionKey []byte
+	NoticeSMTP    *receiptnotice.SMTPConfig
 }
 
 func (w *PipelineWorker) Timeout(*river.Job[PipelineArgs]) time.Duration { return 20 * time.Second }
@@ -77,6 +79,9 @@ func (w *PipelineWorker) Work(ctx context.Context, job *river.Job[PipelineArgs])
 	items, e = w.pending(ctx, "pg08_due")
 	if e != nil {
 		return errors.New("delivery queue unavailable")
+	}
+	if e = w.drainNotice(ctx); e != nil {
+		return e
 	}
 	// One bounded HTTP attempt per sweep; separate realm workers scale this drain.
 	for _, p := range items {

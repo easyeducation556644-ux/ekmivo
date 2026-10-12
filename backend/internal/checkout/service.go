@@ -22,6 +22,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/masharzy/ekmivo/backend/internal/authz"
+	"github.com/masharzy/ekmivo/backend/internal/receiptnotice"
 )
 
 var (
@@ -32,12 +33,13 @@ var (
 )
 
 type Service struct {
-	Pipeline *Pipeline
-	limits   limiter
-	Auth     *authz.Repository
-	Sandbox  *pgxpool.Pool
-	TokenKey []byte
-	PayerKey []byte
+	NoticeSMTP *receiptnotice.SMTPConfig
+	Pipeline   *Pipeline
+	limits     limiter
+	Auth       *authz.Repository
+	Sandbox    *pgxpool.Pool
+	TokenKey   []byte
+	PayerKey   []byte
 }
 type createRequest struct {
 	Reference string `json:"merchant_reference"`
@@ -669,6 +671,7 @@ func (s *Service) publicResult(w http.ResponseWriter, r *http.Request, raw []byt
 		}
 	}
 	data["merchant_name"] = name
+	data["notice_available"] = s.NoticeSMTP != nil && s.pipelineReady()
 	write(w, 200, data)
 }
 

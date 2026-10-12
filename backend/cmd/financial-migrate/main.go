@@ -363,4 +363,11 @@ func main() {
 			}
 		}
 	}
+	if os.Getenv("PG08_NOTICE_ALLOW_MIGRATION") == "true" {
+		for _, target := range []realmDSN{{"sandbox", sa}, {"live", lv}} {
+			if err := migrateCustomerNotice(ctx, target.environment, target.raw, os.Getenv("PG08_NOTICE_MIGRATION_FILE")); err != nil {
+				log.Fatalf("notice migration blocked in %s: %v", target.environment, err)
+			}
+		}
+	}
 }

@@ -1,0 +1,140 @@
+package checkout
+
+import (
+	"encoding/hex"
+	"encoding/json"
+	"net/http"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/masharzy/ekmivo/backend/internal/deviceevidence"
+	"github.com/masharzy/ekmivo/backend/internal/receiptnotice"
+)
+
+// Notice actions do not lock a payer, alter a payment or provide proof of funds.
+func (s *Service) HandleNotice(w http.ResponseWriter, r *http.Request) {
+	if !s.pipelineReady() || s.NoticeSMTP == nil {
+		fail(w, 503, "NOTICE_SERVICE_UNAVAILABLE")
+		return
+	}
+	token := r.PathValue("token")
+	if !tokenPattern.MatchString(token) {
+		fail(w, 404, "NOT_FOUND")
+		return
+	}
+	if !originAllowed(r) {
+		fail(w, 403, "ORIGIN_DENIED")
+		return
+	}
+	if !s.budget(w, "notice:global", 300) || !s.budget(w, "notice:"+digest(token), 5) {
+		return
+	}
+	var raw []byte
+	if err := s.Sandbox.QueryRow(r.Context(), "SELECT pg05_checkout_view($1)", digest(token)).Scan(&raw); err != nil {
+		mapped(w, err)
+		return
+	}
+	var checkout struct {
+		Workspace string `json:"workspace_id"`
+		ID        string `json:"id"`
+	}
+	if json.Unmarshal(raw, &checkout) != nil || !uuidPattern.MatchString(checkout.Workspace) || !uuidPattern.MatchString(checkout.ID) {
+		fail(w, 404, "NOT_FOUND")
+		return
+	}
+	if _, err := s.publicBusiness(r, raw); err != nil {
+		fail(w, 503, "MERCHANT_UNAVAILABLE")
+		return
+	}
+	action := r.PathValue("noticeAction")
+	if action == "subscribe" {
+		var body struct {
+			Email   string `json:"email"`
+			Consent bool   `json:"consent"`
+		}
+		if decodeBounded(w, r, &body, 1024) != nil {
+			fail(w, 422, "INVALID_NOTICE_REQUEST")
+			return
+		}
+		email, err := receiptnotice.NormalizeEmail(body.Email)
+		if err != nil || !body.Consent {
+			fail(w, 422, "NOTICE_CONSENT_REQUIRED")
+			return
+		}
+		verify, err := randomCapability()
+		if err != nil {
+			fail(w, 503, "NOTICE_SERVICE_UNAVAILABLE")
+			return
+		}
+		withdraw, err := randomCapability()
+		if err != nil {
+			fail(w, 503, "NOTICE_SERVICE_UNAVAILABLE")
+			return
+		}
+		vh, _ := receiptnotice.TokenDigest(s.Pipeline.Key, "verify", checkout.Workspace, "sandbox", verify)
+		wh, _ := receiptnotice.TokenDigest(s.Pipeline.Key, "withdraw", checkout.Workspace, "sandbox", withdraw)
+		cipher, err := deviceevidence.Encrypt(s.Pipeline.Key, []byte(email), checkout.Workspace+"|sandbox|notice-email")
+		if err != nil {
+			fail(w, 503, "NOTICE_SERVICE_UNAVAILABLE")
+			return
+		}
+		var contact string
+		err = s.pipelineScoped(r.Context(), checkout.Workspace, "sandbox", func(tx pgx.Tx) error {
+			return tx.QueryRow(r.Context(), "SELECT pg08_notice_register($1::uuid,$2,$3::uuid,$4,$5,$6,$7)", checkout.Workspace, "sandbox", checkout.ID, cipher, hex.EncodeToString(mac(s.Pipeline.Key, "notice-email|"+checkout.Workspace+"|sandbox|"+email)), vh, wh).Scan(&contact)
+		})
+		if err != nil {
+			mapped(w, err)
+			return
+		}
+		now := time.Now()
+		err = receiptnotice.SendSMTP(r.Context(), *s.NoticeSMTP, receiptnotice.Message{
+			ContactVerification: true,
+			Recipient:           receiptnotice.Recipient{Workspace: checkout.Workspace, Environment: "sandbox", Email: email, ConsentedAt: now},
+			Workspace:           checkout.Workspace, Environment: "sandbox", MessageID: contact, Subject: "Confirm Ekmivo receipt notices",
+			Text: "You requested payment receipt notices. Enter this verification code in the same checkout:\n" + verify + "\nWithdrawal code:\n" + withdraw + "\nVerification expires in 15 minutes. No payment is confirmed by this email. SANDBOX — NO REAL MONEY.",
+		})
+		if err != nil {
+			fail(w, 503, "NOTICE_VERIFICATION_DELIVERY_UNCONFIRMED")
+			return
+		}
+		write(w, 202, map[string]string{"status": "verification_sent"})
+		return
+	}
+	if action != "verify" && action != "withdraw" {
+		fail(w, 404, "NOT_FOUND")
+		return
+	}
+	var body struct {
+		Code string `json:"code"`
+	}
+	if decodeBounded(w, r, &body, 1024) != nil || !tokenPattern.MatchString(body.Code) {
+		fail(w, 422, "INVALID_NOTICE_CODE")
+		return
+	}
+	hash, err := receiptnotice.TokenDigest(s.Pipeline.Key, action, checkout.Workspace, "sandbox", body.Code)
+	if err != nil {
+		fail(w, 422, "INVALID_NOTICE_CODE")
+		return
+	}
+	var accepted bool
+	fn := "pg08_notice_verify"
+	if action == "withdraw" {
+		fn = "pg08_notice_withdraw"
+	}
+	err = s.pipelineScoped(r.Context(), checkout.Workspace, "sandbox", func(tx pgx.Tx) error {
+		return tx.QueryRow(r.Context(), "SELECT "+fn+"($1::uuid,$2,$3::uuid,$4)", checkout.Workspace, "sandbox", checkout.ID, hash).Scan(&accepted)
+	})
+	if err != nil {
+		mapped(w, err)
+		return
+	}
+	if !accepted {
+		fail(w, 422, "INVALID_OR_EXPIRED_NOTICE_CODE")
+		return
+	}
+	status := "verified"
+	if action == "withdraw" {
+		status = "withdrawn"
+	}
+	write(w, 200, map[string]string{"status": status})
+}

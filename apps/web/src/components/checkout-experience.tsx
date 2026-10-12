@@ -1,12 +1,14 @@
 "use client";
 import {useCallback,useEffect,useRef,useState} from "react";
 import Link from "next/link";
+import {ReceiptNotice} from "./receipt-notice";
 type Locale="en"|"bn";
 type Checkout={
  id:string; merchant_name:string;source_reference?:string;items?:{title:string;quantity:number;unit_amount_minor:number}[]; merchant_reference:string;amount_minor:number;currency:string;
  environment:string;created_at:string;expires_at:string;server_time:string;state:string;
  payer_suffix:string|null;method:string|null;methods:string[];
  destination:string|null;verification_available:boolean;
+ notice_available?:boolean;
 };
 const methods:Record<string,string>={bkash:"bKash",nagad:"Nagad",rocket:"Rocket"};
 const statusLabels:Record<string,[string,string]>={
@@ -175,6 +177,7 @@ export function CheckoutExperience({locale,token}:{locale:Locale;token:string}){
      {state==="processing"&&<><h2>{title}</h2><p>{bn?"সার্ভার পেমেন্টের প্রমাণ যাচাই করছে।":"The server is examining actual payment evidence."}</p></>}
      {state==="completed"&&<><h2>{title}</h2><p>{bn?"এই অবস্থা শুধু সার্ভারের যাচাইকৃত ledger থেকে এসেছে।":"This status is derived only from verified server-side allocations."}</p></>}
      {["expired","cancelled"].includes(state)&&<><h2>{title}</h2><p>{bn?"এই রিকোয়েস্টে আর টাকা পাঠাবেন না। আগে কোনো টাকা পাঠানো হয়ে থাকলে ব্যবসার সঙ্গে যোগাযোগ করুন; এখানে ফেরত দেওয়া হয়েছে বলা হচ্ছে না।":"Do not send more money. If funds were already sent, contact the merchant. This screen does not claim a refund."}</p></>}
+     {info.notice_available&&<ReceiptNotice key={token} token={token} bn={bn}/>}
      <div className="pg05-checkout-actions">
       <button type="button" onClick={()=>void refresh()}>{bn?"সার্ভার থেকে আবার দেখুন":"Refresh server status"} ↻</button>
       {updated&&<small>{bn?"সর্বশেষ দেখা":"Last checked"}: {new Date(updated).toLocaleTimeString(bn?"bn-BD":"en-BD",{timeZone:"Asia/Dhaka"})}</small>}

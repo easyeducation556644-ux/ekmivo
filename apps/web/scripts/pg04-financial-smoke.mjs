@@ -686,6 +686,8 @@ try{
  // PG06-PG09: source-matched 0014 migration, both disposable realms only.
  // This executes AFTER the PG04/PG05 regressions, never on an owner DB.
  const pg06Env={...pg05Env,PG06_ALLOW_MIGRATION:"true",
+  PG08_NOTICE_ALLOW_MIGRATION:"true",
+  PG08_NOTICE_MIGRATION_FILE:new URL("../../../infra/migrations/0015_pg08_customer_notice.sql",import.meta.url).pathname,
   PG06_PIPELINE_MIGRATION_FILE:new URL("../../../infra/migrations/0014_pg06_pg09_receipt_pipeline.sql",import.meta.url).pathname};
  for(let pass=0;pass<2;pass++){
   execFileSync("go",["run","./cmd/financial-migrate"],{
@@ -1370,6 +1372,35 @@ try{
   if(apiProcess.exitCode===null)apiProcess.kill("SIGKILL");
  }
 
+ // PG08 consented customer notice: actual isolated SQL, fictional email only.
+ const noticeVerify=hmac(),noticeWithdraw=hmac();
+ async function noticeScope(fn){return pg07DB.begin(async tx=>{
+  await tx.unsafe("SELECT set_config('ekmivo.workspace_id',$1,true),set_config('ekmivo.environment','sandbox',true)",[pg07WS]);
+  return fn(tx);
+ });}
+ const noticeContact=await noticeScope(async tx=>(await tx.unsafe(
+  "SELECT pg08_notice_register($1::uuid,'sandbox',$2::uuid,$3,$4,$5,$6) AS id",
+  [pg07WS,pg07Base.intent,Buffer.alloc(48,99),hmac(),noticeVerify,noticeWithdraw]))[0].id);
+ same(Number((await pg07DB.unsafe("SELECT count(*) n FROM pg08_customer_notices WHERE contact_id=$1::uuid",[noticeContact]))[0].n),0,"unverified contact enqueued receipt");
+ same(await noticeScope(async tx=>(await tx.unsafe("SELECT pg08_notice_verify($1::uuid,'sandbox',$2::uuid,$3) accepted",[pg07WS,randomUUID(),noticeVerify]))[0].accepted),false,"notice verification crossed checkout intent");
+ same(await noticeScope(async tx=>(await tx.unsafe("SELECT pg08_notice_verify($1::uuid,'sandbox',$2::uuid,$3) accepted",[pg07WS,pg07Base.intent,noticeVerify]))[0].accepted),true,"notice contact verification failed");
+ same(await noticeScope(async tx=>(await tx.unsafe("SELECT pg08_notice_verify($1::uuid,'sandbox',$2::uuid,$3) accepted",[pg07WS,pg07Base.intent,noticeVerify]))[0].accepted),false,"notice verification capability reused");
+ const noticeRow=(await pg07DB.unsafe("SELECT * FROM pg08_customer_notices WHERE contact_id=$1::uuid",[noticeContact]))[0];
+ ok(noticeRow?.id,"verified contact did not enqueue existing verified payment receipt");
+ const noticeVersion=Number((await pg07DB.unsafe("SELECT entitlement_version n FROM financial_workspace_registry WHERE workspace_id=$1::uuid AND environment='sandbox'",[pg07WS]))[0].n);
+ const noticeClaim=(await pg07DB.unsafe("SELECT pg08_notice_claim($1::uuid,$2) data",[noticeRow.id,noticeVersion]))[0].data;
+ ok(noticeClaim?.lease_id,"notice lease unavailable");
+ same((await pg07DB.unsafe("SELECT pg08_notice_claim($1::uuid,$2) data",[noticeRow.id,noticeVersion]))[0].data,null,"duplicate notice lease acquired");
+ same((await pg07DB.unsafe("SELECT pg08_notice_finish($1::uuid,$2::uuid,'accepted') accepted",[noticeRow.id,randomUUID()]))[0].accepted,false,"wrong notice lease ACK accepted");
+ same((await pg07DB.unsafe("SELECT pg08_notice_finish($1::uuid,$2::uuid,'unknown') accepted",[noticeRow.id,noticeClaim.lease_id]))[0].accepted,true,"notice unknown outcome not recorded");
+ same((await pg07DB.unsafe("SELECT status FROM pg08_customer_notices WHERE id=$1::uuid",[noticeRow.id]))[0].status,"unknown","notice unknown outcome blindly retried");
+ same(await noticeScope(async tx=>(await tx.unsafe("SELECT pg08_notice_withdraw($1::uuid,'sandbox',$2::uuid,$3) accepted",[pg07WS,pg07Base.intent,noticeWithdraw]))[0].accepted),true,"notice withdrawal failed");
+ same((await pg07DB.unsafe("SELECT status FROM pg08_customer_notices WHERE id=$1::uuid",[noticeRow.id]))[0].status,"withdrawn","notice withdrawal did not suppress delivery");
+ const noticeReader=postgres(ds("ekmivo_pg04_sandbox","ekmivo_finance_reader_sandbox","pg04-sandbox-reader-only"),{max:1,prepare:false});
+ try{await reject(noticeReader,()=>noticeReader.unsafe("SELECT email_cipher FROM pg08_notice_contacts"),"42501");}finally{await noticeReader.end({timeout:3})}
+ const noticeControl=(await admin.unsafe("SELECT to_regclass('public.pg08_customer_notices') IS NULL absent"))[0];
+ ok(noticeControl.absent,"customer notices leaked to control DB");
+ console.log("PG08 customer notice SQL PASS: verified consent, same-intent capabilities, atomic receipt enqueue, lease, unknown outcome, withdrawal, secret isolation (FICTIONAL)");
  const controlEmpty=await admin`SELECT to_regclass('public.payment_intents') IS NULL AS no_payments`;
  ok(controlEmpty[0].no_payments,"financial tables leaked into control DB");
  console.log(`PG04 isolated finance+River PASS: ${count} assertions; 2 DBs, no shared auth, registry, realm/cross-role isolation, PGX River rollback/idempotency`);
