@@ -16,7 +16,7 @@ android {
   testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   // Public origin only: never embed credentials or a payment authority in a mobile binary.
   buildConfigField("String", "API_BASE_URL",
-    "\"" + (providers.gradleProperty("ekmivoApiBaseUrl").orElse("").get().trimEnd('/')) + "\"")
+    "\"" + (providers.gradleProperty("ekmivoApiBaseUrl").orElse("https://ekmivo-go-api.onrender.com").get().trimEnd('/')) + "\"")
  }
  buildTypes {
   release {
