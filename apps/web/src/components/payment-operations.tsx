@@ -37,7 +37,7 @@ export function PaymentOperations({locale,workspaceId,userId,environment,resourc
  const draftKey=`ekmivo:operations:${userId}:${workspaceId}:${environment}:${resource}`;
  // A once-visible credential from one business/realm must not appear in another.
  // The render-level scope guard also prevents a one-frame secret flash before effects run.
- useEffect(()=>{setSecret("");setSecretScope("");setConfirm(null);setDraft(blank);setSaved(blank);setRows([]);setCursor(null);setDeliveryRows([]);setAccounts([]);setParsers([]);setNotice("");setError("")},[draftKey]);
+ useEffect(()=>{let active=true;void Promise.resolve().then(()=>{if(!active)return;setSecret("");setSecretScope("");setConfirm(null);setDraft(blank);setSaved(blank);setRows([]);setCursor(null);setDeliveryRows([]);setAccounts([]);setParsers([]);setNotice("");setError("")});return()=>{active=false}},[draftKey]);
  useEffect(()=>{let current=true;void Promise.resolve().then(()=>{if(!current)return;try{const raw=sessionStorage.getItem(filterKey);if(raw){const parsed=JSON.parse(raw);if(parsed&&["status","account","method","from","to"].every(k=>typeof parsed[k]==="string"))setQueryFilters(parsed)}setFilter(sessionStorage.getItem(filterKey+":q")||"")}catch{/* private storage */}setLoadedFilterKey(filterKey)});return()=>{current=false}},[filterKey]);
  useEffect(()=>{if(loadedFilterKey!==filterKey)return;try{sessionStorage.setItem(filterKey,JSON.stringify(queryFilters));sessionStorage.setItem(filterKey+":q",filter)}catch{/* private-mode storage may be unavailable */}},[filterKey,loadedFilterKey,queryFilters,filter]);
  useEffect(()=>{const handle=setTimeout(()=>setSearchTerm(filter.trim()),250);return()=>clearTimeout(handle)},[filter]);
