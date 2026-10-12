@@ -11,8 +11,8 @@ android {
   applicationId = "com.ekmivo.mobile"
   minSdk = 26
   targetSdk = 35
-  versionCode = 1
-  versionName = "0.1.0"
+  versionCode = 2
+  versionName = "0.2.0"
   testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   // Public origin only: never embed credentials or a payment authority in a mobile binary.
   buildConfigField("String", "API_BASE_URL",
@@ -70,6 +70,7 @@ dependencies {
  implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
  implementation("androidx.datastore:datastore-preferences:1.1.1")
  implementation("com.squareup.okhttp3:okhttp:4.12.0")
+ implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
  debugImplementation("androidx.compose.ui:ui-tooling")
  testImplementation("junit:junit:4.13.2")
 }
