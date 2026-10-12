@@ -249,11 +249,10 @@ func main() {
 			if pg05.Pipeline == nil {
 				log.Fatal("notices require receipt pipeline")
 			}
-			var installed bool
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			err = pg05.Sandbox.QueryRow(ctx, "SELECT to_regprocedure('pg08_notice_due()') IS NOT NULL").Scan(&installed)
+			err = receiptnotice.CheckSchema(ctx, pg05.Sandbox)
 			cancel()
-			if err != nil || !installed {
+			if err != nil {
 				log.Fatal("notice migration is unavailable")
 			}
 		}

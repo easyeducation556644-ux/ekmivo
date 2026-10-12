@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/masharzy/ekmivo/backend/internal/receiptnotice"
 	"os"
 	"path/filepath"
 )
@@ -31,7 +32,7 @@ func migrateCustomerNotice(ctx context.Context, realm, dsn, filename string) err
 		return errors.New("notice migration requires isolated realm migration owner")
 	}
 	if installed {
-		return nil
+		return receiptnotice.CheckSchema(ctx, pool)
 	}
 	body, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {

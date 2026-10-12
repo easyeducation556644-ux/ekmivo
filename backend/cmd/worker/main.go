@@ -177,8 +177,7 @@ func main() {
 			log.Fatal("notice worker configuration blocked: ", e)
 		}
 		if noticeSMTP != nil {
-			var installed bool
-			if e = pool.QueryRow(ctx, "SELECT to_regprocedure('pg08_notice_due()') IS NOT NULL").Scan(&installed); e != nil || !installed {
+			if e = receiptnotice.CheckSchema(ctx, pool); e != nil {
 				log.Fatal("notice worker migration unavailable")
 			}
 		}
