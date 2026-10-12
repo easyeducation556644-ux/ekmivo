@@ -1279,7 +1279,7 @@ try{
  try{
   const readerResult=await pg09Read("payments",complete[0].id,null,null,null,null,null,null,restrictedPG09);
   same(readerResult.items[0].id,complete[0].id,"PG09 restricted reader cannot view own payment");
-  await reject(restrictedPG09,()=>restrictedPG09.unsafe("SELECT * FROM financial_payments"),"42501");
+  await reject(restrictedPG09,()=>restrictedPG09.unsafe("UPDATE pg06_devices SET name='forged-reader-edit' WHERE id=$1::uuid",[device]),"42501");
  }finally{await restrictedPG09.end({timeout:3})}
 
  const wrongRealm=pg07DB;
