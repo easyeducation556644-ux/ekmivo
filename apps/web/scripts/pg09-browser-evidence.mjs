@@ -36,6 +36,7 @@ export async function runPG09Browser({origin,browser,tenant,sessions}){
   events:[{id:uuid,payment_id:paymentID,event_type:"payment.verified",created_at:recent}],
   parsers:[{id:"fictional-v1",source:"device_sms",method:"bkash",version:1}]
  };
+ data.notices=[{id:uuid,payment_id:paymentID,status:"unknown",attempts:1,reason:"smtp_acceptance_unknown",consent_withdrawn:false}];
  let offlineSource=false;
  const setup=async(context)=>{
   await context.route("**/api/go/workspaces/"+tenant+"/operations/**",async route=>{
@@ -46,11 +47,13 @@ export async function runPG09Browser({origin,browser,tenant,sessions}){
     environment:url.searchParams.get("environment"),q:url.searchParams.get("q"),id,action});
    if(offlineSource&&resource==="payments")return route.fulfill({status:503,contentType:"application/json",body:JSON.stringify({error:{code:"PIPELINE_SOURCE_UNAVAILABLE"}})});
    if(request.method()==="POST"){
+    if(resource==="notices"&&action==="retry")data.notices[0].status="pending";
     if(resource==="webhooks"&&action==="rotate")webhook.rotation_pending=true;
     return route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({updated:true})});
    }
    let records=data[resource]||[];
-   if(resource==="deliveries"&&id)records=records.filter(x=>x.endpoint_id===id||x.id===id);
+   if(resource==="notices"&&id)records=records.filter(x=>x.payment_id===id);
+   else if(resource==="deliveries"&&id)records=records.filter(x=>x.endpoint_id===id||x.id===id);
    else if(id)records=records.filter(x=>x.id===id);
    return route.fulfill({status:200,contentType:"application/json",
     body:JSON.stringify({items:records,next_cursor:null})});
@@ -81,6 +84,13 @@ export async function runPG09Browser({origin,browser,tenant,sessions}){
   await page.getByText("Provenance",{exact:false}).first().waitFor();
   await page.getByText("Webhook",{exact:false}).first().waitFor();
   passed("payment detail exposes source provenance, verification and delivery correlation");
+  const noticeSection=page.getByRole("region",{name:"Receipt email history"});
+  await noticeSection.getByText(/Outcome unknown/).waitFor();
+  await noticeSection.getByRole("textbox").fill("Reviewed fictional SMTP logs, approve resend");
+  page.once("dialog",dialog=>dialog.accept());
+  await noticeSection.getByRole("button",{name:"Authorize email resend"}).click();
+  await noticeSection.getByText(/Pending/).waitFor();
+  passed("owner notice recovery requires reason and duplicate-email confirmation (mock API)");
   await page.goto(origin+root+"/incoming/"+incomingID+"?env=sandbox");
   await page.getByRole("heading",{name:"Five-field candidate comparison"}).waitFor();
   passed("incoming detail uses five-field comparison without a manual receipt approval");
@@ -105,9 +115,14 @@ export async function runPG09Browser({origin,browser,tenant,sessions}){
    await p.getByText("https://example.invalid/receiver").first().waitFor();
    assert.equal(await p.getByRole("button",{name:/Rotate|Prepare next secret|Disable/}).count(),0);
    passed("real logged-in viewer receives read-only rendering without endpoint management controls");
+   data.notices[0].status="unknown";
+   await p.goto(origin+root+"/payments/"+paymentID+"?env=sandbox");
+   await p.getByRole("region",{name:"Receipt email history"}).getByText(/Outcome unknown/).waitFor();
+   assert.equal(await p.getByRole("button",{name:"Authorize email resend"}).count(),0);
+   passed("viewer notice history is read-only (mock API)");
   }finally{await viewer.close()}
 
-  for(const width of [320,768,1440])for(const locale of ["en","bn"])for(const theme of ["light","dark"]){
+  for(const width of [320,768,1024,1440])for(const locale of ["en","bn"])for(const theme of ["light","dark"]){
    const c=await browser.newContext({viewport:{width,height:900}});
    try{
     await c.addCookies([{name:"ekmivo-session",value:sessions.owner,url:origin,httpOnly:true,sameSite:"Lax"},
@@ -125,6 +140,19 @@ export async function runPG09Browser({origin,browser,tenant,sessions}){
      await p.screenshot({path:"test-results/pg09/payments-bn-dark-320.png",fullPage:true});
     }
     passed(width+"px "+locale+" "+theme+" real authorized shell + mocked payment API, no overflow");
+   }finally{await c.close()}
+  }
+  for(const locale of ["en","bn"]){
+   const c=await browser.newContext({viewport:{width:1024,height:900},colorScheme:"dark"});
+   try{
+    await c.addCookies([{name:"ekmivo-session",value:sessions.owner,url:origin,httpOnly:true,sameSite:"Lax"},{name:"ekmivo-theme",value:"system",url:origin}]);
+    await setup(c);const p=await c.newPage();await p.goto(origin+"/"+locale+"/w/"+tenant+"/payments/payments?env=sandbox");
+    await p.getByText("PG09-FAKE-UI-REFERENCE").first().waitFor();
+    assert.equal(await p.locator("html").getAttribute("data-theme"),null);
+    assert.equal((await p.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue("--color-canvas"))).trim().toLowerCase(),"#141414");
+    await p.emulateMedia({colorScheme:"light"});
+    assert.equal((await p.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue("--color-canvas"))).trim().toLowerCase(),"#fafaf8");
+    passed(locale+" System theme follows emulated OS dark/light at 1024px (mock API; not physical OS)");
    }finally{await c.close()}
   }
   await mkdir("test-results/pg09",{recursive:true});

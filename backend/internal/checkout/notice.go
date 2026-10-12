@@ -103,7 +103,7 @@ func (s *Service) HandleNotice(w http.ResponseWriter, r *http.Request) {
 		err = receiptnotice.SendSMTP(r.Context(), *s.NoticeSMTP, receiptnotice.Message{
 			ContactVerification: true,
 			Recipient:           receiptnotice.Recipient{Workspace: checkout.Workspace, Environment: "sandbox", Email: email, ConsentedAt: now},
-			Workspace:           checkout.Workspace, Environment: "sandbox", MessageID: contact, Subject: subject, Text: text,
+			Workspace:           checkout.Workspace, Environment: "sandbox", MessageID: "verify-" + digest(verify), Subject: subject, Text: text,
 		})
 		if err != nil {
 			fail(w, 503, "NOTICE_VERIFICATION_DELIVERY_UNCONFIRMED")
