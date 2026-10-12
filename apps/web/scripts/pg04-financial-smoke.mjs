@@ -1368,6 +1368,15 @@ try{
   console.log("PG09 REAL GO HTTP PASS: owner/viewer/editor sessions, restricted finance, query and create/disable endpoint, server search, once-visible signing secret, no live fallback (SYNTHETIC DB ONLY)");
   // Genuine signed HTTP -> restricted Go -> PostgreSQL matcher, fictional
   // receipt and software key only. This is NOT Android Keystore/provider proof.
+  // Earlier PG05 negative tests changed control entitlements. Bring the
+  // disposable finance projection current through the real provisioner;
+  // signed ingress must reject stale authority rather than bypass it.
+  execFileSync("go",["run","./cmd/financial-sync"],{cwd:new URL("../../../backend/",import.meta.url),stdio:"inherit",timeout:60000,env:{...env,
+   PG04_PROJECTION_CONTROL_URL:ds(source.pathname.slice(1),"ekmivo_financial_projection_operator","pg04-control-projection-only"),
+   PG04_PROVISIONER_SANDBOX_URL:ds("ekmivo_pg04_sandbox","ekmivo_financial_provisioner_sandbox","pg04-sandbox-provision-only"),
+   PG04_PROVISIONER_LIVE_URL:ds("ekmivo_pg04_live","ekmivo_financial_provisioner_live","pg04-live-provision-only"),
+   PG04_WORKSPACE_ID:pg07WS,PG04_ENVIRONMENT:"sandbox"}});
+  const fixtureVersion=Number((await pg07DB.unsafe("SELECT entitlement_version version FROM financial_workspace_registry WHERE workspace_id=$1::uuid AND environment='sandbox'",[pg07WS]))[0].version);
   const fixturePayer="+8801700000001",fixtureReceiving="+8801700000002";
   const newAccount=await fetch(route+"gateways?environment=sandbox",{method:"POST",headers:head("owner"),body:JSON.stringify({method:"bkash",account_number:fixtureReceiving})});
   same(newAccount.status,200,"signed HTTP fixture account creation failed");
@@ -1408,7 +1417,7 @@ try{
   const replay=await signedPost("events",packet,eventID);same(replay.status,202,"signed HTTP replay not ACKed");
   same((await replay.json()).observation_id,ack.observation_id,"signed HTTP replay duplicated receipt");
   const fixtureWorker=postgres(ds("ekmivo_pg04_sandbox","ekmivo_financial_worker_sandbox","pg04-sandbox-worker-only"),{max:1,prepare:false});
-  try{same(await pg07Match(ack.observation_id,pg07Version,fixtureWorker),"matched","signed HTTP receipt did not automatically match");}finally{await fixtureWorker.end({timeout:3})}
+  try{same(await pg07Match(ack.observation_id,fixtureVersion,fixtureWorker),"matched","signed HTTP receipt did not automatically match");}finally{await fixtureWorker.end({timeout:3})}
   same(Number((await pg07DB.unsafe("SELECT count(*) n FROM financial_payments WHERE observation_id=$1::uuid",[ack.observation_id]))[0].n),1,"signed HTTP duplicate funded twice");
   same((await fetch(route+"devices/"+fixtureDevice+"/revoke?environment=sandbox",{method:"POST",headers:head("owner"),body:"{}"})).status,200,"signed HTTP device revocation failed");
   same((await signedPost("history",scoped)).status,403,"revoked device can still query HTTP history");
