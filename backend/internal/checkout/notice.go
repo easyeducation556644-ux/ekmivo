@@ -13,7 +13,7 @@ import (
 
 // Notice actions do not lock a payer, alter a payment or provide proof of funds.
 func (s *Service) HandleNotice(w http.ResponseWriter, r *http.Request) {
-	if !s.pipelineReady() || s.NoticeSMTP == nil {
+	if !s.pipelineReady() {
 		fail(w, 503, "NOTICE_SERVICE_UNAVAILABLE")
 		return
 	}
@@ -48,6 +48,10 @@ func (s *Service) HandleNotice(w http.ResponseWriter, r *http.Request) {
 	}
 	action := r.PathValue("noticeAction")
 	if action == "subscribe" {
+		if s.NoticeSMTP == nil {
+			fail(w, 503, "NOTICE_SERVICE_UNAVAILABLE")
+			return
+		}
 		var body struct {
 			Email   string `json:"email"`
 			Consent bool   `json:"consent"`

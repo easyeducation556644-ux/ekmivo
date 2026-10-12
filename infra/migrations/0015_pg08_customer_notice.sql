@@ -7,9 +7,9 @@ DO $$ BEGIN
 END $$;
 CREATE TABLE pg08_notice_contacts (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), workspace_id uuid NOT NULL, environment text NOT NULL,
- intent_id uuid NOT NULL, email_cipher bytea NOT NULL CHECK(octet_length(email_cipher)>=29),
+ intent_id uuid NOT NULL, email_cipher bytea CHECK(email_cipher IS NULL OR octet_length(email_cipher)>=29),
  locale text NOT NULL DEFAULT 'en' CHECK(locale IN ('en','bn')),
- email_digest char(64) NOT NULL CHECK(email_digest ~ '^[a-f0-9]{64}$'),
+ email_digest char(64) CHECK(email_digest IS NULL OR email_digest ~ '^[a-f0-9]{64}$'),
  consent_at timestamptz NOT NULL DEFAULT now(), verified_at timestamptz, withdrawn_at timestamptz,
  verification_digest char(64) UNIQUE, verification_expires_at timestamptz,
  withdrawal_digest char(64) NOT NULL UNIQUE,
@@ -80,7 +80,7 @@ END $$;
 CREATE FUNCTION pg08_notice_withdraw(w uuid,e text,intent uuid,digest text) RETURNS boolean
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$ DECLARE contact uuid; BEGIN
  PERFORM pg06_scope(w,e);
- UPDATE pg08_notice_contacts SET withdrawn_at=coalesce(withdrawn_at,now()),verification_digest=NULL
+ UPDATE pg08_notice_contacts SET withdrawn_at=coalesce(withdrawn_at,now()),verification_digest=NULL,email_cipher=NULL,email_digest=NULL
  WHERE workspace_id=w AND environment=e AND intent_id=intent AND withdrawal_digest=digest RETURNING id INTO contact;
  IF contact IS NULL THEN RETURN false; END IF;
  UPDATE pg08_customer_notices SET status='withdrawn',lease_id=NULL,lease_until=NULL

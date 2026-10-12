@@ -20,7 +20,8 @@ func CheckSchema(ctx context.Context, pool *pgxpool.Pool) error {
  to_regprocedure('pg08_notice_due()') IS NOT NULL AND
  to_regprocedure('pg08_notice_claim(uuid,bigint)') IS NOT NULL AND
  to_regprocedure('pg08_notice_finish(uuid,uuid,text)') IS NOT NULL AND
- EXISTS(SELECT 1 FROM pg_attribute WHERE attrelid=to_regclass('public.pg08_notice_contacts') AND attname='locale' AND NOT attisdropped)`).Scan(&complete)
+ EXISTS(SELECT 1 FROM pg_attribute WHERE attrelid=to_regclass('public.pg08_notice_contacts') AND attname='locale' AND NOT attisdropped) AND
+ (SELECT count(*)=2 FROM pg_attribute WHERE attrelid=to_regclass('public.pg08_notice_contacts') AND attname IN ('email_cipher','email_digest') AND NOT attisdropped AND NOT attnotnull)`).Scan(&complete)
 	if err != nil || !complete {
 		return errors.New("complete notice migration required; preserve applied schema")
 	}
