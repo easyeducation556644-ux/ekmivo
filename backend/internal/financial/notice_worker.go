@@ -37,6 +37,7 @@ func (w *PipelineWorker) drainNotice(ctx context.Context) error {
 			Email     string    `json:"email_cipher"`
 			Consented time.Time `json:"consented_at"`
 			Verified  time.Time `json:"verified_at"`
+			Locale    string    `json:"locale"`
 			Event     struct {
 				Data struct {
 					Amount    int64  `json:"amount_minor"`
@@ -61,9 +62,17 @@ func (w *PipelineWorker) drainNotice(ctx context.Context) error {
 		if p.Realm == "sandbox" {
 			text = "SANDBOX — NO REAL MONEY\n" + text
 		}
+		subject := "Ekmivo payment receipt"
+		if claim.Locale == "bn" {
+			subject = "Ekmivo পেমেন্টের রসিদ"
+			text = fmt.Sprintf("আপনার পেমেন্ট যাচাই হয়েছে।\nপরিমাণ: %d.%02d %s\nরেফারেন্স: %s\nযাচাইয়ের পদ্ধতি: %s\n", claim.Event.Data.Amount/100, claim.Event.Data.Amount%100, claim.Event.Data.Currency, claim.Event.Data.Reference, claim.Event.Data.Method)
+			if p.Realm == "sandbox" {
+				text = "পরীক্ষামূলক — আসল টাকা নয়\n" + text
+			}
+		}
 		err = receiptnotice.SendSMTP(ctx, *w.NoticeSMTP, receiptnotice.Message{
 			Recipient: receiptnotice.Recipient{Workspace: p.Workspace, Environment: p.Realm, Email: string(email), ConsentedAt: claim.Consented, VerifiedAt: claim.Verified},
-			Workspace: p.Workspace, Environment: p.Realm, MessageID: claim.ID, Subject: "Ekmivo payment receipt", Text: text,
+			Workspace: p.Workspace, Environment: p.Realm, MessageID: claim.ID, Subject: subject, Text: text,
 		})
 		outcome := "accepted"
 		if err != nil {

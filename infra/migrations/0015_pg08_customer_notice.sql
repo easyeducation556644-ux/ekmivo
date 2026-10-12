@@ -8,6 +8,7 @@ END $$;
 CREATE TABLE pg08_notice_contacts (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), workspace_id uuid NOT NULL, environment text NOT NULL,
  intent_id uuid NOT NULL, email_cipher bytea NOT NULL CHECK(octet_length(email_cipher)>=29),
+ locale text NOT NULL DEFAULT 'en' CHECK(locale IN ('en','bn')),
  email_digest char(64) NOT NULL CHECK(email_digest ~ '^[a-f0-9]{64}$'),
  consent_at timestamptz NOT NULL DEFAULT now(), verified_at timestamptz, withdrawn_at timestamptz,
  verification_digest char(64) UNIQUE, verification_expires_at timestamptz,
@@ -37,15 +38,15 @@ REVOKE ALL ON pg08_notice_contacts,pg08_customer_notices FROM PUBLIC,ekmivo_fina
 
 -- Called only after Go has checked the existing opaque checkout capability,
 -- explicit consent, normalized email and rate limits. No payer-number mutation.
-CREATE FUNCTION pg08_notice_register(w uuid,e text,intent uuid,email bytea,email_hash text,verify_hash text,withdraw_hash text)
+CREATE FUNCTION pg08_notice_register(w uuid,e text,intent uuid,email bytea,email_hash text,verify_hash text,withdraw_hash text,language text DEFAULT 'en')
 RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$ DECLARE result uuid; BEGIN
  PERFORM pg06_scope(w,e);
  IF verify_hash !~ '^[a-f0-9]{64}$' OR withdraw_hash !~ '^[a-f0-9]{64}$' OR verify_hash=withdraw_hash
  THEN RAISE EXCEPTION 'invalid notice capability' USING ERRCODE='22023'; END IF;
- INSERT INTO pg08_notice_contacts(workspace_id,environment,intent_id,email_cipher,email_digest,verification_digest,verification_expires_at,withdrawal_digest)
- VALUES(w,e,intent,email,email_hash,verify_hash,now()+interval '15 minutes',withdraw_hash)
+ INSERT INTO pg08_notice_contacts(workspace_id,environment,intent_id,email_cipher,email_digest,verification_digest,verification_expires_at,withdrawal_digest,locale)
+ VALUES(w,e,intent,email,email_hash,verify_hash,now()+interval '15 minutes',withdraw_hash,language)
  ON CONFLICT(workspace_id,environment,intent_id,email_digest) DO UPDATE
- SET email_cipher=excluded.email_cipher,consent_at=now(),verified_at=NULL,withdrawn_at=NULL,
+ SET email_cipher=excluded.email_cipher,locale=excluded.locale,consent_at=now(),verified_at=NULL,withdrawn_at=NULL,
  verification_digest=excluded.verification_digest,verification_expires_at=excluded.verification_expires_at,
  withdrawal_digest=excluded.withdrawal_digest RETURNING id INTO result;
  RETURN result;
@@ -94,8 +95,8 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$ DECLARE c
  RETURN NEW;
 END $$;
 CREATE TRIGGER pg08_notice_payment AFTER INSERT ON pg07_events FOR EACH ROW EXECUTE FUNCTION pg08_notice_on_payment();
-REVOKE ALL ON FUNCTION pg08_notice_register(uuid,text,uuid,bytea,text,text,text),pg08_notice_verify(uuid,text,uuid,text),pg08_notice_withdraw(uuid,text,uuid,text),pg08_notice_enqueue(uuid),pg08_notice_on_payment() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION pg08_notice_register(uuid,text,uuid,bytea,text,text,text),pg08_notice_verify(uuid,text,uuid,text),pg08_notice_withdraw(uuid,text,uuid,text) TO ekmivo_finance_reader;
+REVOKE ALL ON FUNCTION pg08_notice_register(uuid,text,uuid,bytea,text,text,text,text),pg08_notice_verify(uuid,text,uuid,text),pg08_notice_withdraw(uuid,text,uuid,text),pg08_notice_enqueue(uuid),pg08_notice_on_payment() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION pg08_notice_register(uuid,text,uuid,bytea,text,text,text,text),pg08_notice_verify(uuid,text,uuid,text),pg08_notice_withdraw(uuid,text,uuid,text) TO ekmivo_finance_reader;
 CREATE FUNCTION pg08_notice_due() RETURNS TABLE(id uuid,workspace_id uuid,environment text,source_version bigint)
 LANGUAGE sql SECURITY DEFINER SET search_path=public,pg_temp AS $$
  SELECT n.id,n.workspace_id,n.environment,r.entitlement_version FROM pg08_customer_notices n
@@ -109,6 +110,7 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
 DECLARE n pg08_customer_notices;c pg08_notice_contacts;ev pg07_events;l uuid:=gen_random_uuid(); BEGIN
  SELECT * INTO n FROM pg08_customer_notices WHERE id=n_id FOR UPDATE SKIP LOCKED;
  IF n.id IS NULL OR NOT ((n.status='pending' AND n.next_at<=now()) OR (n.status='sending' AND n.lease_until<now())) THEN RETURN NULL;END IF;
+ IF n.status='sending' THEN UPDATE pg08_customer_notices SET status='unknown',reason='worker_lost_after_claim',lease_id=NULL,lease_until=NULL WHERE id=n.id;RETURN NULL;END IF;
  IF n.attempts>=8 THEN UPDATE pg08_customer_notices SET status='unknown',reason='attempt_limit_or_crash',lease_id=NULL,lease_until=NULL WHERE id=n.id;RETURN NULL;END IF;
  IF NOT EXISTS(SELECT 1 FROM financial_workspace_registry WHERE workspace_id=n.workspace_id AND environment=n.environment AND status='active' AND entitlement_version=version) THEN RETURN NULL;END IF;
  SELECT * INTO c FROM pg08_notice_contacts WHERE id=n.contact_id;
@@ -118,7 +120,7 @@ DECLARE n pg08_customer_notices;c pg08_notice_contacts;ev pg07_events;l uuid:=ge
  IF ev.id IS NULL THEN RAISE EXCEPTION 'notice scope mismatch' USING ERRCODE='42501';END IF;
  UPDATE pg08_customer_notices SET status='sending',attempts=attempts+1,lease_id=l,lease_until=now()+interval '60 seconds' WHERE id=n.id;
  RETURN jsonb_build_object('id',n.id,'lease_id',l,'email_cipher',encode(c.email_cipher,'base64'),
- 'consented_at',c.consent_at,'verified_at',c.verified_at,'event',ev.payload);
+ 'consented_at',c.consent_at,'verified_at',c.verified_at,'locale',c.locale,'event',ev.payload);
 END $$;
 CREATE FUNCTION pg08_notice_finish(n_id uuid,l uuid,outcome text) RETURNS boolean
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$ BEGIN

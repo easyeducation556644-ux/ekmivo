@@ -46,6 +46,7 @@ paths:
                   properties:
                     email: {type: string, format: email, maxLength: 254}
                     consent: {type: boolean, enum: [true]}
+                    locale: {type: string, enum: [en, bn], default: en}
                 - type: object
                   additionalProperties: false
                   required: [code]

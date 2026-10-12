@@ -10,7 +10,7 @@ export function ReceiptNotice({token,bn}:{token:string;bn:boolean}){
   try{
    const response=await fetch(`/api/checkout/${token}/notices/${action}`,{
     method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
-    body:JSON.stringify(action==="subscribe"?{email,consent}:{code}),
+    body:JSON.stringify(action==="subscribe"?{email,consent,locale:bn?"bn":"en"}:{code}),
    });
    if(!response.ok){setMessage(bn?"কাজটি নিশ্চিত হয়নি। সংযোগ ও কোড দেখে আবার চেষ্টা করুন। পেমেন্টের অবস্থা বদলায়নি।":"The action was not confirmed. Check the connection and code. Payment status is unchanged.");return}
    if(action==="subscribe"){setSent(true);setEmail("");setMessage(bn?"ইমেইলের verification code এখানে দিন।":"Enter the verification code sent to your email.")}

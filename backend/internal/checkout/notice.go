@@ -51,13 +51,17 @@ func (s *Service) HandleNotice(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			Email   string `json:"email"`
 			Consent bool   `json:"consent"`
+			Locale  string `json:"locale"`
 		}
 		if decodeBounded(w, r, &body, 1024) != nil {
 			fail(w, 422, "INVALID_NOTICE_REQUEST")
 			return
 		}
 		email, err := receiptnotice.NormalizeEmail(body.Email)
-		if err != nil || !body.Consent {
+		if body.Locale == "" {
+			body.Locale = "en"
+		}
+		if err != nil || !body.Consent || (body.Locale != "en" && body.Locale != "bn") {
 			fail(w, 422, "NOTICE_CONSENT_REQUIRED")
 			return
 		}
@@ -80,18 +84,23 @@ func (s *Service) HandleNotice(w http.ResponseWriter, r *http.Request) {
 		}
 		var contact string
 		err = s.pipelineScoped(r.Context(), checkout.Workspace, "sandbox", func(tx pgx.Tx) error {
-			return tx.QueryRow(r.Context(), "SELECT pg08_notice_register($1::uuid,$2,$3::uuid,$4,$5,$6,$7)", checkout.Workspace, "sandbox", checkout.ID, cipher, hex.EncodeToString(mac(s.Pipeline.Key, "notice-email|"+checkout.Workspace+"|sandbox|"+email)), vh, wh).Scan(&contact)
+			return tx.QueryRow(r.Context(), "SELECT pg08_notice_register($1::uuid,$2,$3::uuid,$4,$5,$6,$7,$8)", checkout.Workspace, "sandbox", checkout.ID, cipher, hex.EncodeToString(mac(s.Pipeline.Key, "notice-email|"+checkout.Workspace+"|sandbox|"+email)), vh, wh, body.Locale).Scan(&contact)
 		})
 		if err != nil {
 			mapped(w, err)
 			return
 		}
 		now := time.Now()
+		text := "You requested payment receipt notices. Enter this verification code in the same checkout:\n" + verify + "\nWithdrawal code:\n" + withdraw + "\nVerification expires in 15 minutes. No payment is confirmed by this email. SANDBOX — NO REAL MONEY."
+		subject := "Confirm Ekmivo receipt notices"
+		if body.Locale == "bn" {
+			subject = "Ekmivo রসিদের ইমেইল নিশ্চিত করুন"
+			text = "আপনি পেমেন্টের রসিদের ইমেইল চেয়েছেন। একই checkout-এ এই verification code দিন:\n" + verify + "\nইমেইল বন্ধ করার code:\n" + withdraw + "\nVerification code-এর মেয়াদ ১৫ মিনিট। এই ইমেইল পেমেন্ট নিশ্চিত করে না। পরীক্ষামূলক — আসল টাকা নয়।"
+		}
 		err = receiptnotice.SendSMTP(r.Context(), *s.NoticeSMTP, receiptnotice.Message{
 			ContactVerification: true,
 			Recipient:           receiptnotice.Recipient{Workspace: checkout.Workspace, Environment: "sandbox", Email: email, ConsentedAt: now},
-			Workspace:           checkout.Workspace, Environment: "sandbox", MessageID: contact, Subject: "Confirm Ekmivo receipt notices",
-			Text: "You requested payment receipt notices. Enter this verification code in the same checkout:\n" + verify + "\nWithdrawal code:\n" + withdraw + "\nVerification expires in 15 minutes. No payment is confirmed by this email. SANDBOX — NO REAL MONEY.",
+			Workspace:           checkout.Workspace, Environment: "sandbox", MessageID: contact, Subject: subject, Text: text,
 		})
 		if err != nil {
 			fail(w, 503, "NOTICE_VERIFICATION_DELIVERY_UNCONFIRMED")
