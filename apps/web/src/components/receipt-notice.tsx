@@ -1,7 +1,7 @@
 "use client";
 import {useState} from "react";
 
-export function ReceiptNotice({token,bn}:{token:string;bn:boolean}){
+export function ReceiptNotice({token,bn,deliveryAvailable}:{token:string;bn:boolean;deliveryAvailable:boolean}){
  const [email,setEmail]=useState("");const [consent,setConsent]=useState(false);
  const [code,setCode]=useState("");const [busy,setBusy]=useState(false);
  const [message,setMessage]=useState("");const [sent,setSent]=useState(false);
@@ -21,11 +21,11 @@ export function ReceiptNotice({token,bn}:{token:string;bn:boolean}){
  return <section aria-label={bn?"রসিদের ইমেইল":"Receipt email"}>
   <h2>{bn?"ইমেইলে রসিদ (ঐচ্ছিক)":"Receipt by email (optional)"}</h2>
   <p>{bn?"ইমেইল পেমেন্টের প্রমাণ নয়। প্রেরক নম্বর আলাদাভাবে যাচাই হবে।":"Email is not payment proof. Your actual payer number is verified separately."}</p>
-  <form onSubmit={e=>{e.preventDefault();void submit("subscribe")}}>
+  {deliveryAvailable?<form onSubmit={e=>{e.preventDefault();void submit("subscribe")}}>
    <label>{bn?"ইমেইল":"Email"}<input type="email" autoComplete="email" required maxLength={254} value={email} onChange={e=>setEmail(e.target.value)} disabled={busy}/></label>
    <label><input type="checkbox" required checked={consent} onChange={e=>setConsent(e.target.checked)} disabled={busy}/>{bn?"শুধু এই পেমেন্টের রসিদের জন্য ইমেইল ব্যবহারে সম্মতি দিচ্ছি।":"I consent to using this email for this payment's receipt only."}</label>
    <button disabled={busy||!consent}>{bn?"ইমেইল যাচাই করুন":"Verify email"}</button>
-  </form>
+  </form>:<p>{bn?"নতুন verification email এখন পাওয়া যাচ্ছে না। আগের code দিয়ে সম্মতি নিশ্চিত বা প্রত্যাহার করতে পারেন।":"New verification email is unavailable. Existing codes can still confirm or withdraw consent."}</p>}
   {!sent&&<button type="button" onClick={()=>setSent(true)}>{bn?"আগেই verification/withdrawal code আছে?":"Already have a verification or withdrawal code?"}</button>}
   {sent&&<form onSubmit={e=>{e.preventDefault();void submit("verify")}}>
    <label>{bn?"ইমেইলে পাওয়া কোড":"Code from your email"}<input autoComplete="off" required minLength={43} maxLength={43} value={code} onChange={e=>setCode(e.target.value)} disabled={busy}/></label>

@@ -255,6 +255,11 @@ func main() {
 			if err != nil {
 				log.Fatal("notice migration is unavailable")
 			}
+			pg05.NoticeSchema = true
+		} else if pg05.Pipeline != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			pg05.NoticeSchema = receiptnotice.CheckSchema(ctx, pg05.Sandbox) == nil
+			cancel()
 		}
 	}
 	port := os.Getenv("PORT")

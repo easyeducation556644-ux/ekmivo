@@ -33,13 +33,14 @@ var (
 )
 
 type Service struct {
-	NoticeSMTP *receiptnotice.SMTPConfig
-	Pipeline   *Pipeline
-	limits     limiter
-	Auth       *authz.Repository
-	Sandbox    *pgxpool.Pool
-	TokenKey   []byte
-	PayerKey   []byte
+	NoticeSMTP   *receiptnotice.SMTPConfig
+	NoticeSchema bool
+	Pipeline     *Pipeline
+	limits       limiter
+	Auth         *authz.Repository
+	Sandbox      *pgxpool.Pool
+	TokenKey     []byte
+	PayerKey     []byte
 }
 type createRequest struct {
 	Reference string `json:"merchant_reference"`
@@ -671,7 +672,8 @@ func (s *Service) publicResult(w http.ResponseWriter, r *http.Request, raw []byt
 		}
 	}
 	data["merchant_name"] = name
-	data["notice_available"] = s.NoticeSMTP != nil && s.pipelineReady()
+	data["notice_available"] = s.NoticeSchema && s.pipelineReady()
+	data["notice_delivery_available"] = s.NoticeSMTP != nil && s.pipelineReady()
 	write(w, 200, data)
 }
 
