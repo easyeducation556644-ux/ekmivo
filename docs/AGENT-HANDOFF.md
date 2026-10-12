@@ -1,3 +1,5 @@
+> **Cloud handoff, 2026-10-12:** start from `origin/codex/pg10-pg17-code` at `7a1cc8acefa0bad2b187c2743ab526d7d65f6bbc`, not the older `main`. The source checkpoint is pushed; PG10–PG17 and PG02 extended remain OPEN. No deploy or production migration has been performed. Older local-only notes below are historical.
+
 ## Latest continuation — 2026-10-12
 
 ### Local continuation checkpoint — 2026-10-12

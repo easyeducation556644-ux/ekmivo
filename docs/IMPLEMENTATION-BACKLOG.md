@@ -1,3 +1,5 @@
+> **Cloud source checkpoint, 2026-10-12:** `origin/codex/pg10-pg17-code` now contains commit `7a1cc8acefa0bad2b187c2743ab526d7d65f6bbc`. Source/acceptance remains OPEN; the branch is for continuation, not production release.
+
 > Local source checkpoint — 2026-10-12: migrations 0016–0044 unapplied; current Go/web/contract/build checks pass, 17 release/SDK/privacy unit cases pass. PG10–PG17 source and acceptance remain OPEN; see IMPLEMENTATION-STATUS.md for missing code versus external/manual gates. PG02 extended has not started. No push/deploy.
 
 > Owner continuation — 2026-10-12: finish outstanding PG10–PG17 source first. Then PG02 extended: persistent header/sidebar, content-specific skeletons, route/data latency measurement and verified deployment-region parity. Five-day combined owner testing follows a reviewable deployment; no deploy or test days are claimed now.

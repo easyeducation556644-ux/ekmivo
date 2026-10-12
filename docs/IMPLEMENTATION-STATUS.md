@@ -1,3 +1,5 @@
+> **Pushed source checkpoint, 2026-10-12:** commit `7a1cc8acefa0bad2b187c2743ab526d7d65f6bbc` is on `origin/codex/pg10-pg17-code`. Older “local only/no push” lines below describe earlier snapshots. Working tree was clean after push. PG10–PG17 source and acceptance remain OPEN; migrations 0016–0044 are unapplied, and no production deployment or real provider/device proof is claimed.
+
 # Implementation status and remaining work
 
 ### Local continuation checkpoint — 2026-10-12
