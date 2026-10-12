@@ -1,8 +1,6 @@
 "use client";
 import {useCallback,useEffect,useRef,useState} from "react";
 import Link from "next/link";
-import {SiteHeader} from "./site-header";
-import {SiteFooter} from "./site-footer";
 import {ReceiptNotice} from "./receipt-notice";
 import {CustomerRefundRequest} from "./customer-refund-request";
 import {MerchantBrand,type MerchantBrandInfo} from "./merchant-brand";
@@ -125,7 +123,7 @@ export function CheckoutExperience({locale,token}:{locale:Locale;token:string}){
  const state=info?(ended&&["requires_payer","awaiting_payment"].includes(info.state)?"expired":info.state):"";
  const title=statusLabels[state]?.[bn?1:0]||(bn?"পেমেন্টের তথ্য":"Payment details");
  const canLock=state==="requires_payer"&&(info?.environment==="sandbox"||info?.environment==="live"&&info.verification_available);
- return <><SiteHeader locale={locale} initialTheme="system"/><main className="pg05-checkout" lang={locale} style={{paddingTop:120}}>
+ return <main className="pg05-checkout" lang={locale} style={{paddingTop:120}}>
   <div className="pg05-checkout-wrap">
    <nav className="pg05-checkout-back"><Link href={"/"+locale}>{bn?"← Ekmivo মূল পৃষ্ঠা":"← Ekmivo home"}</Link></nav>
    <header className="pg05-checkout-heading">
@@ -195,5 +193,5 @@ export function CheckoutExperience({locale,token}:{locale:Locale;token:string}){
    <footer className="pg05-checkout-foot"><p>{bn?"PIN, OTP, TrxID বা পেমেন্টের স্ক্রিনশট এখানে চাইবে না।":"We never ask for a PIN, OTP, TrxID or payment screenshot."}</p>
     <button type="button" onClick={async()=>{try{await navigator.clipboard.writeText(location.href);setCopied(true)}catch{setCopied(false)}}}>{copied?(bn?"লিংক কপি হয়েছে":"Link copied"):(bn?"এই checkout লিংক কপি":"Copy checkout link")}</button></footer>
   </div>
- </main><SiteFooter locale={locale}/></>;
+ </main>;
 }
