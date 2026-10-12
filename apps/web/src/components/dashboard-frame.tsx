@@ -6,7 +6,6 @@ import { sections, type SectionKey } from "../lib/dashboard-sections";
 import { dashboardHref, navigation, searchableNavigation, searchableBusinesses, serviceEnabled, serviceNames, sectionInService, type Locale, type Service, type PaymentEnvironment } from "../lib/dashboard-navigation";
 import { DashboardIcon as Icon } from "./dashboard-icon";
 import { SiteControls } from "./site-controls";
-import { DashboardPageSkeleton } from "./dashboard-page-skeleton";
 import { PaymentNotifications } from "./payment-notifications";
 import { activeDrafts,saveActiveDrafts,discardActiveDrafts } from "../lib/client/draft-navigation";
 
@@ -39,7 +38,6 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
  const [activeResult,setActiveResult]=useState(0);
  const [searchOpen,setSearchOpen]=useState(false);
  const [isNavigating,startTransition]=useTransition();
- const [pendingSection,setPendingSection]=useState<SectionKey>(initialSection);
  const [noticeOpen,setNoticeOpen]=useState(false);
  const [blockedRoute,setBlockedRoute]=useState<string|null>(null);
  const [draftError,setDraftError]=useState("");
@@ -69,7 +67,6 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
   if(businessMenu.current)businessMenu.current.open=false;
   const next=dashboardHref(locale,businessId,product,nextSection,env);
   if(activeDrafts().length){setBlockedRoute(next);setDraftError("");return;}
-  setPendingSection(nextSection);
   startTransition(()=>router.push(next));
  },[locale,router,startTransition]);
 
@@ -312,7 +309,7 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
    </div>}
    <div className="ds-breadcrumb"><span>{workspace.name}</span><Icon name="chevron"/><span>{serviceNames[service][locale]}</span><Icon name="chevron"/><strong>{sections[section][locale]}</strong></div>
    {isNavigating&&<div className="ds-navigation-progress" role="status">{bn?"পৃষ্ঠা খুলছে…":"Opening page…"}</div>}
-   <main id="dashboard-content" className="ds-content" tabIndex={-1}>{isNavigating?<DashboardPageSkeleton targetSection={pendingSection}/>:children}</main>
+   <main id="dashboard-content" className="ds-content" tabIndex={-1} aria-busy={isNavigating}>{children}</main>
    <footer className="ds-footnote"><span>{serviceNames[service][locale]} · {workspace.name}</span><span>Asia/Dhaka</span></footer>
   </div>
   <dialog ref={searchDialog} className="ds-search-dialog" aria-label={bn?"ওয়ার্কস্পেস খুঁজুন":"Search workspace"} onCancel={()=>setSearchOpen(false)} onClose={()=>setSearchOpen(false)}>
