@@ -65,6 +65,9 @@ func (s *Service) HandleNotice(w http.ResponseWriter, r *http.Request) {
 			fail(w, 422, "NOTICE_CONSENT_REQUIRED")
 			return
 		}
+		if !s.budget(w, "notice:recipient:"+hex.EncodeToString(mac(s.Pipeline.Key, checkout.Workspace+"|"+email)), 3) {
+			return
+		}
 		verify, err := randomCapability()
 		if err != nil {
 			fail(w, 503, "NOTICE_SERVICE_UNAVAILABLE")

@@ -106,27 +106,27 @@ paths:
   /v1/workspaces/{workspaceID}/operations/{resource}/{resourceID}:
     parameters:
       - {name: workspaceID, in: path, required: true, schema: {type: string, format: uuid}}
-      - {name: resource, in: path, required: true, schema: {type: string, enum: [payments, incoming, gateways, devices, webhooks, deliveries, events]}}
+      - {name: resource, in: path, required: true, schema: {type: string, enum: [payments, incoming, gateways, devices, webhooks, deliveries, events, notices]}}
       - {name: resourceID, in: path, required: true, schema: {type: string, format: uuid}}
       - {name: environment, in: query, required: true, schema: {type: string, enum: [sandbox, live]}}
     get:
       operationId: getFinancialOperation
       security: [{SessionCookie: []}, {MerchantBearer: []}]
       responses:
-        '200': {description: 'Scoped detail in items; deliveries uses resourceID as endpoint filter.'}
+        '200': {description: 'Scoped detail in items; deliveries uses resourceID as endpoint filter; notices uses resourceID as payment ID, excludes recipient ciphertext.'}
         '403': {description: Denied}
         '503': {description: Source unavailable}
   /v1/workspaces/{workspaceID}/operations/{resource}/{resourceID}/{action}:
     parameters:
       - {name: workspaceID, in: path, required: true, schema: {type: string, format: uuid}}
-      - {name: resource, in: path, required: true, schema: {type: string, enum: [incoming, gateways, devices, webhooks, deliveries]}}
+      - {name: resource, in: path, required: true, schema: {type: string, enum: [incoming, gateways, devices, webhooks, deliveries, notices]}}
       - {name: resourceID, in: path, required: true, schema: {type: string, format: uuid}}
-      - {name: action, in: path, required: true, schema: {type: string, enum: [revoke, rename, reprocess, enable, disable, rotate, replay]}}
+      - {name: action, in: path, required: true, schema: {type: string, enum: [revoke, rename, reprocess, enable, disable, rotate, replay, retry]}}
       - {name: environment, in: query, required: true, schema: {type: string, enum: [sandbox, live]}}
     post:
       operationId: changeFinancialConnection
       security: [{SessionCookie: []}]
-      description: 'Owner/admin; valid transitions checked in PostgreSQL. Reprocess cannot approve funds. Replay delivers the same event without payment re-execution.'
+      description: 'Owner/admin; valid transitions checked in PostgreSQL. Reprocess cannot approve funds. Replay delivers the same event without payment re-execution. Notice retry requires a 10-400 character reason and explicit authorization of possible duplicate email; never changes paid funds.'
       requestBody: {required: true, content: {application/json: {schema: {type: object}}}}
       responses:
         '200': {description: Audited transition committed}

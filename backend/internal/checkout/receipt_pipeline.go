@@ -16,8 +16,8 @@ import (
 	"github.com/masharzy/ekmivo/backend/internal/deviceevidence"
 	"github.com/masharzy/ekmivo/backend/internal/merchantwebhook"
 	"io"
-	"regexp"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -193,7 +193,7 @@ func (s *Service) HandleOperations(w http.ResponseWriter, r *http.Request) {
 		}
 		actorID = actor.UserID
 	}
-	allowed := map[string]bool{"devices": true, "gateways": true, "payments": true, "incoming": true, "webhooks": true, "deliveries": true, "events": true, "parsers": true, "overview": true}
+	allowed := map[string]bool{"notices": true, "devices": true, "gateways": true, "payments": true, "incoming": true, "webhooks": true, "deliveries": true, "events": true, "parsers": true, "overview": true}
 	if !allowed[resource] {
 		fail(w, 404, "NOT_FOUND")
 		return
@@ -218,6 +218,12 @@ func (s *Service) HandleOperations(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if r.Method == "GET" {
+			if resource == "notices" {
+				if id == "" {
+					return errors.New("payment id required")
+				}
+				return tx.QueryRow(r.Context(), "SELECT pg08_notice_read($1::uuid,$2,$3::uuid)", ws, realm, id).Scan(&raw)
+			}
 			cursor := r.URL.Query().Get("cursor")
 			if cursor != "" && !uuidPattern.MatchString(cursor) {
 				return errors.New("invalid cursor")
@@ -248,6 +254,7 @@ func (s *Service) HandleOperations(w http.ResponseWriter, r *http.Request) {
 			return tx.QueryRow(r.Context(), "SELECT pg09_read($1::uuid,$2,$3,$4::uuid,$5::uuid,$6,$7::uuid,$8,$9::timestamptz,$10::timestamptz,$11::text)", ws, realm, resource, nullableID(id), nullableID(cursor), nullableID(query.Get("status")), nullableID(account), nullableID(query.Get("method")), from, to, nullableID(search)).Scan(&raw)
 		}
 		var body struct {
+			Reason    string `json:"reason"`
 			Method    string `json:"method"`
 			Number    string `json:"account_number"`
 			AccountID string `json:"account_id"`
@@ -259,6 +266,12 @@ func (s *Service) HandleOperations(w http.ResponseWriter, r *http.Request) {
 		}
 		if e := decodeBounded(w, r, &body, 4096); e != nil {
 			return e
+		}
+		if resource == "notices" {
+			if id == "" || action != "retry" {
+				return errors.New("invalid notice recovery action")
+			}
+			return tx.QueryRow(r.Context(), "SELECT pg08_notice_retry($1::uuid,$2,$3::uuid,$4)", ws, realm, id, body.Reason).Scan(&raw)
 		}
 		if resource == "gateways" && id == "" && action == "" {
 			number, ok := deviceevidence.NormalizeNumber(body.Number)

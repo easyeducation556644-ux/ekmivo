@@ -80,9 +80,6 @@ func (w *PipelineWorker) Work(ctx context.Context, job *river.Job[PipelineArgs])
 	if e != nil {
 		return errors.New("delivery queue unavailable")
 	}
-	if e = w.drainNotice(ctx); e != nil {
-		return e
-	}
 	// One bounded HTTP attempt per sweep; separate realm workers scale this drain.
 	for _, p := range items {
 		if !w.authorized(ctx, p) {

@@ -10,7 +10,27 @@ import (
 
 	"github.com/masharzy/ekmivo/backend/internal/merchantwebhook"
 	"github.com/masharzy/ekmivo/backend/internal/receiptnotice"
+	"github.com/riverqueue/river"
 )
+
+type NoticeArgs struct {
+	Environment string `json:"environment"`
+}
+
+func (NoticeArgs) Kind() string { return "receipt_notice" }
+
+type NoticeWorker struct {
+	river.WorkerDefaults[NoticeArgs]
+	Pipeline *PipelineWorker
+}
+
+func (*NoticeWorker) Timeout(*river.Job[NoticeArgs]) time.Duration { return 15 * time.Second }
+func (w *NoticeWorker) Work(ctx context.Context, job *river.Job[NoticeArgs]) error {
+	if w.Pipeline == nil || job.Args.Environment != w.Pipeline.Realm {
+		return errors.New("notice realm unavailable")
+	}
+	return w.Pipeline.drainNotice(ctx)
+}
 
 func (w *PipelineWorker) drainNotice(ctx context.Context) error {
 	if w.NoticeSMTP == nil {

@@ -1394,8 +1394,16 @@ try{
  same((await pg07DB.unsafe("SELECT pg08_notice_finish($1::uuid,$2::uuid,'accepted') accepted",[noticeRow.id,randomUUID()]))[0].accepted,false,"wrong notice lease ACK accepted");
  same((await pg07DB.unsafe("SELECT pg08_notice_finish($1::uuid,$2::uuid,'unknown') accepted",[noticeRow.id,noticeClaim.lease_id]))[0].accepted,true,"notice unknown outcome not recorded");
  same((await pg07DB.unsafe("SELECT status FROM pg08_customer_notices WHERE id=$1::uuid",[noticeRow.id]))[0].status,"unknown","notice unknown outcome blindly retried");
+ const noticePayment=(await pg07DB.unsafe("SELECT id FROM financial_payments WHERE attempt_id=$1::uuid",[pg07Base.attempt]))[0].id;
+ const noticeHistory=await noticeScope(async tx=>(await tx.unsafe("SELECT pg08_notice_read($1::uuid,'sandbox',$2::uuid) data",[pg07WS,noticePayment]))[0].data);
+ ok(Array.isArray(noticeHistory.items)&&noticeHistory.items.some(n=>n.id===noticeRow.id),"notice history missing");
+ ok(!JSON.stringify(noticeHistory).includes("email_cipher"),"notice history exposed contact ciphertext");
+ await noticeScope(async tx=>{await reject(tx,()=>tx.unsafe("SELECT pg08_notice_retry($1::uuid,'sandbox',$2::uuid,'short')",[pg07WS,noticeRow.id]),"22023")});
+ await noticeScope(async tx=>{await tx.unsafe("SELECT pg08_notice_retry($1::uuid,'sandbox',$2::uuid,'Checked provider logs; authorize resend')",[pg07WS,noticeRow.id])});
+ same((await pg07DB.unsafe("SELECT status FROM pg08_customer_notices WHERE id=$1::uuid",[noticeRow.id]))[0].status,"pending","explicit notice recovery failed");
  same(await noticeScope(async tx=>(await tx.unsafe("SELECT pg08_notice_withdraw($1::uuid,'sandbox',$2::uuid,$3) accepted",[pg07WS,pg07Base.intent,noticeWithdraw]))[0].accepted),true,"notice withdrawal failed");
  same((await pg07DB.unsafe("SELECT status FROM pg08_customer_notices WHERE id=$1::uuid",[noticeRow.id]))[0].status,"withdrawn","notice withdrawal did not suppress delivery");
+ await noticeScope(async tx=>{await reject(tx,()=>tx.unsafe("SELECT pg08_notice_retry($1::uuid,'sandbox',$2::uuid,'Do not resend withdrawn consent')",[pg07WS,noticeRow.id]),"23514")});
  const noticeReader=postgres(ds("ekmivo_pg04_sandbox","ekmivo_finance_reader_sandbox","pg04-sandbox-reader-only"),{max:1,prepare:false});
  try{await reject(noticeReader,()=>noticeReader.unsafe("SELECT email_cipher FROM pg08_notice_contacts"),"42501");}finally{await noticeReader.end({timeout:3})}
  const noticeControl=(await admin.unsafe("SELECT to_regclass('public.pg08_customer_notices') IS NULL absent"))[0];

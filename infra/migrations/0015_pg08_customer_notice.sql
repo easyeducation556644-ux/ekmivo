@@ -49,6 +49,8 @@ RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS
  SET email_cipher=excluded.email_cipher,locale=excluded.locale,consent_at=now(),verified_at=NULL,withdrawn_at=NULL,
  verification_digest=excluded.verification_digest,verification_expires_at=excluded.verification_expires_at,
  withdrawal_digest=excluded.withdrawal_digest RETURNING id INTO result;
+ INSERT INTO pg09_audit(workspace_id,environment,resource,resource_id,action)
+ VALUES(w,e,'notice_contacts',result,'subscription_requested');
  RETURN result;
 END $$;
 
@@ -70,6 +72,8 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$ DECLARE c
  WHERE workspace_id=w AND environment=e AND intent_id=intent AND verification_digest=digest
  AND verification_expires_at>now() AND withdrawn_at IS NULL RETURNING id INTO contact;
  IF contact IS NULL THEN RETURN false; END IF;
+ INSERT INTO pg09_audit(workspace_id,environment,resource,resource_id,action)
+ VALUES(w,e,'notice_contacts',contact,'contact_verified');
  PERFORM pg08_notice_enqueue(contact); RETURN true;
 END $$;
 
@@ -81,6 +85,8 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$ DECLARE c
  IF contact IS NULL THEN RETURN false; END IF;
  UPDATE pg08_customer_notices SET status='withdrawn',lease_id=NULL,lease_until=NULL
  WHERE contact_id=contact AND status IN ('pending','sending','unknown');
+ INSERT INTO pg09_audit(workspace_id,environment,resource,resource_id,action)
+ VALUES(w,e,'notice_contacts',contact,'consent_withdrawn');
  RETURN true;
 END $$;
 
@@ -134,4 +140,32 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION pg08_notice_due(),pg08_notice_claim(uuid,bigint),pg08_notice_finish(uuid,uuid,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION pg08_notice_due(),pg08_notice_claim(uuid,bigint),pg08_notice_finish(uuid,uuid,text) TO ekmivo_financial_worker;
+CREATE FUNCTION pg08_notice_read(w uuid,e text,payment uuid) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$ DECLARE result jsonb;BEGIN
+ PERFORM pg06_scope(w,e);
+ IF NOT EXISTS(SELECT 1 FROM financial_payments WHERE workspace_id=w AND environment=e AND id=payment) THEN RETURN NULL;END IF;
+ SELECT coalesce(jsonb_agg(to_jsonb(t)),'[]'::jsonb) INTO result FROM (
+ SELECT n.id,n.status,n.attempts,n.reason,n.next_at,n.created_at,n.accepted_at,
+ c.locale,(c.withdrawn_at IS NOT NULL) AS consent_withdrawn
+ FROM pg08_customer_notices n JOIN pg07_events ev ON ev.id=n.event_id
+ JOIN pg08_notice_contacts c ON c.id=n.contact_id
+ WHERE n.workspace_id=w AND n.environment=e AND ev.workspace_id=w AND ev.environment=e AND ev.payment_id=payment
+ ORDER BY n.created_at DESC,n.id DESC LIMIT 50)t;
+ RETURN jsonb_build_object('items',result);
+END $$;
+CREATE FUNCTION pg08_notice_retry(w uuid,e text,notice uuid,why text) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$ DECLARE changed uuid;BEGIN
+ PERFORM pg06_scope(w,e);
+ IF length(btrim(why))<10 OR length(why)>400 THEN RAISE EXCEPTION 'notice recovery reason required' USING ERRCODE='22023';END IF;
+ UPDATE pg08_customer_notices n SET status='pending',attempts=0,next_at=now(),reason='explicit_operator_resend',lease_id=NULL,lease_until=NULL
+ FROM pg08_notice_contacts c WHERE n.id=notice AND n.workspace_id=w AND n.environment=e
+ AND n.status IN ('unknown','failed') AND c.id=n.contact_id AND c.verified_at IS NOT NULL AND c.withdrawn_at IS NULL
+ RETURNING n.id INTO changed;
+ IF changed IS NULL THEN RAISE EXCEPTION 'notice cannot be resent' USING ERRCODE='23514';END IF;
+ INSERT INTO pg09_audit(workspace_id,environment,resource,resource_id,action)
+ VALUES(w,e,'customer_notices',changed,'explicit_resend: '||btrim(why));
+ RETURN jsonb_build_object('id',changed,'status','pending');
+END $$;
+REVOKE ALL ON FUNCTION pg08_notice_read(uuid,text,uuid),pg08_notice_retry(uuid,text,uuid,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION pg08_notice_read(uuid,text,uuid),pg08_notice_retry(uuid,text,uuid,text) TO ekmivo_finance_reader;
 COMMIT;

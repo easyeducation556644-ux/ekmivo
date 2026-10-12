@@ -166,6 +166,7 @@ func main() {
 	workers := river.NewWorkers()
 	river.AddWorker(workers, &AuditWorker{Pool: pool, Control: control, Realm: realm})
 	periodic := []*river.PeriodicJob{}
+	queues := map[string]river.QueueConfig{"financial_" + realm: {MaxWorkers: 2}}
 	if os.Getenv("PG06_PIPELINE_ENABLED") == "true" {
 		key, e := hex.DecodeString(os.Getenv("PG06_ENCRYPTION_KEY_HEX"))
 		if e != nil || len(key) != 32 {
@@ -181,14 +182,22 @@ func main() {
 				log.Fatal("notice worker migration unavailable")
 			}
 		}
-		river.AddWorker(workers, &financial.PipelineWorker{Pool: pool, Control: control, Realm: realm, EncryptionKey: key, NoticeSMTP: noticeSMTP})
+		pipeline := &financial.PipelineWorker{Pool: pool, Control: control, Realm: realm, EncryptionKey: key, NoticeSMTP: noticeSMTP}
+		river.AddWorker(workers, pipeline)
+		if noticeSMTP != nil {
+			river.AddWorker(workers, &financial.NoticeWorker{Pipeline: pipeline})
+			queues["notice_"+realm] = river.QueueConfig{MaxWorkers: 1}
+			periodic = append(periodic, river.NewPeriodicJob(river.PeriodicInterval(10*time.Second), func() (river.JobArgs, *river.InsertOpts) {
+				return financial.NoticeArgs{Environment: realm}, &river.InsertOpts{Queue: "notice_" + realm, MaxAttempts: 3, UniqueOpts: river.UniqueOpts{ByArgs: true}}
+			}, &river.PeriodicJobOpts{RunOnStart: true}))
+		}
 		periodic = append(periodic, river.NewPeriodicJob(river.PeriodicInterval(2*time.Second), func() (river.JobArgs, *river.InsertOpts) {
 			return financial.PipelineArgs{Environment: realm}, &river.InsertOpts{Queue: "financial_" + realm, MaxAttempts: 3, UniqueOpts: river.UniqueOpts{ByArgs: true}}
 		}, &river.PeriodicJobOpts{RunOnStart: true}))
 	}
 	client, err := river.NewClient(riverpgxv5.New(pool), &river.Config{
 		PeriodicJobs: periodic,
-		Queues:       map[string]river.QueueConfig{"financial_" + realm: {MaxWorkers: 2}},
+		Queues:       queues,
 		Workers:      workers,
 		// This worker only handles bounded 10s PG04 audit probes. River defaults
 		// to a ONE HOUR stuck-job rescue horizon, which defeats crash recovery for
