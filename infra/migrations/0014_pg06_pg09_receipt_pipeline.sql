@@ -88,7 +88,8 @@ CREATE TRIGGER pg07_event_immutable BEFORE UPDATE OR DELETE ON pg07_events FOR E
 
 CREATE FUNCTION pg06_scope(w uuid,e text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
 BEGIN
- IF current_setting('ekmivo.workspace_id',true) IS DISTINCT FROM w::text OR
+ IF e IS DISTINCT FROM (SELECT environment FROM financial_realm WHERE singleton) OR
+ current_setting('ekmivo.workspace_id',true) IS DISTINCT FROM w::text OR
  current_setting('ekmivo.environment',true) IS DISTINCT FROM e OR NOT EXISTS
  (SELECT 1 FROM financial_workspace_registry WHERE workspace_id=w AND environment=e AND status='active')
  THEN RAISE EXCEPTION 'scope denied' USING ERRCODE='42501'; END IF;
