@@ -23,7 +23,11 @@ function show(value:unknown,key:string,locale:Locale):string{
  if(statuses[String(value)])return statuses[String(value)][bn?1:0];return String(value)
 }
 const blank={name:"",account_id:"",source:"",binding:"",parser_id:"",url:"",method:"bkash",account_number:""};
-export function PaymentOperations({locale,workspaceId,userId,environment,resource,canManage,detailId}:{locale:Locale;workspaceId:string;userId:string;environment:PaymentEnvironment;resource:Resource;canManage:boolean;detailId?:string}){
+type PaymentOperationsProps={locale:Locale;workspaceId:string;userId:string;environment:PaymentEnvironment;resource:Resource;canManage:boolean;detailId?:string};
+export function PaymentOperations(props:PaymentOperationsProps){
+ return <PaymentOperationsScoped key={[props.userId,props.workspaceId,props.environment,props.resource,props.detailId||""].join(":")} {...props}/>;
+}
+function PaymentOperationsScoped({locale,workspaceId,userId,environment,resource,canManage,detailId}:PaymentOperationsProps){
  const bn=locale==="bn",base=`/api/go/workspaces/${workspaceId}/operations/`;
  const [rows,setRows]=useState<Row[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState(""),[online,setOnline]=useState(true),[cursor,setCursor]=useState<string|null>(null),[busy,setBusy]=useState(false),[filter,setFilter]=useState("");
  const [draft,setDraft]=useState(blank),[saved,setSaved]=useState(blank),[secret,setSecret]=useState(""),[secretScope,setSecretScope]=useState(""),[notice,setNotice]=useState(""),[accounts,setAccounts]=useState<Row[]>([]),[parsers,setParsers]=useState<Row[]>([]),[deliveryRows,setDeliveryRows]=useState<Row[]>([]),[confirm,setConfirm]=useState<{id:string;action:string}|null>(null);
@@ -35,9 +39,8 @@ export function PaymentOperations({locale,workspaceId,userId,environment,resourc
  const confirmDialog=useRef<HTMLDialogElement>(null);
  useEffect(()=>{const dialog=confirmDialog.current;if(!dialog)return;if(confirm&&!dialog.open){dialog.showModal();dialog.querySelector<HTMLButtonElement>("button:last-of-type")?.focus()}else if(!confirm&&dialog.open)dialog.close()},[confirm]);
  const draftKey=`ekmivo:operations:${userId}:${workspaceId}:${environment}:${resource}`;
- // A once-visible credential from one business/realm must not appear in another.
- // The render-level scope guard also prevents a one-frame secret flash before effects run.
- useEffect(()=>{let active=true;void Promise.resolve().then(()=>{if(!active)return;setSecret("");setSecretScope("");setConfirm(null);setDraft(blank);setSaved(blank);setRows([]);setCursor(null);setDeliveryRows([]);setAccounts([]);setParsers([]);setNotice("");setError("")});return()=>{active=false}},[draftKey]);
+ // A unique React key remounts all state on workspace, user, realm and route
+ // switch. No synchronous effect reset; one-time secrets cannot cross scope.
  useEffect(()=>{let current=true;void Promise.resolve().then(()=>{if(!current)return;try{const raw=sessionStorage.getItem(filterKey);if(raw){const parsed=JSON.parse(raw);if(parsed&&["status","account","method","from","to"].every(k=>typeof parsed[k]==="string"))setQueryFilters(parsed)}setFilter(sessionStorage.getItem(filterKey+":q")||"")}catch{/* private storage */}setLoadedFilterKey(filterKey)});return()=>{current=false}},[filterKey]);
  useEffect(()=>{if(loadedFilterKey!==filterKey)return;try{sessionStorage.setItem(filterKey,JSON.stringify(queryFilters));sessionStorage.setItem(filterKey+":q",filter)}catch{/* private-mode storage may be unavailable */}},[filterKey,loadedFilterKey,queryFilters,filter]);
  useEffect(()=>{const handle=setTimeout(()=>setSearchTerm(filter.trim()),250);return()=>clearTimeout(handle)},[filter]);
