@@ -179,6 +179,18 @@ func mapped(w http.ResponseWriter, err error) {
 			fail(w, 409, "CONFLICT")
 			return
 		case "23514":
+			if pg.Message == "live source unavailable" {
+				fail(w, 503, "RECEIVING_SOURCE_UNAVAILABLE")
+				return
+			}
+			if pg.Message == "link expired" {
+				fail(w, 410, "PAYMENT_LINK_EXPIRED")
+				return
+			}
+			if pg.Message == "link use limit" {
+				fail(w, 409, "PAYMENT_LINK_LIMIT_REACHED")
+				return
+			}
 			fail(w, 409, "LOCKED_OR_EXPIRED")
 			return
 		case "22023", "23502", "22001", "22003":
