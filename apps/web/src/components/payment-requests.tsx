@@ -82,7 +82,7 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
  useEffect(()=>{sourceRef.current={draft:sourceDraft,lines:extraLines,base:sourceBase}},[sourceDraft,extraLines,sourceBase]);
  const draftKey="ekmivo:pg05-request:v1:"+userId+":"+workspaceId+":"+environment;
  const api="/api/go/workspaces/"+workspaceId+"/payment-intents?environment="+environment;
- const sourcesApi="/api/go/workspaces/"+workspaceId+"/linked-sources?environment="+environment;
+ const sourcesApi="/api/go/workspaces/"+workspaceId+(environment==="live"?"/documents/invoices":"/linked-sources")+"?environment="+environment;
  const dirty=(JSON.stringify(fields)!==JSON.stringify(draftBase))||
   JSON.stringify({draft:sourceDraft,lines:extraLines})!==JSON.stringify(sourceBase);
  useEffect(()=>registerDraft({
@@ -134,13 +134,13 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
   }
  },[api,bn]);
  const refreshSources=useCallback(async()=>{
-  if(environment==="live"){setSources([]);setSourceLoad("error");setSourceError(short("LIVE_SOURCE_NOT_CONNECTED",bn));return;}
+
   setSourceLoad("loading");
   try{
    const response=await fetch(sourcesApi,{cache:"no-store",credentials:"same-origin"});
    const body=await response.json();
    if(!response.ok){if(response.status===401||response.status===403)setSources([]);throw Error(body.error?.code||body.code);}
-   setSources(Array.isArray(body.data)?body.data:[]);
+   setSources(environment==="live"?(body.items||[]).filter((x:{status:string;amount_minor:number;paid_minor:number})=>x.status==="issued"&&x.amount_minor>x.paid_minor).map((x:{id:string;reference:string;amount_minor:number;paid_minor:number;created_at:string;body:{items:Source["items"]}})=>({id:x.id,source_kind:"invoice",source_reference:x.reference,amount_minor:x.amount_minor-x.paid_minor,issued_at:x.created_at,items:x.body.items})):Array.isArray(body.data)?body.data:[]);
    setSourceLoad("ready");setSourceError("");
   }catch{setSourceLoad("error");setSourceError(bn?"নথি লোড হয়নি। আবার চেষ্টা করুন।":"Document sources unavailable. Retry.");}
  },[sourcesApi,environment,bn]);
@@ -184,7 +184,7 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
  };
  async function create(event:React.FormEvent<HTMLFormElement>){
   event.preventDefault();
-  if(submitting||!canWrite||environment!=="sandbox")return;
+  if(submitting||!canWrite)return;
   const linked=fields.sourceKind!=="standalone";
   const amount=linked?null:minor(fields.amount);
   const source=linked?sources.find(x=>x.id===fields.sourceId&&x.source_kind===fields.sourceKind):undefined;
@@ -271,19 +271,19 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
     <div><p className="ds-eyebrow">{bn?"রিকোয়েস্ট ব্যবস্থাপনা":"REQUEST OPERATIONS"}</p>
      <h2>{bn?"পেমেন্ট রিকোয়েস্ট":"Payment requests"}</h2>
      <p>{bn?"সার্ভার-নির্ধারিত পরিমাণ, নির্দিষ্ট মেয়াদ ও প্রেরকের নম্বর। পেমেন্ট কেবল প্রকৃত প্রমাণে যাচাই হবে।":"Server-issued amount, expiry and payer lock. Only trusted receipt evidence can verify funds."}</p></div>
-    <button type="button" className="ek-action" onClick={()=>setExpanded(x=>!x)} aria-expanded={expanded} disabled={!canWrite||load==="forbidden"||environment==="live"}>
+    <button type="button" className="ek-action" onClick={()=>setExpanded(x=>!x)} aria-expanded={expanded} disabled={!canWrite||load==="forbidden"}>
      {expanded?(bn?"ফর্ম বন্ধ":"Close form"):(bn?"রিকোয়েস্ট তৈরি":"+ Create request")}</button>
    </div>
-   <p className="pg05-banner" role="note">{environment==="sandbox"?(bn?"Sandbox পরীক্ষা — আসল টাকা পাঠাবেন না; কোনো বাস্তব গ্রহণকারী নম্বর নেই।":"Sandbox test — no real money; no genuine receiving number is configured."):(bn?"Live receiving source সংযুক্ত নয়। নতুন রিকোয়েস্ট নিরাপদে বন্ধ রাখা হয়েছে।":"Live receiving source unavailable. New requests are disabled.")}</p>
+   <p className="pg05-banner" role="note">{environment==="sandbox"?(bn?"Sandbox পরীক্ষা — আসল টাকা পাঠাবেন না; কোনো বাস্তব গ্রহণকারী নম্বর নেই।":"Sandbox test — no real money; no genuine receiving number is configured."):(bn?"Live request-এর জন্য subscription ও receiving device-এর অবস্থা server যাচাই করবে।":"Live request creation is checked against subscription and receiving-device readiness by the server.")}</p>
    {!canWrite&&<p role="note">{bn?"শুধু দেখার অনুমতি আছে।":"Read-only access. An editor can issue or cancel requests."}</p>}
-   {expanded&&<form onSubmit={create} className="pg05-form"><fieldset disabled={submitting||!canWrite||environment==="live"}>
+   {expanded&&<form onSubmit={create} className="pg05-form"><fieldset disabled={submitting||!canWrite}>
     <div className="pg05-two">
      <label>{bn?"ব্যবসার রেফারেন্স":"Merchant reference"}
       <input required maxLength={128} value={fields.reference} onChange={e=>edit("reference",e.target.value)} placeholder="ORDER-1024"/></label>
      <label>{bn?"রিকোয়েস্টের ধরন":"Request type"}
       <select value={fields.sourceKind} onChange={e=>{keyRef.current="";setNotice("");setFields(f=>({...f,sourceKind:e.target.value as Fields["sourceKind"],sourceId:""}))}}>
        <option value="standalone">{bn?"স্বতন্ত্র":"Standalone"}</option>
-       <option value="order">{bn?"ইস্যু করা অর্ডার":"Issued order"}</option>
+       <option value="order" disabled={environment==="live"}>{bn?"ইস্যু করা অর্ডার":"Issued order"}</option>
        <option value="invoice">{bn?"ইস্যু করা ইনভয়েস":"Issued invoice"}</option>
       </select></label>
      {fields.sourceKind==="standalone"?<label>{bn?"পরিমাণ (BDT)":"Amount (BDT)"}
@@ -303,7 +303,7 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
        <small>{bn?"নথির লাইন থেকে সার্ভার মোট হিসাব করে। সংশোধন করতে নতুন নথি ইস্যু করুন।":"The server computes totals from document lines. Issue a new source to make a correction."}</small></div>
     </div>
     <div className="pg05-actions">
-     <button type="submit" className="ek-action" disabled={submitting||environment==="live"}>{submitting?(bn?"তৈরি হচ্ছে…":"Creating…"):(bn?"Sandbox রিকোয়েস্ট তৈরি":"Create sandbox request")}</button>
+     <button type="submit" className="ek-action" disabled={submitting}>{submitting?(bn?"তৈরি হচ্ছে…":"Creating…"):(bn?"রিকোয়েস্ট তৈরি":"Create request")}</button>
      <button type="button" onClick={saveDraft}>{bn?"খসড়া রাখুন":"Save draft"}</button>
      <button type="button" onClick={restoreDraft}>{bn?"খসড়া ফিরিয়ে আনুন":"Restore draft"}</button>
      <button type="button" onClick={()=>{setFields(empty);setDraftBase(empty);keyRef.current="";try{sessionStorage.removeItem(draftKey);sessionStorage.removeItem(draftKey+":key")}catch{}}}>{bn?"মুছে ফেলুন":"Discard"}</button>
@@ -321,7 +321,7 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
     <div className="pg05-two">
      <label>{bn?"নথির ধরন":"Document type"}
       <select value={sourceDraft.kind} onChange={e=>setSourceDraft(f=>({...f,kind:e.target.value as SourceDraft["kind"]}))} disabled={sourceBusy}>
-       <option value="invoice">{bn?"ইনভয়েস":"Invoice"}</option><option value="order">{bn?"অর্ডার":"Order"}</option>
+       <option value="invoice">{bn?"ইনভয়েস":"Invoice"}</option><option value="order" disabled={environment==="live"}>{bn?"অর্ডার":"Order"}</option>
       </select></label>
      <label>{bn?"নথির রেফারেন্স":"Document reference"}
       <input required maxLength={128} value={sourceDraft.reference} onChange={e=>setSourceDraft(f=>({...f,reference:e.target.value}))} placeholder="INV-2026-001" disabled={sourceBusy}/></label>
@@ -363,7 +363,7 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
        <div className="pg05-total"><strong>{number(source.amount_minor,locale)}</strong></div></div>
       <div className="pg05-record-meta"><span>{bn?"ইস্যুর সময়":"Issued"}: {new Date(source.issued_at).toLocaleString(bn?"bn-BD":"en-BD",{timeZone:"Asia/Dhaka",timeZoneName:"short"})}</span></div>
       <details><summary>{bn?"ইস্যু করা লাইন দেখুন":"View issued line items"}</summary><ul>{source.items.map((line,index)=><li key={index}>{line.title} — {line.quantity} × {number(line.unit_amount_minor,locale)}</li>)}</ul></details>
-      <div className="pg05-actions"><button type="button" disabled={!canWrite||environment==="live"||load==="forbidden"}
+      <div className="pg05-actions"><button type="button" disabled={!canWrite||load==="forbidden"}
        onClick={()=>{setFields(prev=>({...prev,sourceKind:source.source_kind,sourceId:source.id,reference:prev.reference||source.source_reference+"-pay"}));
         keyRef.current="";setExpanded(true);setNotice("");}}>
        {bn?"এই নথির পেমেন্ট রিকোয়েস্ট":"Create payment request"} ↗</button></div>

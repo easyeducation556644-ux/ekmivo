@@ -1,3 +1,4 @@
+import {PaymentSandboxTools} from "./payment-sandbox-tools";
 import Link from "next/link";
 import {database} from "../lib/server/db";
 import {ApiKeyManager,type ApiKeyRow} from "./api-key-manager";
@@ -37,7 +38,7 @@ export async function DeveloperConsole({locale,workspace,environment,userId}:{
    <h2>{bn?"ডেভেলপার ও API অ্যাক্সেস":"Developer API access"}</h2>
    <p>{bn?"এই ব্যবসার স্যান্ডবক্স ও লাইভ কী সম্পূর্ণ আলাদা।":"Sandbox and live credentials are strictly separated for this business."}</p>
   </div><span className="ds-availability">{environment==="sandbox"?"Sandbox":"Live"}</span></div>
-  <p>{bn?"কী তৈরি বা ঘোরানো মানে পেমেন্ট লাইভ চালু হওয়া নয়। PG04–PG09-এর financial APIs প্রস্তুত না হওয়া পর্যন্ত টাকা নেওয়া যাবে না।":"Creating or rotating keys does not enable live payments. Financial APIs remain unavailable until PG04–PG09."}</p>
+  <p>{bn?"কী তৈরি বা ঘোরানো মানে পেমেন্ট লাইভ চালু হওয়া নয়। Live receiving account ও receipt collector প্রস্তুত এবং যাচাই করা থাকতে হবে। Sandbox ফলাফল আসল লেনদেনের প্রমাণ নয়।":"Creating or rotating keys does not enable live payments. Live receiving accounts and receipt collection must be configured and verified. Sandbox results are simulations."}</p>
   <p><Link href={`/${locale}/docs/payments`}>{bn?"API contract ও integration নির্দেশিকা":"API contract and integration guide"} ↗</Link></p>
   {!allowed?<div role="alert" className="ds-empty">
    <h3>{bn?"API key পরিচালনার অনুমতি নেই":"Key management restricted"}</h3>
@@ -46,5 +47,6 @@ export async function DeveloperConsole({locale,workspace,environment,userId}:{
    <h3>{bn?"Credential service পাওয়া যাচ্ছে না":"Credential service unavailable"}</h3>
    <p>{bn?"ডাটাবেস migration এবং service readiness নিশ্চিত করতে হবে। কোনো demo কী দেখানো হচ্ছে না।":"Database migration and service readiness must be checked. No demo keys are shown."}</p>
   </div>:<ApiKeyManager key={`${workspace.id}:${environment}`} locale={locale} userId={userId} workspaceId={workspace.id} environment={environment} keys={keys}/>}
+ {environment==="sandbox"&&allowed&&<PaymentSandboxTools locale={locale} workspaceId={workspace.id}/>}
  </section>;
 }

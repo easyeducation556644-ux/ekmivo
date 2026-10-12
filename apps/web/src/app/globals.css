@@ -4,6 +4,7 @@
 @import "./dashboard.css";
 @import "./pg05-checkout.css";
 @import "./pg09-operations.css";
+@import "./pg10-documents.css";
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 100px; }

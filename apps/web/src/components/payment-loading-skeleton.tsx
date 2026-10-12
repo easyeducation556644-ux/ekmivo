@@ -1,0 +1,3 @@
+export function PaymentLoadingSkeleton({locale,layout="records"}:{locale:"en"|"bn";layout?:"records"|"report"|"document"}){
+ return <div role="status" aria-live="polite" className={`pg10-skeleton pg10-skeleton-${layout}`}><span className="sr-only">{locale==="bn"?"তথ্য লোড হচ্ছে":"Loading records"}</span><div aria-hidden="true"><div className="pg10-skeleton-toolbar"><i/><i/><i/></div>{layout==="report"?<><div className="pg10-skeleton-metrics">{[1,2,3,4].map(i=><div key={i}><i/><i/></div>)}</div><section><i/><i/><i/><i/></section></>:layout==="document"?<section><i/><i/><i/><i/><i/><i/></section>:<>{[1,2,3].map(i=><section key={i}><i/><i/><div className="pg10-skeleton-toolbar"><i/><i/></div></section>)}</>}</div></div>;
+}

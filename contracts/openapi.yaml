@@ -19,6 +19,128 @@ tags:
   - name: Operations
   - name: Merchant
 paths:
+  # PG10-PG13 generated extension references
+  /v1/workspaces/{workspaceID}/documents/customers:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1documents~1customers'
+  /v1/workspaces/{workspaceID}/documents/customers/{documentID}:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1documents~1customers~1{documentID}'
+  /v1/workspaces/{workspaceID}/documents/customers/commands/import-preview:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1documents~1customers~1commands~1import-preview'
+  /v1/workspaces/{workspaceID}/documents/customers/commands/import:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1documents~1customers~1commands~1import'
+  /v1/workspaces/{workspaceID}/documents/customers/commands/export:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1documents~1customers~1commands~1export'
+  /v1/workspaces/{workspaceID}/documents/invoices:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1documents~1invoices'
+  /v1/workspaces/{workspaceID}/documents/invoices/{documentID}:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1documents~1invoices~1{documentID}'
+  /v1/workspaces/{workspaceID}/documents/invoices/{documentID}/issue:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1documents~1invoices~1{documentID}~1issue'
+  /v1/workspaces/{workspaceID}/documents/invoices/{documentID}/cancel:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1documents~1invoices~1{documentID}~1cancel'
+  /v1/workspaces/{workspaceID}/documents/invoices/{documentID}/correct:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1documents~1invoices~1{documentID}~1correct'
+  /v1/workspaces/{workspaceID}/documents/invoices/commands/export:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1documents~1invoices~1commands~1export'
+  /v1/workspaces/{workspaceID}/documents/payment-links:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1documents~1payment-links'
+  /v1/workspaces/{workspaceID}/documents/payment-links/{documentID}:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1documents~1payment-links~1{documentID}'
+  /v1/workspaces/{workspaceID}/documents/payment-links/{documentID}/publish:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1documents~1payment-links~1{documentID}~1publish'
+  /v1/workspaces/{workspaceID}/documents/payment-links/{documentID}/archive:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1documents~1payment-links~1{documentID}~1archive'
+  /v1/workspaces/{workspaceID}/documents/payment-links/commands/export:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1documents~1payment-links~1commands~1export'
+  /v1/workspaces/{workspaceID}/refunds:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1refunds'
+  /v1/workspaces/{workspaceID}/refunds/{refundID}:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1refunds~1{refundID}'
+  /v1/workspaces/{workspaceID}/refunds/{refundID}/review:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1refunds~1{refundID}~1review'
+  /v1/workspaces/{workspaceID}/refunds/{refundID}/approve:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1refunds~1{refundID}~1approve'
+  /v1/workspaces/{workspaceID}/refunds/{refundID}/reject:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1refunds~1{refundID}~1reject'
+  /v1/workspaces/{workspaceID}/refunds/{refundID}/report-returned:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1refunds~1{refundID}~1report-returned'
+  /v1/workspaces/{workspaceID}/refunds/{refundID}/cancel:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1refunds~1{refundID}~1cancel'
+  /v1/public/documents/{token}:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1public~1documents~1{token}'
+  /v1/public/checkout/{token}/refunds:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1public~1checkout~1{token}~1refunds'
+  /v1/workspaces/{workspaceID}/reconciliation:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1reconciliation'
+  /v1/workspaces/{workspaceID}/reconciliation/statement-preview:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1reconciliation~1statement-preview'
+  /v1/workspaces/{workspaceID}/reconciliation/statement-import:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1reconciliation~1statement-import'
+  /v1/workspaces/{workspaceID}/reconciliation/settlement-link:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1reconciliation~1settlement-link'
+  /v1/workspaces/{workspaceID}/integrations:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1integrations'
+  /v1/workspaces/{workspaceID}/integrations/{integrationID}/enable:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1integrations~1{integrationID}~1enable'
+  /v1/workspaces/{workspaceID}/integrations/{integrationID}/disable:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1integrations~1{integrationID}~1disable'
+  /v1/workspaces/{workspaceID}/integrations/{integrationID}/edit:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1integrations~1{integrationID}~1edit'
+  /v1/workspaces/{workspaceID}/reports:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1reports'
+  /v1/workspaces/{workspaceID}/notifications:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1notifications'
+  /v1/workspaces/{workspaceID}/notifications/{notificationID}/read:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1notifications~1{notificationID}~1read'
+  /v1/workspaces/{workspaceID}/privacy/{requestID}/cancel:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1privacy~1{requestID}~1cancel'
+  /v1/workspaces/{workspaceID}/workspace-tools/team:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1workspace-tools~1team'
+  /v1/workspaces/{workspaceID}/workspace-tools/settings:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1workspace-tools~1settings'
+  /v1/workspaces/{workspaceID}/workspace-tools/help:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1workspace-tools~1help'
+  /v1/workspaces/{workspaceID}/privacy:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1privacy'
+  /v1/workspaces/{workspaceID}/billing:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1billing'
+  /v1/workspaces/{workspaceID}/billing/{invoiceID}/reconcile:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1billing~1{invoiceID}~1reconcile'
+  /v1/workspaces/{workspaceID}/workspace-tools/invite:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1workspace-tools~1invite'
+  /v1/workspaces/{workspaceID}/workspace-tools/remove-member/{targetID}:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1workspace-tools~1remove-member~1{targetID}'
+  /v1/workspaces/{workspaceID}/workspace-tools/change-role/{targetID}:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1workspace-tools~1change-role~1{targetID}'
+  /v1/workspaces/{workspaceID}/workspace-tools/revoke-invite/{targetID}:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1workspace-tools~1revoke-invite~1{targetID}'
+  /v1/workspaces/{workspaceID}/workspace-tools/resend-invite/{targetID}:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1workspace-tools~1resend-invite~1{targetID}'
+  /v1/workspaces/{workspaceID}/workspace-tools/grants/{targetID}:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1workspace-tools~1grants~1{targetID}'
+  /v1/workspaces/{workspaceID}/workspace-tools/transfer-owner/{targetID}:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1workspace-tools~1transfer-owner~1{targetID}'
+  /v1/workspace-invites/accept-invite:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspace-invites~1accept-invite'
+  /v1/workspaces/{workspaceID}/exports:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1exports'
+  /v1/workspaces/{workspaceID}/exports/{exportID}:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1exports~1{exportID}'
+  /v1/workspaces/{workspaceID}/exports/{exportID}/download:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1exports~1{exportID}~1download'
+  /v1/public/documents/{token}/files:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1public~1documents~1{token}~1files'
+  /v1/workspaces/{workspaceID}/sandbox/scenarios:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1sandbox~1scenarios'
+  /v1/workspaces/{workspaceID}/sandbox/runs:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1sandbox~1runs'
+  /v1/workspaces/{workspaceID}/sandbox/reset:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1sandbox~1reset'
+  /v1/workspaces/{workspaceID}/documents/invoices/{documentID}/send:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1documents~1invoices~1{documentID}~1send'
+  /v1/workspaces/{workspaceID}/documents/invoices/{documentID}/remind:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1documents~1invoices~1{documentID}~1remind'
+  # End payment extension references
   /v1/public/checkout/{token}/notices/{noticeAction}:
     post:
       operationId: customerReceiptNotice
@@ -666,6 +788,17 @@ components:
         - type: object
           properties:
             merchant_name: { type: string, description: Current enabled business name from control-plane records }
+            brand:
+              type: object
+              properties:
+                logo_url: {type: [string, 'null'], format: uri}
+                checkout_title: {type: [string, 'null']}
+                checkout_description: {type: [string, 'null']}
+                support_url: {type: [string, 'null'], format: uri}
+                support_email: {type: [string, 'null'], format: email}
+                legal_url: {type: [string, 'null'], format: uri}
+                locale: {type: [string, 'null'], enum: [en, bn, null]}
+
             server_time: { type: string, format: date-time }
             source_reference: { type: string }
             items:

@@ -7,6 +7,7 @@ import { dashboardHref, navigation, searchableNavigation, searchableBusinesses, 
 import { DashboardIcon as Icon } from "./dashboard-icon";
 import { SiteControls } from "./site-controls";
 import { DashboardPageSkeleton } from "./dashboard-page-skeleton";
+import { PaymentNotifications } from "./payment-notifications";
 import { activeDrafts,saveActiveDrafts,discardActiveDrafts } from "../lib/client/draft-navigation";
 
 type Space = { id: string; name: string; mode: "ai" | "commerce" | "both" | "off"; role: "owner" | "admin" | "editor" | "viewer" };
@@ -288,7 +289,7 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
      <SiteControls locale={locale} initialTheme={theme}/>
      <details className="ds-notifications" open={noticeOpen} onToggle={event=>setNoticeOpen(event.currentTarget.open)}>
       <summary className="ds-icon-button" aria-label={bn?"নোটিফিকেশন":"Notifications"}><Icon name="bell"/></summary>
-      <div className="ds-notifications-menu"><strong>{bn?"নোটিফিকেশন":"Notifications"}</strong><p>{bn?"ইভেন্ট সেবা এখনো সংযুক্ত হয়নি; কোনো unread count দেখানো হচ্ছে না।":"The event service is not connected; unread counts are unavailable."}</p></div>
+      <div className="ds-notifications-menu">{service==="payments"&&paymentContext?<PaymentNotifications key={workspace.id+paymentContext.environment} locale={locale} workspaceId={workspace.id} environment={paymentContext.environment} open={noticeOpen}/>:<p>{bn?"এই সেবার নোটিফিকেশন এখনো সংযুক্ত হয়নি।":"Notifications for this service are not connected yet."}</p>}</div>
      </details>
      <Link className="ds-help-link" href={contextHref("help")} aria-label={bn?"সহায়তা":"Help"}><Icon name="help"/></Link>
      <details className="ds-profile-menu">

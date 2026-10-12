@@ -45,12 +45,22 @@ class ReceiptStore(context: Context): SQLiteOpenHelper(context, "receipt-outbox.
  fun setQueueError(code:String){require(code.matches(Regex("[A-Z0-9_]{0,64}")));preferences.edit().putString("queue_error",code).commit()}
  fun enabled()=preferences.getBoolean("consented",false)&&!preferences.getBoolean("paused",false)&&enrollment()!=null
  fun pause(){preferences.edit().putBoolean("paused",true).commit()}
- fun disconnect(){preferences.edit().clear().commit();writableDatabase.delete("pending",null,null);AndroidKeystoreSigner("ekmivo-receipt-device").forgetEnrollmentKey()}
+ fun disconnect(){
+  // Stop collection before waiting for a concurrent database writer.
+  check(preferences.edit().clear().commit())
+  writableDatabase.delete("pending",null,null)
+  // Destroy the outbox key as well as the signer: deleted SQLite/WAL pages
+  // must not remain decryptable after this device is disconnected.
+  KeyStore.getInstance("AndroidKeyStore").apply{load(null)}.deleteEntry("ekmivo-receipt-outbox")
+  AndroidKeystoreSigner("ekmivo-receipt-device").forgetEnrollmentKey()
+ }
  fun count():Int=readableDatabase.rawQuery("SELECT count(*) FROM pending",null).use{it.moveToFirst();it.getInt(0)}
  fun enqueue(body:JSONObject):Boolean {
   if(!enabled())return false
   val database=writableDatabase;database.beginTransaction()
   try {
+   // A receiver may have passed its first check before disconnect/pause.
+   if(!enabled()){database.setTransactionSuccessful();return false}
    // Check within the write transaction so concurrent receivers cannot
    // overfill the outbox. Record rejected receipts without retaining their text.
    val full=database.rawQuery("SELECT count(*) FROM pending",null).use{it.moveToFirst();it.getInt(0)>=500}
