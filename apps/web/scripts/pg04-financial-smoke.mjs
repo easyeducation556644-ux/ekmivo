@@ -20,7 +20,7 @@ let count=0;
 const ok=(v,msg)=>{assert.ok(v,msg);count++};
 const same=(a,b,msg)=>{assert.deepEqual(a,b,msg);count++};
 async function reject(tx,fn,code){
- try{if(typeof tx.savepoint==='function')await tx.savepoint(async()=>await fn());else await fn();assert.fail("unexpected successful SQL mutation")}
+ try{if(typeof tx.savepoint==='function')await tx.savepoint(async()=>await fn());else await fn();assert.fail("unexpected successful SQL mutation at "+new Error().stack?.split("\n").slice(2,5).join(" | "))}
  catch(err){if(err.code===code){count++;return}throw err}
 }
 const hmac=()=>randomBytes(32).toString("hex");
