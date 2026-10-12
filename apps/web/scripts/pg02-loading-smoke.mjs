@@ -37,4 +37,12 @@ assert.match(frameSource,/<main id="dashboard-content"[^>]*aria-busy=\{isNavigat
  "Dashboard must preserve authorized content and announce pending navigation");
 assert.doesNotMatch(frameSource,/isNavigating\s*\?\s*<DashboardPageSkeleton/,
  "Client transition must not replace the entire content with an immediate skeleton");
+const paymentContextSource=readFileSync(resolve(root,"lib/server/workspace-context.ts"),"utf8");
+assert.match(paymentContextSource,/const authorizedEnvironments=cache\(async \(workspaceId:string,userId:string\)/,
+ "Product shell and page should share one request-scoped lookup");
+assert.match(paymentContextSource,/const permitted=await authorizedEnvironments\(workspace.id,userId\)/,
+ "Both code paths must consult the request-scoped authorized result");
+for(const guard of ["JOIN workspace_members member","JOIN app_users actor","actor.disabled_at IS NULL","member.user_id=","env.workspace_id="]){
+ assert.ok(paymentContextSource.includes(guard),"Authorization guard absent from environment query: "+guard);
+}
 console.log("PG02 PASS: EN/BN content-only route skeletons and non-flashing persistent dashboard content during transitions");
