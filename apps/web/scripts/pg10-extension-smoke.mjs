@@ -8,7 +8,7 @@ export async function runPaymentExtensions({db,live,control,workspace,otherWorks
  const scoped=(ws,run)=>db.begin(async tx=>{await tx.unsafe("SET LOCAL ROLE ekmivo_finance_reader");await tx.unsafe("SELECT set_config('ekmivo.workspace_id',$1,true),set_config('ekmivo.environment','sandbox',true)",[ws]);return run(tx)});
  const reject=async fn=>{await assert.rejects(fn);count++};
  const create=async(kind,body,key=randomUUID())=>scoped(workspace,async tx=>{
-  const input=[workspace,kind,JSON.stringify(body),key,hash(JSON.stringify(body)),hash(key)];
+  const input=[workspace,kind,db.json(body),key,hash(JSON.stringify(body)),hash(key)];
   try{return (await tx.unsafe("SELECT pg10_write($1::uuid,'sandbox',$2,NULL,'create',$3::jsonb,$4,$5,$6,NULL) result",input))[0].result;}
   catch(error){
    // Log only safe structure and SQLSTATE; no customer details or body values.
@@ -20,12 +20,12 @@ export async function runPaymentExtensions({db,live,control,workspace,otherWorks
  const key=randomUUID(),customer=await create('customers',customerBody,key);
  equal((await create('customers',customerBody,key)).id,customer.id,'Lost-response customer retry must return one record');
  await reject(()=>create('customers',{...customerBody,name:'Changed'},key));
- await reject(()=>scoped(otherWorkspace,tx=>tx.unsafe("SELECT pg10_write($1::uuid,'sandbox','customers',$2::uuid,'edit',$3::jsonb,$4,$5,$6,NULL)",[otherWorkspace,customer.id,JSON.stringify({...customerBody,expected_version:1}),randomUUID(),hash('edit'),hash('cap')])));
+ await reject(()=>scoped(otherWorkspace,tx=>tx.unsafe("SELECT pg10_write($1::uuid,'sandbox','customers',$2::uuid,'edit',$3::jsonb,$4,$5,$6,NULL)",[otherWorkspace,customer.id,db.json({...customerBody,expected_version:1}),randomUUID(),hash('edit'),hash('cap')])));
  const invoiceBody={reference:'INVOICE-'+randomUUID(),customer_id:customer.id,items:[{title:'Physical sample',quantity:2,unit_amount_minor:5000}],tax_minor:500,fee_minor:0,shipping_minor:200,discount_minor:100};
  const invoice=await create('invoices',invoiceBody);equal(Number(invoice.amount_minor),10600,'Invoice total must be calculated in SQL');
  await reject(()=>create('invoices',{...invoiceBody,reference:randomUUID(),items:[{quantity:1,unit_amount_minor:100}]}));
  await reject(()=>create('invoices',{...invoiceBody,reference:randomUUID(),customer_id:randomUUID()}));
- const action=async(id,verb,body)=>scoped(workspace,async tx=>(await tx.unsafe("SELECT pg10_write($1::uuid,'sandbox','invoices',$2::uuid,$3,$4::jsonb,$5,$6,$7,NULL) result",[workspace,id,verb,JSON.stringify(body),randomUUID(),hash(verb+JSON.stringify(body)),hash('unused')]))[0].result);
+ const action=async(id,verb,body)=>scoped(workspace,async tx=>(await tx.unsafe("SELECT pg10_write($1::uuid,'sandbox','invoices',$2::uuid,$3,$4::jsonb,$5,$6,$7,NULL) result",[workspace,id,verb,db.json(body),randomUUID(),hash(verb+JSON.stringify(body)),hash('unused')]))[0].result);
  await reject(()=>action(invoice.id,'issue',{}));
  await action(invoice.id,'issue',{expected_version:1});
  await reject(()=>action(invoice.id,'cancel',{expected_version:1}));
@@ -36,7 +36,7 @@ export async function runPaymentExtensions({db,live,control,workspace,otherWorks
  equal(history.items[0].history.length,3,'Create/issue/correction each retain version');
  const linkKey=randomUUID(),link=await create('payment-links',{reference:'LINK-'+randomUUID(),amount_minor:12500,max_uses:0,max_quantity:3},linkKey);
  await scoped(workspace,tx=>tx.unsafe(`SELECT pg10_write($1::uuid,'sandbox','payment-links',$2::uuid,'publish','{"expected_version":1}',$3,$4,$5,NULL)`,[workspace,link.id,randomUUID(),hash('publish'),hash('unused')]));
- const visitorKey=randomUUID();const visit=async(quantity,key)=>db.unsafe("SELECT pg10_visit($1,$2,$3,$4,$5::jsonb) result",[hash(linkKey),key,hash(key+quantity),hash('intent-'+key),JSON.stringify({_quantity:quantity})]);
+ const visitorKey=randomUUID();const visit=async(quantity,key)=>db.unsafe("SELECT pg10_visit($1,$2,$3,$4,$5::jsonb) result",[hash(linkKey),key,hash(key+quantity),hash('intent-'+key),db.json({_quantity:quantity})]);
  const visitor=(await visit(2,visitorKey))[0].result;equal(Number(visitor.amount_minor),25000,'Link quantity must derive server total');
  equal((await visit(2,visitorKey))[0].result.id,visitor.id,'Per-visitor idempotency must not issue twice');
  await reject(()=>visit(4,randomUUID()));
@@ -46,7 +46,7 @@ export async function runPaymentExtensions({db,live,control,workspace,otherWorks
  await reject(()=>scoped(workspace,tx=>tx.unsafe("UPDATE pg10_versions SET body='{}' WHERE document_id=$1::uuid",[invoice.id])));
  equal((await db.unsafe("SELECT pg15_health() data"))[0].data.environment,'sandbox','Health reports physical realm');
  const importKey=randomUUID(), importedRows=[{reference:'BATCH-'+randomUUID(),name:'Fictional batch contact'}];
- const batch=async(csvHash,rows)=>scoped(workspace,async tx=>(await tx.unsafe("SELECT pg10_import($1::uuid,'sandbox',NULL,$2,$3,$4::jsonb) result",[workspace,importKey,csvHash,JSON.stringify(rows)]))[0].result);
+ const batch=async(csvHash,rows)=>scoped(workspace,async tx=>(await tx.unsafe("SELECT pg10_import($1::uuid,'sandbox',NULL,$2,$3,$4::jsonb) result",[workspace,importKey,csvHash,db.json(rows)]))[0].result);
  equal((await batch(hash('original-csv'),importedRows)).imported,1,'Batch creates atomically');
  equal((await batch(hash('original-csv'),importedRows)).imported,1,'Lost batch response returns original result');
  await reject(()=>batch(hash('truncated-csv'),[]));
