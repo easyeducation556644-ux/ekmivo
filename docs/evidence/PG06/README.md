@@ -1,5 +1,13 @@
 # PG06 — native receipt collection & signed evidence (NOT ACCEPTED)
 
+## Current source follow-up — 2026-10-12
+
+**Observed exact-source verification:** `9131284dbb908df3e36a3b188e93f8001f659a36`, [CI 38193033849](https://github.com/masharzy/ekmivo/actions/runs/38193033849), 4/4 PASS. Signed HTTP → restricted Go → SQL matching PASS with software signer/fictional sample; native unit/debug build PASS. Not a physical-device or provider PASS. The final result supersedes the in-progress wording below.
+
+See [current audit](../PG06-PG09-AUDIT.md) for exact code/CI identity. Go now validates the approved full capture pattern/source before persistence and rejects unrelated/OTP text. Signed HTTP integration uses a software P-256 key, genuine restricted Go + PostgreSQL and a **fictional sandbox** receipt; it checks claim, heartbeat, body tamper, wrong realm/source, replay, matching once and revocation. The initial run exposed stale test authority after earlier control mutation; the test now refreshes through the real restricted provisioner, preserving fail-closed production authorization. Latest run must pass before this new coverage is called verified.
+
+Physical Android Keystore/SIM/OEM, real consented samples, offline/reboot/permission-loss and production evidence remain **MANUAL PENDING** in the single ledger. No Android UI expansion, production deploy or real provider test occurred. Historical source-only descriptions below are superseded only where supported by newer evidence.
+
 **Status:** preliminary source-only security work; all PG06 acceptance gates OPEN. Related S31/S32.
 
 ## Implemented
@@ -27,3 +35,35 @@ CI source checks must be linked here after the current Kotlin and Go test run pa
 ## Verified helper tests — 2026-10-11
 
 **Source/test PASS**, not receipt collection acceptance. GitHub Actions [run 38115889313](https://github.com/masharzy/ekmivo/actions/runs/38115889313), commit `55ab39d5dbcda2487140f0fb0d3e35bbdd5dd103`: Go `go test ./...` including device canonical-signature/tamper/stale timestamp tests; Kotlin `:app:testDebugUnitTest` including incomplete five-field and altered-body cases; Kotlin `:app:assembleDebug`; web lint/build and PostgreSQL isolated migration/rollback smoke **all passed**. Debug APK [artifact 11693770119](https://github.com/masharzy/ekmivo/actions/runs/38115889313/artifacts/11693770119). Device Keystore runtime, device enrollment, network transport and actual merchant receipt verification were **not tested**.
+
+## New code checkpoint — 2026-10-11 (UNVERIFIED)
+
+See [PG06–PG09 source checkpoint](../PG06-PG09-CODE-CHECKPOINT.md). Native collection, server matching, merchant delivery and operational screens are now implementation drafts on `codex/pg06-pg09-code`. These edits have **no build/CI/database/browser/real-device evidence yet** by the owner's explicit code-first instruction. Any older PASS above belongs only to its referenced older commit.
+
+Acceptance: OPEN. New migration 0014 is not applied; no live verification or deployment claimed. Outstanding checks and prerequisites are recorded in [the consolidated manual ledger](../../MANUAL-VERIFICATION.md). Preserve the difference between a fictional parser fixture and approved real receipt samples.
+
+## Current branch audit follow-up — 2026-10-11 (NOT ACCEPTED)
+
+[Required PG06–PG09 audit](../PG06-PG09-AUDIT.md); [verification-only draft PR #9](https://github.com/masharzy/ekmivo/pull/9); [single manual ledger](../../MANUAL-VERIFICATION.md). Baseline 513ae04, code fixes up to 24cb641a; later evidence commits do not prove an untested test result.
+
+Parser now converts Bengali/Arabic/Persian decimal numeral scripts before existing exact positive minor-unit bounds (Go tests authored). Live device pairing now rejects a SandboxOnly parser rule. Go/Kotlin CI for the new branch and real device consent, SIM/package identity, Keystore, queue overflow, timestamp/payer authenticity remain open. Original fiction-only sandbox parser is never real provider evidence.
+
+Automated verification: source-authored tests/CI invocation are not PASS until a completed exact-commit run is recorded in the audit. New migration 0014 is NOT APPLIED. Real handset/provider/merchant payment, notices and deployment are NOT TESTED. Acceptance: **OPEN**.
+
+## PG06 source verification — 2026-10-11 (AUTOMATED PASS; ACCEPTANCE OPEN)
+
+**Exact tested source SHA:** 8aaf240be72920c7508502e2f67d75f400da18a8, branch codex/pg06-pg09-code. [GitHub Actions 38158507367](https://github.com/masharzy/ekmivo/actions/runs/38158507367): **4/4 jobs PASS.** Go all-unit, checkout race and vet; Kotlin Compose debug APK assembly and unit tests; both Docker image builds; Next lint/typecheck/OpenAPI/production build and disposable PostgreSQL 17 financial regression. CI logs explicitly say **PG06 isolated PostgreSQL signed-ingress function smoke PASS** and **223 combined** finance assertions (NOT 223 PG06-only assertions).
+
+**Reviewed and corrected source:** Bengali/Arabic/Persian exact decimal parsing; regex expression bounds, full-pattern pre-save filtering, malformed UTF-8 denial and no wider OTP-catching rule; live pairing rejects fictional sandbox-only rules; Keystore signed native receipt intake in the same Kotlin app; AES-GCM encrypted queue and durable ACK; consumed pairing response can recover for 5 minutes with the SAME signed public key, different key denied; pending pairing reply restored after app recreation with capture OFF until explicit confirmation; 500-record outbox overflow counter, poison error reason, merchant Devices health, account disable and revoke guards. Original untrusted device time is never substituted for original parsed provider time.
+
+**Actual synthetic database proof:** migration 0014 applied twice via existing migration coordinator to isolated disposable Sandbox + Live finance databases, never control or production; FORCE RLS, role denial, no control data leak; fake account/device pairing, same-key recovery, changed-key denial, persisted overflow/queue health, invalid fixture event durable storage + byte-identical replay, changed digest rejected, revoked key denied, transaction rollback preserves no test fixtures. These are SIMULATED fixtures. CI unit crypto validation and SQL exercises are separate, NOT a complete real signed Android→HTTP→database test.
+
+### PG06 gates that remain OPEN
+
+- **MANUAL PENDING / G0-6:** consented physical phone(s)/OEM, actual supported provider receipts, exact full payer/original transaction time/receiving number and source ownership, Android SIM subscription and package authenticity. No genuinely approved live bKash/Nagad/Rocket parser can be claimed from a fictional fixture.
+- **MANUAL PENDING:** Keystore and permission paths on actual Android, SMS/notification capture and unrelated/OTP exclusion, network offline/reboot/app upgrade/force-stop gaps, dual SIM, recovery after lost pairing reply, 500-event overflow warning, poison error display, lost durable ACK, key invalidation and disable/revocation.
+- **AUTOMATED GAP:** end-to-end **signed Go HTTP ingress** with a real disposable database and crash/replay/rate-limit cases; Android instrumentation/real pressure. Current proof is Go signature helper unit + SQL functions and Android source build.
+- **OPERATOR / POLICY GAP:** retention/export/deletion of encrypted queues and server ciphertext, key custody/rotation/restore, configured operational alert/consent withdrawal procedure, device distribution permission policy. Merchant warning is visible; no real alert channel configured.
+- **DEPENDENCIES:** PG07 automatic payment confirmation and PG08 merchant callbacks unaccepted; checkout is sandbox do-not-send-money. A valid device signature never proves a provider payment.
+
+**Status:** PG06 available source + automated sandbox checks VERIFIED; PG06 real-device/provider acceptance **NOT ACCEPTED**. See [mandatory audit](../PG06-PG09-AUDIT.md) and the [one manual ledger](../../MANUAL-VERIFICATION.md).

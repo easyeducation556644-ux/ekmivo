@@ -22,6 +22,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/masharzy/ekmivo/backend/internal/authz"
+	"github.com/masharzy/ekmivo/backend/internal/receiptnotice"
 )
 
 var (
@@ -32,11 +33,14 @@ var (
 )
 
 type Service struct {
-	limits   limiter
-	Auth     *authz.Repository
-	Sandbox  *pgxpool.Pool
-	TokenKey []byte
-	PayerKey []byte
+	NoticeSMTP   *receiptnotice.SMTPConfig
+	NoticeSchema bool
+	Pipeline     *Pipeline
+	limits       limiter
+	Auth         *authz.Repository
+	Sandbox      *pgxpool.Pool
+	TokenKey     []byte
+	PayerKey     []byte
 }
 type createRequest struct {
 	Reference string `json:"merchant_reference"`
@@ -71,6 +75,12 @@ func (s *Service) ready() bool {
 	return s != nil && s.Sandbox != nil && s.Auth != nil && s.Auth.DB != nil && len(s.TokenKey) >= 32 && len(s.PayerKey) >= 32
 }
 func (s *Service) Close() {
+	if s != nil && s.Pipeline != nil && s.Pipeline.Live != nil {
+		s.Pipeline.Live.Close()
+	}
+	if s != nil && s.Pipeline != nil && s.Pipeline.Control != nil {
+		s.Pipeline.Control.Close()
+	}
 	if s != nil && s.Sandbox != nil {
 		s.Sandbox.Close()
 	}
@@ -584,7 +594,11 @@ func (s *Service) HandlePublic(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var raw []byte
-		err = s.Sandbox.QueryRow(r.Context(), "SELECT pg05_lock_payer($1,$2,$3,$4)",
+		lockSQL := "SELECT pg05_lock_payer($1,$2,$3,$4)"
+		if s.pipelineReady() {
+			lockSQL = "SELECT pg06_lock_route($1,$2,$3,$4)"
+		}
+		err = s.Sandbox.QueryRow(r.Context(), lockSQL,
 			digest(token), hex.EncodeToString(mac(s.PayerKey, payer)), payer[len(payer)-4:], body.Method).Scan(&raw)
 		if err != nil {
 			mapped(w, err)
@@ -649,7 +663,17 @@ func (s *Service) publicResult(w http.ResponseWriter, r *http.Request, raw []byt
 	}
 
 	delete(data, "workspace_id")
+	if s.pipelineReady() {
+		for _, rule := range s.Pipeline.Rules {
+			if rule.Approved {
+				data["verification_available"] = true
+				break
+			}
+		}
+	}
 	data["merchant_name"] = name
+	data["notice_available"] = s.NoticeSchema && s.pipelineReady()
+	data["notice_delivery_available"] = s.NoticeSMTP != nil && s.pipelineReady()
 	write(w, 200, data)
 }
 

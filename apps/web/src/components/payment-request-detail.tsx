@@ -25,10 +25,11 @@ export function PaymentRequestDetail({id,workspaceId,environment,locale,onClose}
   {error?<p role="alert">{bn?"তথ্য পাওয়া যায়নি বা দেখার অনুমতি নেই।":"Details unavailable or access denied."} <button onClick={()=>{setError(false);setRetry(x=>x+1)}}>{bn?"আবার চেষ্টা":"Retry"}</button></p>:
    !detail?<p role="status">{bn?"তথ্য আনা হচ্ছে…":"Loading details…"}</p>:<>
     <p>{money(detail.amount_minor)} · {detail.source_reference||(bn?"স্বতন্ত্র রিকোয়েস্ট":"Standalone request")}</p>
+    <p role="status">{bn?"বর্তমান অবস্থা: ":"Current status: "}<strong>{detail.state==="completed"?(bn?"যাচাইকৃত":"Verified"):detail.state==="awaiting_payment"?(bn?"যাচাইয়ের অপেক্ষা":"Awaiting verification"):detail.state==="cancelled"?(bn?"বাতিল":"Cancelled"):detail.state==="expired"?(bn?"মেয়াদোত্তীর্ণ":"Expired"):(bn?"প্রেরকের অপেক্ষা":"Awaiting payer")}</strong></p>
     {detail.items&&<ul>{detail.items.map((line,i)=><li key={i}>{line.title} — {line.quantity} × {money(line.unit_amount_minor)}</li>)}</ul>}
     {detail.attempt?<dl className="pg05-summary"><div><dt>{bn?"প্রেরক / মাধ্যম":"Payer / method"}</dt><dd>••••{detail.attempt.payer_suffix} · {detail.attempt.method}</dd></div><div><dt>{bn?"মূল সময়সীমা":"Original payment window"}</dt><dd>{time(detail.attempt.window_start)} — {time(detail.attempt.window_end)}</dd></div></dl>:<p>{bn?"প্রেরক এখনও নিশ্চিত করা হয়নি।":"Payer has not been confirmed."}</p>}
     <ol>{detail.events.map((event,i)=><li key={i}>{events[event.event_type]||event.event_type} · <time dateTime={event.occurred_at}>{time(event.occurred_at)}</time></li>)}</ol>
-    <p className="pg05-muted">{bn?"এই ইতিহাস টাকা পাওয়ার প্রমাণ নয়। রসিদ যাচাই এখনও সংযুক্ত হয়নি।":"This history is not proof of funds. Receipt verification is not connected."}</p>
+    <p className="pg05-muted">{detail.state==="completed"?(bn?"এই request-এর status সার্ভারের যাচাইকৃত payment allocation থেকে এসেছে; ম্যানুয়ালি paid করা হয়নি।":"Completed status is derived from backend verified payment allocations, not manual mark-paid."):(bn?"এই timeline একা টাকা পাওয়ার প্রমাণ নয়। শুধু সম্পূর্ণ five-field evidence ম্যাচ করলে সার্ভারে স্বয়ংক্রিয় যাচাই হবে।":"This timeline alone is not proof of money received. Only a complete unique five-field evidence match can auto-verify the payment.")}</p>
    </>}
  </section>;
 }

@@ -182,3 +182,6 @@ Required actual assertions:
 - Production paid cohort 7–14 days with real receipts, exception/delivery/latency log, operator response, no unresolved release-blocking financial/auth/isolation defect.
 
 Evidence path per work item: docs/evidence/<ID>/README.md with commit/change, environment, redacted commands/check results, schema/DB assertions, screenshots, real provider/device results, failures/dependencies. Direct account/retention/hosting business decisions documented; sample data or proposed endpoints not marked deployed.
+
+## PG06–PG09 source contract checkpoint (not deployed)
+The canonical contracts/openapi.yaml now includes operational and signed-device paths. Merchant signatures follow timestamp + period + exact raw body; key ID is the first eight SHA-256 bytes of the signing secret, hex. Event/delivery IDs agree with the signed envelope. See evidence/PG06-PG09-CODE-CHECKPOINT.md. Only payment.verified currently has a producer; other events/notices retain their lifecycle/channel dependencies. All new contract validation and generated-client compatibility checks are pending.

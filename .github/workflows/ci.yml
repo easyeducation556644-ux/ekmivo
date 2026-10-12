@@ -99,6 +99,13 @@ jobs:
           name: pg05-browser-evidence
           path: apps/web/test-results/pg05/
           if-no-files-found: ignore
+      - name: Save PG09 isolated browser UI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pg09-browser-ui-mocked-api-evidence
+          path: apps/web/test-results/pg09/
+          if-no-files-found: ignore
       - name: PG02 workspace/server environment authorization checks
         working-directory: apps/web
         env:
@@ -153,6 +160,7 @@ jobs:
         run: |
           go test ./...
           go test -race ./internal/checkout
+          go vet ./...
       - name: Go HTTP server smoke
         working-directory: backend
         run: |

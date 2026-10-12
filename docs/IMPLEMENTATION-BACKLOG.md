@@ -1,5 +1,7 @@
 # Implementation backlog and release evidence
 
+> Latest execution checkpoint, 2026-10-12: PG06–PG09 source has advanced beyond the historical foundation descriptions below. See [current audit](evidence/PG06-PG09-AUDIT.md) for exact tested commits, code versus external gates and remaining dependencies. Receipt notices/recovery are now implemented; production acceptance is OPEN. PG10–PG17 were not started in this follow-up; no release gate is silently closed.
+
 Baseline: [বাংলা master plan](./DUAL-SAAS-MVP-PLAN.bn.md), revision 6, 2026-10-11; payment-first execution correction; this is the canonical plan the agent follows. User decisions: all features in the first public MVP; automatic phone payment verification; Ink & Bone Option F minimal public landing, readable shared UI, full-page Light/Dark/System and complete EN/BN switcher. No customer TrxID submission or routine merchant payment approval. Scope authority: [MVP-FEATURE-SCOPE.md](./MVP-FEATURE-SCOPE.md). Design authority: [DESIGN-SYSTEM.md](./DESIGN-SYSTEM.md). Status: partial web/auth/dashboard source foundation; current deployment parity unverified. Financial engine/API/worker/bridge/sandbox not implemented; latest evidence in IMPLEMENTATION-STATUS.md. Single implementation owner: Codex. Product/provider owner: user.
 
 Design specification completed: guide, [semantic tokens](./design/tokens.css) and [contrast report](./design/CONTRAST-REPORT.md). These are planning assets, not proof of working theme/localization in an application. Implement D01/D02 after the F01 scaffold and before feature-page styling.
@@ -331,3 +333,11 @@ PG05 authoritative minimal order/invoice sources, linked server totals, merchant
 
 ### PG05 integrated source ready — 2026-10-11
 Owner authorized clearing PRs and keeping main current. PG05/current-main integration 63e50c8: CI 38150117547 **4/4 PASS**, combined finance **198 assertions**, real browser **26/26 PASS**, all PG04 fixes/tests and image checks retained. Full evidence: docs/evidence/PG05/README.md. PG05 source + isolated automated verification complete; deployment/manual/provider gates remain open. Next dependency-ready source item: **PG06**, native receipt collector inside the SAME Kotlin/Compose application, enrollment/source binding, signed durable upload and consent/offline/reboot tests. Keep Android UI expansion paused; no automatic matching claim until PG07; real consented device/provider samples remain G0-6 evidence.
+
+## PG06–PG09 owner-authorized code-only checkpoint — 2026-10-11
+
+Source written on `codex/pg06-pg09-code`, starting from main `9e0e4d3`. The owner explicitly deferred builds, CI, database/device/provider tests and later bug fixing to conserve remaining usage. **None of these PGs is accepted.** Formatting is not compile evidence, and old green CI does not verify this source.
+
+Read [the code checkpoint](evidence/PG06-PG09-CODE-CHECKPOINT.md) for source coverage, configuration, exact deferred commands and remaining code/dependency gates. PG06 adds consented native capture/enrollment/encrypted queue; PG07 adds five-field atomic matching/allocation; PG08 adds signed durable delivery and a merchant receiver example; PG09 adds scoped operational APIs and functional dashboard source. New migration 0014 is NOT applied; no production deployment performed.
+
+Next work: review and verify this exact checkpoint, close remaining source gaps and prerequisite integrations listed there, then run the combined manual ledger. Do not skip directly to PG10, mark live checkout/notice delivery connected, or reuse historical device/CI PASS labels for the new code.
