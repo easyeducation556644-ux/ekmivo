@@ -27,6 +27,7 @@ type SMTPConfig struct {
 // MessageID is a persisted outbox identifier, reused across retry attempts.
 // Accepted means SMTP accepted responsibility, not delivery to a user's inbox.
 type Message struct {
+	MerchantRequestedDocument                        bool // Explicit seller-requested invoice; never receipt verification.
 	ContactVerification                              bool
 	Recipient                                        Recipient
 	Workspace, Environment, MessageID, Subject, Text string
@@ -35,7 +36,7 @@ type Message struct {
 func EncodeMessage(c SMTPConfig, m Message, now time.Time) ([]byte, error) {
 	from, err := NormalizeEmail(c.From)
 	eligible := m.Recipient.Eligible(m.Workspace, m.Environment, now)
-	if m.ContactVerification {
+	if m.ContactVerification || m.MerchantRequestedDocument {
 		r := m.Recipient
 		eligible = r.Workspace == m.Workspace && r.Environment == m.Environment &&
 			(m.Environment == "sandbox" || m.Environment == "live") && m.Workspace != "" &&

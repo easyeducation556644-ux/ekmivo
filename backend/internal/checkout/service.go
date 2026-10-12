@@ -5,6 +5,7 @@ package checkout
 import (
 	"context"
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -14,6 +15,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -60,7 +62,25 @@ func write(w http.ResponseWriter, status int, body any) {
 	_ = json.NewEncoder(w).Encode(body)
 }
 func fail(w http.ResponseWriter, status int, code string) {
-	write(w, status, map[string]any{"error": map[string]string{"code": code}})
+	var correlation [12]byte
+	_, _ = rand.Read(correlation[:])
+	message := "Request could not be completed."
+	if status == 401 {
+		message = "Sign in or use a valid server credential."
+	} else if status == 403 {
+		message = "This action is not permitted."
+	} else if status == 404 {
+		message = "The scoped resource is unavailable."
+	} else if status == 409 {
+		message = "The request conflicts with current server state."
+	} else if status == 422 {
+		message = "Check the request fields."
+	} else if status == 429 {
+		message = "Wait before retrying."
+	} else if status == 503 {
+		message = "A required service is unavailable."
+	}
+	write(w, status, map[string]any{"error": map[string]string{"code": code, "message": message, "correlation_id": hex.EncodeToString(correlation[:])}})
 }
 func digest(s string) string { b := sha256.Sum256([]byte(s)); return hex.EncodeToString(b[:]) }
 func mac(key []byte, s string) []byte {
@@ -213,7 +233,7 @@ func decodeLimit(w http.ResponseWriter, r *http.Request, into any, limit int64) 
 	return true
 }
 func (s *Service) merchant(r *http.Request, ws, realm, scope string) error {
-	if realm != "sandbox" {
+	if realm != "sandbox" && (s.Pipeline == nil || s.Pipeline.Live == nil) {
 		return authz.ErrUnavailable
 	} // Live source adapter not yet onboarded.
 	authHeader := r.Header.Get("Authorization")
@@ -253,7 +273,14 @@ func authError(w http.ResponseWriter, err error) {
 	}
 }
 func (s *Service) scoped(ctx context.Context, ws, realm string, fn func(pgx.Tx) error) error {
-	tx, err := s.Sandbox.BeginTx(ctx, pgx.TxOptions{})
+	pool := s.Sandbox
+	if realm == "live" {
+		pool = s.pipelinePool(realm)
+	}
+	if pool == nil {
+		return authz.ErrUnavailable
+	}
+	tx, err := pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return err
 	}
@@ -294,7 +321,7 @@ func (s *Service) HandleMerchant(w http.ResponseWriter, r *http.Request) {
 		fail(w, 400, "INVALID_SCOPE")
 		return
 	}
-	if realm == "live" {
+	if realm == "live" && s.pipelinePool(realm) == nil {
 		fail(w, 503, "LIVE_SOURCE_NOT_CONNECTED")
 		return
 	}
@@ -345,6 +372,10 @@ func (s *Service) HandleMerchant(w http.ResponseWriter, r *http.Request) {
 			s.cancel(w, r, ws, realm)
 			return
 		}
+		if !s.billingAllowsNew(r.Context(), ws, realm) {
+			fail(w, 403, "SUBSCRIPTION_REQUIRED")
+			return
+		}
 		key := r.Header.Get("Idempotency-Key")
 		if !keyPattern.MatchString(key) {
 			fail(w, 422, "IDEMPOTENCY_KEY_REQUIRED")
@@ -362,6 +393,9 @@ func (s *Service) HandleMerchant(w http.ResponseWriter, r *http.Request) {
 		token := s.token(ws, realm, key)
 		var answer []byte
 		err := s.scoped(r.Context(), ws, realm, func(tx pgx.Tx) error {
+			if payload.InvoiceID != "" && (realm == "live" || os.Getenv("PG10_EXTENSIONS_ENABLED") == "true") {
+				return tx.QueryRow(r.Context(), "SELECT pg10_invoice_intent($1::uuid,$2,$3::uuid,$4,$5,$6,$7,$8)", ws, realm, payload.InvoiceID, payload.Reference, payload.Expiry, key, digest(token), digest(string(raw))).Scan(&answer)
+			}
 			if payload.OrderID != "" || payload.InvoiceID != "" {
 				kind, sourceID := "order", payload.OrderID
 				if payload.InvoiceID != "" {
@@ -371,7 +405,11 @@ func (s *Service) HandleMerchant(w http.ResponseWriter, r *http.Request) {
 					`SELECT pg05_create_linked_intent($1::uuid,$2,$3,$4,$5::uuid,$6,$7,$8,$9)`,
 					ws, realm, payload.Reference, kind, sourceID, payload.Expiry, key, digest(token), digest(string(raw))).Scan(&answer)
 			}
-			return tx.QueryRow(r.Context(), `SELECT pg05_create_intent($1::uuid,$2,$3,$4,$5,$6,$7,$8)`,
+			function := "pg05_create_intent"
+			if realm == "live" {
+				function = "pg10_intent"
+			}
+			return tx.QueryRow(r.Context(), "SELECT "+function+"($1::uuid,$2,$3,$4,$5,$6,$7,$8)",
 				ws, realm, payload.Reference, payload.Amount, payload.Expiry, key, digest(token), digest(string(raw))).Scan(&answer)
 		})
 		if err != nil {
@@ -563,13 +601,12 @@ func (s *Service) HandlePublic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == "POST" {
-		var initial []byte
-		err := s.Sandbox.QueryRow(r.Context(), "SELECT pg05_checkout_view($1)", digest(token)).Scan(&initial)
+		pool, initial, err := s.lookupCheckout(r, token)
 		if err != nil {
 			mapped(w, err)
 			return
 		}
-		if len(initial) == 0 || string(initial) == "null" {
+		if pool == nil || len(initial) == 0 || string(initial) == "null" {
 			fail(w, 404, "NOT_FOUND")
 			return
 		}
@@ -594,11 +631,18 @@ func (s *Service) HandlePublic(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var raw []byte
+		if checkoutRealm(initial) == "live" && !s.liveMethods(initial)[body.Method] {
+			fail(w, 503, "RECEIVING_SOURCE_UNAVAILABLE")
+			return
+		}
 		lockSQL := "SELECT pg05_lock_payer($1,$2,$3,$4)"
 		if s.pipelineReady() {
 			lockSQL = "SELECT pg06_lock_route($1,$2,$3,$4)"
 		}
-		err = s.Sandbox.QueryRow(r.Context(), lockSQL,
+		if checkoutRealm(initial) == "live" {
+			lockSQL = "SELECT pg10_lock_route($1,$2,$3,$4)"
+		}
+		err = pool.QueryRow(r.Context(), lockSQL,
 			digest(token), hex.EncodeToString(mac(s.PayerKey, payer)), payer[len(payer)-4:], body.Method).Scan(&raw)
 		if err != nil {
 			mapped(w, err)
@@ -608,6 +652,13 @@ func (s *Service) HandlePublic(w http.ResponseWriter, r *http.Request) {
 			fail(w, 404, "NOT_FOUND")
 			return
 		}
+		if checkoutRealm(initial) == "live" {
+			_, raw, err = s.lookupCheckout(r, token)
+			if err != nil {
+				fail(w, 503, "CHECKOUT_SERVICE_UNAVAILABLE")
+				return
+			}
+		}
 		s.publicResult(w, r, raw)
 		return
 	}
@@ -615,13 +666,12 @@ func (s *Service) HandlePublic(w http.ResponseWriter, r *http.Request) {
 		fail(w, 405, "METHOD_NOT_ALLOWED")
 		return
 	}
-	var raw []byte
-	err := s.Sandbox.QueryRow(r.Context(), "SELECT pg05_checkout_view($1)", digest(token)).Scan(&raw)
+	pool, raw, err := s.lookupCheckout(r, token)
 	if err != nil {
 		mapped(w, err)
 		return
 	}
-	if len(raw) == 0 || string(raw) == "null" {
+	if pool == nil || len(raw) == 0 || string(raw) == "null" {
 		fail(w, 404, "NOT_FOUND")
 		return
 	}
@@ -631,18 +681,40 @@ func (s *Service) HandlePublic(w http.ResponseWriter, r *http.Request) {
 // Capability authorizes only this checkout's public business identity. Current
 // control-plane enablement is rechecked; stale finance projections cannot keep a
 // disabled merchant publicly accepting payer locks through the web boundary.
+type PublicBusinessInfo struct {
+	Name  string            `json:"merchant_name"`
+	Brand map[string]string `json:"brand"`
+}
+
 func (s *Service) publicBusiness(r *http.Request, raw []byte) (string, error) {
-	var data map[string]any
-	if json.Unmarshal(raw, &data) != nil {
-		return "", errors.New("invalid checkout result")
+	info, err := s.publicBusinessInfo(r, raw)
+	return info.Name, err
+}
+func (s *Service) publicBusinessInfo(r *http.Request, raw []byte) (PublicBusinessInfo, error) {
+	var data struct {
+		Workspace   string `json:"workspace_id"`
+		Environment string `json:"environment"`
 	}
-	ws, ok := data["workspace_id"].(string)
-	if !ok || !uuidPattern.MatchString(ws) {
-		return "", errors.New("invalid checkout workspace")
+	var info PublicBusinessInfo
+	if json.Unmarshal(raw, &data) != nil || !uuidPattern.MatchString(data.Workspace) || (data.Environment != "sandbox" && data.Environment != "live") {
+		return info, errors.New("invalid checkout scope")
 	}
-	var name string
-	err := s.Auth.DB.QueryRowContext(r.Context(), "SELECT pg05_public_business($1::uuid,'sandbox')", ws).Scan(&name)
-	return name, err
+	if os.Getenv("PG10_EXTENSIONS_ENABLED") == "true" {
+		var encoded []byte
+		if err := s.Auth.DB.QueryRowContext(r.Context(), "SELECT pg13_public_checkout($1::uuid,$2)", data.Workspace, data.Environment).Scan(&encoded); err != nil {
+			return info, err
+		}
+		if json.Unmarshal(encoded, &info) != nil || info.Name == "" {
+			return info, errors.New("merchant unavailable")
+		}
+		return info, nil
+	}
+	function := "pg05_public_business"
+	if data.Environment == "live" {
+		function = "pg10_public_business"
+	}
+	err := s.Auth.DB.QueryRowContext(r.Context(), "SELECT "+function+"($1::uuid,$2)", data.Workspace, data.Environment).Scan(&info.Name)
+	return info, err
 }
 
 func (s *Service) publicResult(w http.ResponseWriter, r *http.Request, raw []byte) {
@@ -656,22 +728,38 @@ func (s *Service) publicResult(w http.ResponseWriter, r *http.Request, raw []byt
 		fail(w, 503, "INVALID_FINANCIAL_RESULT")
 		return
 	}
-	name, err := s.publicBusiness(r, raw)
+	business, err := s.publicBusinessInfo(r, raw)
 	if err != nil {
 		fail(w, 503, "MERCHANT_UNAVAILABLE")
 		return
 	}
 
+	if err := s.publicDestination(data); err != nil {
+		fail(w, 503, "RECEIVING_SOURCE_UNAVAILABLE")
+		return
+	}
 	delete(data, "workspace_id")
-	if s.pipelineReady() {
+	delete(data, "sources")
+	if checkoutRealm(raw) == "live" {
+		available := s.liveMethods(raw)
+		list := []string{}
+		for _, method := range []string{"bkash", "nagad", "rocket", "bank", "other"} {
+			if available[method] {
+				list = append(list, method)
+			}
+		}
+		data["methods"] = list
+		data["verification_available"] = len(list) > 0
+	} else if s.pipelineReady() {
 		for _, rule := range s.Pipeline.Rules {
-			if rule.Approved {
+			if rule.Approved && (!rule.SandboxOnly || checkoutRealm(raw) == "sandbox") {
 				data["verification_available"] = true
 				break
 			}
 		}
 	}
-	data["merchant_name"] = name
+	data["merchant_name"] = business.Name
+	data["brand"] = business.Brand
 	data["notice_available"] = s.NoticeSchema && s.pipelineReady()
 	data["notice_delivery_available"] = s.NoticeSMTP != nil && s.pipelineReady()
 	write(w, 200, data)

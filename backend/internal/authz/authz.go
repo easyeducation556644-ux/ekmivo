@@ -26,7 +26,7 @@ type Capability string
 
 const (
 	PaymentsRead      Capability = "payments:read"
- PaymentsIssue     Capability = "payments:issue" // safe PG05 create/cancel; editors allowed
+	PaymentsIssue     Capability = "payments:issue" // safe PG05 create/cancel; editors allowed
 	PaymentsManage    Capability = "payments:manage"
 	WorkspaceSettings Capability = "workspace:settings"
 	MembersManage     Capability = "members:manage"
@@ -52,7 +52,10 @@ type WorkspaceAccess struct {
 	Role        string
 	Capability  Capability
 }
-type Repository struct{ DB *sql.DB }
+type Repository struct {
+	DB             *sql.DB
+	GranularGrants bool
+}
 
 // ValidateRuntimeRole rejects superuser, BYPASSRLS or owner credentials
 // before the Go API can serve financial/tenant routes.
@@ -129,7 +132,7 @@ func permits(role string, c Capability) bool {
 	case PaymentsRead:
 		return role == "owner" || role == "admin" || role == "editor" || role == "viewer"
 	case PaymentsIssue:
-        return role == "owner" || role == "admin" || role == "editor"
+		return role == "owner" || role == "admin" || role == "editor"
 	case PaymentsManage, WorkspaceSettings, MembersManage:
 		return role == "owner" || role == "admin"
 	default:
@@ -176,6 +179,15 @@ func (r *Repository) AuthorizeWorkspace(ctx context.Context, principal Principal
 	}
 	if !permits(role, capability) {
 		return result, ErrForbidden
+	}
+	if r.GranularGrants {
+		var allowed sql.NullBool
+		if err = tx.QueryRowContext(ctx, "SELECT pg13_capability_override($1::uuid,$2::uuid,$3)", workspaceID, principal.UserID, string(capability)).Scan(&allowed); err != nil {
+			return result, ErrUnavailable
+		}
+		if allowed.Valid && !allowed.Bool {
+			return result, ErrForbidden
+		}
 	}
 	var actor, tenant, env string
 	err = tx.QueryRowContext(ctx, `SELECT

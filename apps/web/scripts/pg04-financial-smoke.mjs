@@ -1,3 +1,4 @@
+import {runPaymentExtensions} from "./pg10-extension-smoke.mjs";
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import {randomUUID,randomBytes,createHmac,createHash,generateKeyPairSync,sign} from "node:crypto";
@@ -1467,6 +1468,10 @@ try{
  const noticeControl=(await admin.unsafe("SELECT to_regclass('public.pg08_customer_notices') IS NULL absent"))[0];
  ok(noticeControl.absent,"customer notices leaked to control DB");
  console.log("PG08 customer notice SQL PASS: verified consent, same-intent capabilities, atomic receipt enqueue, lease, unknown outcome, withdrawal, secret isolation (FICTIONAL)");
+ const extensionEnv={...process.env,...pg06Env,PG10_ALLOW_MIGRATION:"true",PG10_MIGRATION_DIRECTORY:new URL("../../../infra/migrations/",import.meta.url).pathname};
+ execFileSync("go",["run","./cmd/financial-migrate"],{cwd:new URL("../../../backend/",import.meta.url),env:extensionEnv,stdio:"pipe",timeout:90000});
+ count+=await runPaymentExtensions({db:dbs.sandbox,live:dbs.live,control:admin,workspace:pg07WS,otherWorkspace:randomUUID()});
+ console.log("PG10-PG17 extension source SQL cases executed against disposable realms; fictional evidence only");
  const controlEmpty=await admin`SELECT to_regclass('public.payment_intents') IS NULL AS no_payments`;
  ok(controlEmpty[0].no_payments,"financial tables leaked into control DB");
  console.log(`PG04 isolated finance+River PASS: ${count} assertions; 2 DBs, no shared auth, registry, realm/cross-role isolation, PGX River rollback/idempotency`);

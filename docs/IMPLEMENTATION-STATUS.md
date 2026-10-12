@@ -1,4 +1,38 @@
+> **Release-readiness audit, 2026-10-12:** Branch push is a source handoff, not a gateway release. The workflow does not run on this feature-branch push. PG10–PG17 source/acceptance remain open, PG02 extended latency work remains open, migrations 0016–0044 are unapplied/unverified, and no controlled real-device bKash/Nagad/Rocket five-field payment, public signed merchant webhook, isolated restore, measured production performance or observed paid cohort is recorded. Latest Kotlin change has no APK build evidence. Production/market readiness is **NO** until the payment release gates pass. Regulatory classification and permitted merchant/provider usage require owner-led review before public launch.
+
+> **Pushed source checkpoint, 2026-10-12:** commit `7a1cc8acefa0bad2b187c2743ab526d7d65f6bbc` is on `origin/codex/pg10-pg17-code`. Older “local only/no push” lines below describe earlier snapshots. Working tree was clean after push. PG10–PG17 source and acceptance remain OPEN; migrations 0016–0044 are unapplied, and no production deployment or real provider/device proof is claimed.
+
 # Implementation status and remaining work
+
+### Local continuation checkpoint — 2026-10-12
+
+All changes remain local on `codex/pg10-pg17-code`. Migrations 0016–0044 are unapplied/unverified; no deploy/push/production migration occurred.
+
+Added source: tenant/environment-bound refund/statement filters and cursor pagination (0042); owner/password-confirmed privacy request/store evidence workflow (0043) plus bounded, encrypted read-only SQL-store export executor; public merchant checkout branding (0044); actual account/customer/refund/statement report sections and account picker; immutable unknown-outcome checkout retry; persisted async CSV-export job/key across navigation; Bengali upload filenames end to end; bounded TypeScript SDK transport and Go/PHP/Python upload parity; isolated sandbox-tool origin with no Live fallback; maintenance/invoice worker readiness; authenticated receipt ingress limits; thirteen matcher SQL fixtures plus refund/upload/privacy authority cases; receipt/worker/authenticated-read load source; release evidence credential/calendar/time rejection. A build-blocking receipt route configuration re-export was fixed.
+
+Checks run on the local working tree: Go `go test ./...` PASS; main web TypeScript PASS; payment-example TypeScript PASS; full web lint exits 0 (9 warnings remain); Next production build PASS after the receipt-route fix; generated OpenAPI/client drift and schema validation PASS (58 extension paths, 40 SDK operations); Go SDK compile PASS; Python AST syntax PASS (3 files); release/SDK/privacy registry tests 17/17 PASS. Load/privacy executor syntax checks PASS. These are source checks, not CI/deployment or SQL integration evidence. Database tests may skip without their explicit database configuration.
+
+**Source completion remains OPEN.** Missing code still includes complete privacy object/cache/backup export and erasure/retention execution, complete connector/source setup diagnostics and clean-account harness, full failure/security/browser/design coverage and final settings/draft/state/schema parity. SQL-store export does not export private-object bytes or erase anything. PG02 extended has NOT started in this continuation; existing shell source is not a new latency/region verification. Do not label these gaps manual-only or mark PG10–PG17 accepted. Full acceptance also needs disposable SQL migrations/race tests, real device/provider/merchant/storage/mail/account flows, measured load/restore, deployed region/latency and observed cohort days.
+
+## Active PG10–PG17 source work — 2026-10-12
+
+Owner authorized complete source work now, combined verification afterward. Branch `codex/pg10-pg17-code`; all changes local. Additive migrations 0016–0044 are **unapplied/unverified**. No push/deploy or production data change.
+
+Implemented partial source: documents/customers/invoices/links/public checkout/private scanned uploads and encrypted async export; seller-managed refund request and statement backend; integration configuration; reports/team/settings/support/notifications/separate platform billing; generated contract/client sources and signed webhook validation examples; recovery/evidence/release-support tools. See individual [PG10](evidence/PG10/README.md), [PG11](evidence/PG11/README.md), [PG12](evidence/PG12/README.md), [PG13](evidence/PG13/README.md), [PG14](evidence/PG14/README.md), [PG15](evidence/PG15/README.md), [PG16](evidence/PG16/README.md), [PG17](evidence/PG17/README.md) for remaining code. **Source completion and acceptance are both OPEN.** Basic Go compilation/TypeScript checks during coding are not database/browser/provider verification.
+
+### Owner continuation and PG02 extended — 2026-10-12
+
+Finish remaining PG10–PG17 source before PG02 extended. Source/acceptance remain OPEN. All current changes are local on `codex/pg10-pg17-code`; no push/deploy/migration.
+
+Latest continuation closes document action version guards, lost-response retry keys, whole-batch customer import idempotency, invoice-send/export permission boundaries, expired-event sweep starvation and extension-schema readiness. Generated OpenAPI covers 57 new paths; merchant/public registry contains 40 operations. Website/custom-bot hosted checkout adapter reads the merchant's stored total and reuses the order key. Sandbox adds missing payer/amount, wrong method/account and unknown direction fixtures; no real receipt evidence.
+
+Checks actually run: Go API/worker compile and main web TypeScript before the latest import/fixture edits; current contract generation/drift/OpenAPI validation PASS; separate TypeScript SDK/webhook/website example check PASS; release validator negative unit fixtures 5/5 PASS. PostgreSQL migrations, extension SQL smoke, browser and real device checks NOT RUN. Final source-wide checks remain due.
+
+Latest added source: reviewed-policy raw receipt redaction with holds (0040, disabled by default), durable pre-upload reservation/orphan recovery (0041), Shopify exact-amount external/manual recording adapter with no blind unknown-outcome retry, source-manifest generator, customer picker search and correct accessible radio/checkbox fields. Shopify account capability is an external blocker; see integrations/shopify/README.md. TypeScript SDK/consumer/website/Shopify check PASS; targeted lint for seven new screens PASS after fixes. No Shopify transaction or new SQL test has run.
+
+Remaining source: privacy export/deletion and full retention registry/execution, complete approved connector setup/diagnostics, full sandbox/failure/load/design coverage and final UI/state/contract parity. Existing per-PG OPEN items must be reconciled, not treated as passed.
+
+PG02 extended follows this source work: retain header/sidebar across same-product route changes; suspense only the target content with its matching skeleton; preserve draft/role/environment controls. Measure authenticated route/API/data timings and confirm actual deployed execution region against the database region. Earlier `sin1` configuration is not proof of deployed region or latency. Owner intends a five-day combined live test pass after deployment; no days have been observed or release gate closed.
 
 ### Latest PG06–PG09 code checkpoint — 2026-10-12
 
@@ -251,3 +285,13 @@ PG08 now supports durable claim leases, bounded jittered 1m/5m/15m/1h/3h/6h/12h 
 PG09 now verifies source-backed Payments/Incoming/Devices/Receiving Accounts/Webhooks/Events and overview list/detail/actions; full-tenant server search, status/account/method/date filters, chronological timestamp+UUID 50-row cursor and tenant/realm authorization; device rename/revoke and retained history, incoming reprocess without manual paid, account/source disable, webhook enable/disable and delivery history, immutable audit, payment-to-webhook correlation. Real Go HTTP owner/viewer/editor session, 401/403, source 503, wrong workspace/live fail-closed, owner-only endpoint create/disable and once-visible signing secret are exercised against isolated DBs. Browser **UI-only** real authenticated shell with mocked payment API data verifies owner/viewer UI, payment/incoming details, overview, 503 UI and EN/BN × light/dark × 320/768/1440 with no overflow. It is NOT a whole real browser-to-finance backend session. Physical Sandbox/Live boundary was tightened in `pg06_scope`; cross-tenant filter/draft and once-visible secret isolation was fixed on workspace/realm switching.
 
 **PG09 implementation + available isolated automation VERIFIED. Product acceptance OPEN.** Actual deployed staging browser+real backend roles, 1024px, keyboard/focus/Escape, System OS theme, cross-tab/reload/deep-link, source outage/offline and owner workflows remain manual. Current checkout still SANDBOX ONLY, real handset/provider receipts pending PG06, customer notice pending PG08; refunds/export/receipts/invoices/customers depend on later PGs and cannot display fake success. No production 0014 migration, merge, live funds or deploy. [PG09 evidence](evidence/PG09/README.md), [updated audit](evidence/PG06-PG09-AUDIT.md), [one manual ledger](MANUAL-VERIFICATION.md). 
+
+## Latest local source checkpoint — 2026-10-12
+
+PG12 integration edit/diagnostics, PG13 privacy cancellation/object archive/expired-object command, PG14 dedicated Sandbox quickstart source and PG15 backup catalog were added. Full Go test suite, TypeScript, OpenAPI generation/validation (60 paths, 40 client operations), seven archive/registry unit checks, full web lint (0 errors, 9 existing warnings) and Next.js production build passed locally. The quickstart only passed syntax; no HTTP execution occurred. Migration 0021/0043 SQL, Android receipt cleanup, real object storage, managed backups and deployed behavior remain unverified. PG10–PG17 source and acceptance remain OPEN; PG02 extended has not started. No push, deployment or migration was performed.
+
+PG13 settings draft-navigation source was added after the passing full production build. Its targeted TypeScript and ESLint checks pass; browser draft flows and new build have not been repeated.
+
+PG16 received a source-only actual-observation compiler with hash/path/day validation; syntax passed and no real evidence was run.
+
+PG17 release validation now rejects staging release, insecure deployment identity, invalid owner decision, simulated real gates and future cohort days; seven fictional validator tests pass. Production release remains OPEN.

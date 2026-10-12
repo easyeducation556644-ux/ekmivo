@@ -1,0 +1,81 @@
+package checkout
+
+import (
+	"encoding/json"
+	"github.com/jackc/pgx/v5"
+	"net/http"
+	"time"
+)
+
+func (s *Service) HandleReports(w http.ResponseWriter, r *http.Request) {
+	ws, realm := r.PathValue("workspaceID"), explicitRealm(r)
+	if !s.pipelineReady() || !uuidPattern.MatchString(ws) || s.pipelinePool(realm) == nil {
+		fail(w, 503, "REPORT_SOURCE_UNAVAILABLE")
+		return
+	}
+	_, _, e := s.documentActor(r, ws, realm, "payments", false)
+	if e != nil {
+		authError(w, e)
+		return
+	}
+	start, err := time.Parse(time.RFC3339, r.URL.Query().Get("from"))
+	end, err2 := time.Parse(time.RFC3339, r.URL.Query().Get("to"))
+	account := r.URL.Query().Get("account")
+	if err != nil || err2 != nil || !end.After(start) || end.Sub(start) > 366*24*time.Hour || account != "" && !uuidPattern.MatchString(account) {
+		fail(w, 422, "INVALID_REPORT_FILTERS")
+		return
+	}
+	var raw []byte
+	e = s.pipelineScoped(r.Context(), ws, realm, func(tx pgx.Tx) error {
+		return tx.QueryRow(r.Context(), "SELECT pg13_reports($1::uuid,$2,$3,$4,$5::uuid)", ws, realm, start, end, nullableID(account)).Scan(&raw)
+	})
+	if e != nil {
+		mapped(w, e)
+		return
+	}
+	var data any
+	if json.Unmarshal(raw, &data) != nil {
+		fail(w, 503, "REPORT_SOURCE_UNAVAILABLE")
+		return
+	}
+	write(w, 200, data)
+}
+func (s *Service) HandleNotifications(w http.ResponseWriter, r *http.Request) {
+	ws, realm := r.PathValue("workspaceID"), explicitRealm(r)
+	if !s.pipelineReady() || !uuidPattern.MatchString(ws) || s.pipelinePool(realm) == nil {
+		fail(w, 503, "NOTIFICATION_SOURCE_UNAVAILABLE")
+		return
+	}
+	actor, _, e := s.documentActor(r, ws, realm, "payments", false)
+	if e != nil {
+		authError(w, e)
+		return
+	}
+	if actor == "" {
+		fail(w, 403, "SESSION_REQUIRED")
+		return
+	}
+	var raw []byte
+	if r.Method == "GET" {
+		e = s.pipelineScoped(r.Context(), ws, realm, func(tx pgx.Tx) error {
+			return tx.QueryRow(r.Context(), "SELECT pg13_notification_list($1::uuid,$2,$3::uuid)", ws, realm, actor).Scan(&raw)
+		})
+	} else {
+		if !originAllowed(r) || !uuidPattern.MatchString(r.PathValue("notificationID")) {
+			fail(w, 403, "ACTION_DENIED")
+			return
+		}
+		var accepted bool
+		e = s.pipelineScoped(r.Context(), ws, realm, func(tx pgx.Tx) error {
+			return tx.QueryRow(r.Context(), "SELECT pg13_notification_read($1::uuid,$2,$3::uuid,$4::uuid)", ws, realm, r.PathValue("notificationID"), actor).Scan(&accepted)
+		})
+		raw = []byte(`{"read":true}`)
+	}
+	if e != nil {
+		mapped(w, e)
+		return
+	}
+	var data any
+	_ = json.Unmarshal(raw, &data)
+	write(w, 200, data)
+}

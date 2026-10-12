@@ -61,6 +61,46 @@ func newHandlerWithRepository(repo *authz.Repository) http.Handler {
 func newHandlerWithCheckout(repo *authz.Repository, pay *checkout.Service) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /v1/public/checkout/{token}/notices/{noticeAction}", pay.HandleNotice)
+	mux.HandleFunc("POST /v1/public/checkout/{token}/refunds", pay.HandlePublicRefund)
+	mux.HandleFunc("GET /v1/public/documents/{token}", pay.HandlePublicDocument)
+	mux.HandleFunc("POST /v1/public/documents/{token}", pay.HandlePublicDocument)
+	mux.HandleFunc("POST /v1/public/documents/{token}/files", pay.HandlePublicFile)
+	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/files/{fileID}", pay.HandleFile)
+	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/integrations", pay.HandleIntegrations)
+	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/integrations", pay.HandleIntegrations)
+	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/integrations/{integrationID}/{integrationAction}", pay.HandleIntegrations)
+	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/sandbox/{sandboxAction}", pay.HandleSandboxTools)
+	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/sandbox/{sandboxAction}", pay.HandleSandboxTools)
+	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/reports", pay.HandleReports)
+	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/notifications", pay.HandleNotifications)
+	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/notifications/{notificationID}/read", pay.HandleNotifications)
+	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/workspace-tools/{tool}", pay.HandleWorkspaceTools)
+	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/workspace-tools/{tool}", pay.HandleWorkspaceTools)
+	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/workspace-tools/{tool}/{targetID}", pay.HandleWorkspaceTools)
+	mux.HandleFunc("POST /v1/workspace-invites/{tool}", pay.HandleWorkspaceTools)
+	mux.HandleFunc("POST /v1/platform/payment-support/{ticketID}/reply", pay.HandleSupportReply)
+	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/billing", pay.HandleBilling)
+	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/privacy", pay.HandlePrivacy)
+	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/privacy", pay.HandlePrivacy)
+	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/privacy/{requestID}/cancel", pay.HandlePrivacy)
+	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/exports", pay.HandleExports)
+	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/exports/{exportID}", pay.HandleExports)
+	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/exports/{exportID}/{exportAction}", pay.HandleExports)
+	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/billing", pay.HandleBilling)
+	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/billing/{invoiceID}/{billingAction}", pay.HandleBilling)
+	for _, method := range []string{"GET", "POST", "PATCH"} {
+		mux.HandleFunc(method+" /v1/workspaces/{workspaceID}/documents/{document}", pay.HandleDocuments)
+		mux.HandleFunc(method+" /v1/workspaces/{workspaceID}/documents/{document}/{documentID}", pay.HandleDocuments)
+		mux.HandleFunc(method+" /v1/workspaces/{workspaceID}/documents/{document}/{documentID}/{documentAction}", pay.HandleDocuments)
+	}
+	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/documents/{document}/commands/{documentAction}", pay.HandleDocuments)
+	for _, method := range []string{"GET", "POST"} {
+		mux.HandleFunc(method+" /v1/workspaces/{workspaceID}/refunds", pay.HandleRefunds)
+		mux.HandleFunc(method+" /v1/workspaces/{workspaceID}/refunds/{refundID}", pay.HandleRefunds)
+		mux.HandleFunc(method+" /v1/workspaces/{workspaceID}/refunds/{refundID}/{refundAction}", pay.HandleRefunds)
+		mux.HandleFunc(method+" /v1/workspaces/{workspaceID}/reconciliation", pay.HandleReconciliation)
+		mux.HandleFunc(method+" /v1/workspaces/{workspaceID}/reconciliation/{reconcileAction}", pay.HandleReconciliation)
+	}
 	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/operations/{resource}", pay.HandleOperations)
 	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/operations/{resource}/{resourceID}", pay.HandleOperations)
 	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/operations/{resource}", pay.HandleOperations)
@@ -78,7 +118,11 @@ func newHandlerWithCheckout(repo *authz.Repository, pay *checkout.Service) http.
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "service": "ekmivo-api"})
 	})
 	// The financial API, workers and jobs are intentionally not ready before PG03/PG04.
-	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
+		if os.Getenv("PG10_EXTENSIONS_ENABLED") == "true" && pay.OperationalReadiness(r.Context()) {
+			writeJSON(w, http.StatusOK, map[string]any{"status": "operationally_ready", "release_verified": false})
+			return
+		}
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"status": "not_ready", "reason": "financial_release_verification_pending"})
 	})
 	identify := func(r *http.Request) (authz.Principal, error) {
@@ -208,7 +252,7 @@ func main() {
 		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 		err = db.PingContext(ctx)
 		if err == nil {
-			repo = &authz.Repository{DB: db}
+			repo = &authz.Repository{DB: db, GranularGrants: os.Getenv("PG10_EXTENSIONS_ENABLED") == "true"}
 			err = repo.ProbeReadOnlyBoundary(ctx)
 		}
 		cancel()

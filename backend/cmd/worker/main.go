@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/masharzy/ekmivo/backend/internal/checkout"
 	"github.com/masharzy/ekmivo/backend/internal/financial"
 	"github.com/masharzy/ekmivo/backend/internal/receiptnotice"
 	"github.com/riverqueue/river"
@@ -182,6 +183,26 @@ func main() {
 			}
 		}
 		pipeline := &financial.PipelineWorker{Pool: pool, Control: control, Realm: realm, EncryptionKey: key, NoticeSMTP: noticeSMTP}
+		pipeline.TrackHealth = os.Getenv("PG10_EXTENSIONS_ENABLED") == "true"
+		if os.Getenv("PG10_EXTENSIONS_ENABLED") == "true" {
+			if noticeSMTP != nil {
+				river.AddWorker(workers, &checkout.InvoiceNoticeWorker{Pool: pool, Control: control, Realm: realm, Key: key, TokenKey: []byte(os.Getenv("PG05_TOKEN_SECRET")), SMTP: noticeSMTP})
+				queues["invoice_notice_"+realm] = river.QueueConfig{MaxWorkers: 1}
+				periodic = append(periodic, river.NewPeriodicJob(river.PeriodicInterval(10*time.Second), func() (river.JobArgs, *river.InsertOpts) {
+					return checkout.InvoiceNoticeArgs{Environment: realm}, &river.InsertOpts{Queue: "invoice_notice_" + realm, MaxAttempts: 3, UniqueOpts: river.UniqueOpts{ByArgs: true}}
+				}, &river.PeriodicJobOpts{RunOnStart: true}))
+			}
+			river.AddWorker(workers, &checkout.MaintenanceWorker{Pool: pool, Control: control, Realm: realm, TokenKey: []byte(os.Getenv("PG05_TOKEN_SECRET"))})
+			queues["maintenance_"+realm] = river.QueueConfig{MaxWorkers: 1}
+			periodic = append(periodic, river.NewPeriodicJob(river.PeriodicInterval(time.Minute), func() (river.JobArgs, *river.InsertOpts) {
+				return checkout.MaintenanceArgs{Environment: realm}, &river.InsertOpts{Queue: "maintenance_" + realm, MaxAttempts: 3, UniqueOpts: river.UniqueOpts{ByArgs: true}}
+			}, &river.PeriodicJobOpts{RunOnStart: true}))
+			river.AddWorker(workers, &checkout.ExportWorker{Pool: pool, Control: control, Realm: realm, Key: key})
+			queues["export_"+realm] = river.QueueConfig{MaxWorkers: 1}
+			periodic = append(periodic, river.NewPeriodicJob(river.PeriodicInterval(5*time.Second), func() (river.JobArgs, *river.InsertOpts) {
+				return checkout.ExportArgs{Environment: realm}, &river.InsertOpts{Queue: "export_" + realm, MaxAttempts: 3, UniqueOpts: river.UniqueOpts{ByArgs: true}}
+			}, &river.PeriodicJobOpts{RunOnStart: true}))
+		}
 		river.AddWorker(workers, pipeline)
 		if noticeSMTP != nil {
 			river.AddWorker(workers, &financial.NoticeWorker{Pipeline: pipeline})

@@ -25,9 +25,12 @@ type NoticeWorker struct {
 }
 
 func (*NoticeWorker) Timeout(*river.Job[NoticeArgs]) time.Duration { return 15 * time.Second }
-func (w *NoticeWorker) Work(ctx context.Context, job *river.Job[NoticeArgs]) error {
+func (w *NoticeWorker) Work(ctx context.Context, job *river.Job[NoticeArgs]) (workErr error) {
 	if w.Pipeline == nil || job.Args.Environment != w.Pipeline.Realm {
 		return errors.New("notice realm unavailable")
+	}
+	if w.Pipeline.TrackHealth {
+		defer func() { RecordWorkerHealth(w.Pipeline.Pool, "notice", w.Pipeline.Realm, workErr == nil) }()
 	}
 	return w.Pipeline.drainNotice(ctx)
 }

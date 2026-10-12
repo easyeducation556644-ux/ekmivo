@@ -370,4 +370,15 @@ func main() {
 			}
 		}
 	}
+	if os.Getenv("PG10_ALLOW_MIGRATION") == "true" {
+		dir := os.Getenv("PG10_MIGRATION_DIRECTORY")
+		if dir == "" {
+			log.Fatal("explicit PG10_MIGRATION_DIRECTORY required")
+		}
+		for _, target := range []realmDSN{{"sandbox", sa}, {"live", lv}, {"control", control}} {
+			if err := migratePaymentExtensions(ctx, target.raw, target.environment, dir); err != nil {
+				log.Fatalf("payment extensions blocked in %s: %v", target.environment, err)
+			}
+		}
+	}
 }

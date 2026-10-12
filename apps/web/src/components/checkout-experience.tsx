@@ -2,13 +2,16 @@
 import {useCallback,useEffect,useRef,useState} from "react";
 import Link from "next/link";
 import {ReceiptNotice} from "./receipt-notice";
+import {CustomerRefundRequest} from "./customer-refund-request";
+import {MerchantBrand,type MerchantBrandInfo} from "./merchant-brand";
 type Locale="en"|"bn";
 type Checkout={
- id:string; merchant_name:string;source_reference?:string;items?:{title:string;quantity:number;unit_amount_minor:number}[]; merchant_reference:string;amount_minor:number;currency:string;
+ id:string; merchant_name:string;brand?:MerchantBrandInfo;source_reference?:string;items?:{title:string;quantity:number;unit_amount_minor:number}[]; merchant_reference:string;amount_minor:number;currency:string;
  environment:string;created_at:string;expires_at:string;server_time:string;state:string;
  payer_suffix:string|null;method:string|null;methods:string[];
  destination:string|null;verification_available:boolean;
- notice_available?:boolean;
+ verification?:{method:string;verified_at:string;original_transaction_at:string;time_precision:string;amount_minor:number;currency:string;receipt_method:string;receiving_suffix:string};return_url?:string;notice_available?:boolean;
+ source_online?:boolean;
  notice_delivery_available?:boolean;
 };
 const methods:Record<string,string>={bkash:"bKash",nagad:"Nagad",rocket:"Rocket"};
@@ -119,8 +122,8 @@ export function CheckoutExperience({locale,token}:{locale:Locale;token:string}){
  const ended=info?Date.parse(info.expires_at)<=serverClock:false;
  const state=info?(ended&&["requires_payer","awaiting_payment"].includes(info.state)?"expired":info.state):"";
  const title=statusLabels[state]?.[bn?1:0]||(bn?"পেমেন্টের তথ্য":"Payment details");
- const canLock=state==="requires_payer"&&info?.environment==="sandbox";
- return <main className="pg05-checkout" lang={locale}>
+ const canLock=state==="requires_payer"&&(info?.environment==="sandbox"||info?.environment==="live"&&info.verification_available);
+ return <main className="pg05-checkout" lang={locale} style={{paddingTop:120}}>
   <div className="pg05-checkout-wrap">
    <nav className="pg05-checkout-back"><Link href={"/"+locale}>{bn?"← Ekmivo মূল পৃষ্ঠা":"← Ekmivo home"}</Link></nav>
    <header className="pg05-checkout-heading">
@@ -128,10 +131,10 @@ export function CheckoutExperience({locale,token}:{locale:Locale;token:string}){
     <h1>{bn?"পেমেন্ট সম্পন্ন করুন":"Complete your payment"}</h1>
     <p>{bn?"শুধু সার্ভারের তথ্যই এখানে দেখানো হয়; কোনো মেসেজ বা রিডাইরেক্ট পেমেন্ট প্রমাণ করে না।":"Only authoritative server state is shown here. A message or redirect does not prove payment."}</p>
    </header>
-   <div className="pg05-banner pg05-warning" role="note">
+   {info?.environment==="sandbox"&&<div className="pg05-banner pg05-warning" role="note">
     <strong>{bn?"স্যান্ডবক্স — আসল টাকা পাঠাবেন না":"SANDBOX — DO NOT SEND REAL MONEY"}</strong>
     <span>{bn?"এটি একটি পরীক্ষা। এখানে কোনো বাস্তব bKash, Nagad বা Rocket প্রাপক নম্বর দেওয়া নেই।":"This is a test. No real bKash, Nagad or Rocket destination is provided."}</span>
-   </div>
+   </div>}
    {status==="loading"&&<section className="pg05-checkout-card" role="status"><h2>{bn?"সার্ভার থেকে তথ্য আনা হচ্ছে…":"Loading your checkout…"}</h2><p>{bn?"কোনো লেনদেন নিশ্চিত করা হয়নি।":"No transaction has been confirmed."}</p></section>}
    {status!=="loading"&&status!=="ready"&&<section className="pg05-checkout-card" role="alert">
     <h2>{status==="missing"?(bn?"চেকআউট পাওয়া যায়নি":"Checkout not found"):(bn?"চেকআউট উপলব্ধ নয়":"Checkout unavailable")}</h2>
@@ -140,7 +143,7 @@ export function CheckoutExperience({locale,token}:{locale:Locale;token:string}){
    {info&&status==="ready"&&<div className="pg05-checkout-grid">
     <section className="pg05-checkout-card">
      <div className="pg05-summary-overline"><span>{bn?"অবস্থা":"STATE"}</span><span className="pg05-state" data-state={state}>{title}</span></div>
-     <p><strong>{info.merchant_name}</strong></p>
+     <MerchantBrand name={info.merchant_name} brand={info.brand} locale={locale}/>
      <p className="pg05-muted">{bn?"রেফারেন্স":"Merchant reference"}</p>
      <h2 className="pg05-reference">{info.merchant_reference}</h2>
      {info.source_reference&&<p>{bn?"নথি":"Document"}: {info.source_reference}</p>}
@@ -170,13 +173,14 @@ export function CheckoutExperience({locale,token}:{locale:Locale;token:string}){
      {state==="awaiting_payment"&&<>
       <h2>{bn?"প্রেরক নম্বর নিশ্চিত হয়েছে":"Payer and route locked"}</h2>
       <p>{bn?"আপনার নম্বর, মাধ্যম, পরিমাণ ও সময়সীমা অপরিবর্তনীয় রাখা হয়েছে। কিন্তু কোনো টাকা যাচাই হয়নি।":"Your payer, method, amount and time window are immutable. No funds have been verified."}</p>
-      <div className="pg05-simulated"><strong>{bn?"শুধু পরীক্ষামূলক গন্তব্য":"SIMULATED DESTINATION ONLY"}</strong>
+      {info.environment==="live"&&info.source_online===false&&<p role="alert">{bn?"গ্রহণকারী device-এর sync দেরি হচ্ছে। আগে টাকা পাঠিয়ে থাকলে আবার পাঠাবেন না। নতুন করে পাঠানোর আগে সংযোগ স্বাভাবিক হওয়া পর্যন্ত অপেক্ষা করুন।":"Receiving-device sync is delayed. If you already sent money, do not send it again. Wait for the connection to recover before sending new funds."}</p>}
+      <div className="pg05-simulated"><strong>{info.environment==="sandbox"?(bn?"শুধু পরীক্ষামূলক গন্তব্য":"SIMULATED DESTINATION ONLY"):(bn?"ব্যবসার গ্রহণকারী নম্বর":"Merchant receiving number")}</strong>
        <p>{info.destination||"SIMULATED — DO NOT SEND MONEY"}</p>
-       <small>{bn?"কোনো বাস্তব নম্বরে টাকা পাঠাবেন না। এটি sandbox; server-এর receipt evidence ছাড়া payment নিশ্চিত হবে না।":"Do not send real funds from this sandbox checkout. Payment requires verified server receipt evidence."}</small></div>
+       <small>{info.environment==="sandbox"?(bn?"কোনো বাস্তব নম্বরে টাকা পাঠাবেন না। এটি sandbox; server-এর receipt evidence ছাড়া payment নিশ্চিত হবে না।":"Do not send real funds from this sandbox checkout. Payment requires verified server receipt evidence."):(bn?"শুধু প্রদর্শিত নম্বর ও নির্দিষ্ট পরিমাণ ব্যবহার করুন। নম্বর, সময়, amount, গ্রহণকারী account ও method মিলে গেলে স্বয়ংক্রিয়ভাবে যাচাই হবে।":"Use only the shown receiving number and exact amount. Actual payer, original time, amount, receiving account and method must match automatically.")}</small></div>
       <p role="status">{bn?"টাকা পাওয়ার প্রমাণ পাওয়া যায়নি। নিজের থেকে পেমেন্ট নিশ্চিত করার বোতাম নেই।":"No verified receipt yet. There is no self-approval button."}</p>
      </>}
      {state==="processing"&&<><h2>{title}</h2><p>{bn?"সার্ভার পেমেন্টের প্রমাণ যাচাই করছে।":"The server is examining actual payment evidence."}</p></>}
-     {state==="completed"&&<><h2>{title}</h2><p>{bn?"এই অবস্থা শুধু সার্ভারের যাচাইকৃত ledger থেকে এসেছে।":"This status is derived only from verified server-side allocations."}</p></>}
+     {state==="completed"&&<><h2>{title}</h2><p>{bn?"এই অবস্থা শুধু সার্ভারের যাচাইকৃত ledger থেকে এসেছে।":"This status is derived only from verified server-side allocations."}</p><button type="button" onClick={()=>window.print()}>{bn?"রসিদ print / PDF":"Print receipt / save PDF"}</button>{info.verification&&<dl><dt>{bn?"যাচাই পদ্ধতি":"Verification method"}</dt><dd>{info.verification.method}</dd><dt>{bn?"আসল transaction সময়":"Original transaction time"}</dt><dd>{new Date(info.verification.original_transaction_at).toLocaleString(locale)} ({info.verification.time_precision})</dd><dt>{bn?"যাচাইয়ের সময়":"Verified at"}</dt><dd>{new Date(info.verification.verified_at).toLocaleString(locale)}</dd><dt>{bn?"Receiving account":"Receiving account"}</dt><dd>••••{info.verification.receiving_suffix}</dd></dl>}{info.return_url&&<a href={info.return_url} rel="noreferrer">{bn?"বিক্রেতার কাছে ফিরুন":"Return to merchant"}</a>}<CustomerRefundRequest locale={locale} token={token} maximumMinor={info.amount_minor}/></>}
      {["expired","cancelled"].includes(state)&&<><h2>{title}</h2><p>{bn?"এই রিকোয়েস্টে আর টাকা পাঠাবেন না। আগে কোনো টাকা পাঠানো হয়ে থাকলে ব্যবসার সঙ্গে যোগাযোগ করুন; এখানে ফেরত দেওয়া হয়েছে বলা হচ্ছে না।":"Do not send more money. If funds were already sent, contact the merchant. This screen does not claim a refund."}</p></>}
      {info.notice_available&&<ReceiptNotice key={token} token={token} bn={bn} deliveryAvailable={info.notice_delivery_available===true}/>}
      <div className="pg05-checkout-actions">

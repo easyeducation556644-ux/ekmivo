@@ -1,5 +1,7 @@
 # Product UX specification: web, checkout ও Android
 
+> Latest owner correction — 2026-10-12: PG10–PG17 implementation is authorized now; combined release verification follows after source completion. Refund requests carry customer/contact/payment information to the seller. The seller returns money outside the platform; there is no automatic native refund execution. Seller-reported returned remains distinct from independently verified completion. Default bKash/Nagad/Rocket phone verification requires no additional official provider API or gateway approval. Additional receiving/source connections are merchant-configured; SMS sender/app identity is distinct from the actual payer number. Optional native API connections require their own real contract and merchant credentials, and are not prerequisites for the default phone path. Older conflicting refund/native-adapter requirements below are superseded by this correction. No feature or live acceptance is inferred from this note.
+
 ২০২৬-১০-১১ · Specification, functional completion নয়। [Master plan](DUAL-SAAS-MVP-PLAN.bn.md), [design guide](DESIGN-SYSTEM.md), [tokens](design/tokens.css), [feature inventory](MVP-FEATURE-SCOPE.md), [payment architecture](PAYMENT-SYSTEM-DESIGN.bn.md) এবং [API contract](PAYMENT-API-AND-SANDBOX.md) অনুসরণ করতে হবে।
 
 ## ১. Buttons এবং shell placement

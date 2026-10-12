@@ -65,13 +65,13 @@ func main() {
 	}
 	defer db.Close()
 	client := &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	mux := newReceiverHandler(db,client,origin,realm,workspace,key,secrets,previousUntil)
+	mux := newReceiverHandler(db, client, origin, realm, workspace, key, secrets, previousUntil)
 	server := &http.Server{Addr: ":8081", Handler: mux, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 12 * time.Second, IdleTimeout: 60 * time.Second}
 	log.Fatal(server.ListenAndServe())
 }
 
 // Receive code is identical in production and disposable merchant integration tests.
-func newReceiverHandler(db *sql.DB,client *http.Client,origin *url.URL,realm,workspace,key string,secrets [][]byte,previousUntil time.Time) http.Handler {
+func newReceiverHandler(db *sql.DB, client *http.Client, origin *url.URL, realm, workspace, key string, secrets [][]byte, previousUntil time.Time) http.Handler {
 	uuid := regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /webhooks/ekmivo", func(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +98,7 @@ func newReceiverHandler(db *sql.DB,client *http.Client,origin *url.URL,realm,wor
 			return
 		}
 		var payload event
-		if json.Unmarshal(raw, &payload) != nil || payload.ID != eventID || payload.DeliveryID != r.Header.Get("X-Ekmivo-Delivery-ID") || !uuid.MatchString(payload.ID) || !uuid.MatchString(payload.DeliveryID) || !uuid.MatchString(payload.Data.PaymentID) || len(payload.Data.Reference)<1 || len(payload.Data.Reference)>128 || payload.Data.Amount<=0 || payload.Environment != realm || payload.Workspace != workspace || payload.Version != 1 || payload.Type != "payment.verified" || payload.Data.Status != "verified" || payload.Data.Currency != "BDT" {
+		if json.Unmarshal(raw, &payload) != nil || payload.ID != eventID || payload.DeliveryID != r.Header.Get("X-Ekmivo-Delivery-ID") || !uuid.MatchString(payload.ID) || !uuid.MatchString(payload.DeliveryID) || !uuid.MatchString(payload.Data.PaymentID) || len(payload.Data.Reference) < 1 || len(payload.Data.Reference) > 128 || payload.Data.Amount <= 0 || payload.Environment != realm || payload.Workspace != workspace || payload.Version != 1 || payload.Type != "payment.verified" || payload.Data.Status != "verified" || payload.Data.Currency != "BDT" {
 			http.Error(w, "event scope rejected", 400)
 			return
 		}
@@ -143,6 +143,16 @@ func newReceiverHandler(db *sql.DB,client *http.Client,origin *url.URL,realm,wor
 		var expected int64
 		if e = tx.QueryRowContext(ctx, "SELECT amount_minor FROM merchant_orders WHERE reference=$1 FOR UPDATE", payload.Data.Reference).Scan(&expected); e != nil || expected != payload.Data.Amount {
 			http.Error(w, "order not eligible", 409)
+			return
+		}
+		var previous string
+		e = tx.QueryRowContext(ctx, "SELECT payment_id::text FROM merchant_fulfilment_jobs WHERE reference=$1", payload.Data.Reference).Scan(&previous)
+		if e != nil && e != sql.ErrNoRows {
+			http.Error(w, "consumer unavailable", 503)
+			return
+		}
+		if e == nil && previous != payload.Data.PaymentID {
+			http.Error(w, "different payment requires reconciliation", 409)
 			return
 		}
 		var inserted string

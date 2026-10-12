@@ -402,7 +402,9 @@ func (s *Service) HandleDevice(w http.ResponseWriter, r *http.Request) {
 		fail(w, 503, "PIPELINE_SOURCE_UNAVAILABLE")
 		return
 	}
-	if !s.limits.allow("device-global", 2000, time.Now()) || !s.limits.allow("device|"+r.Header.Get("X-Ekmivo-Device-ID"), 120, time.Now()) {
+	// Pre-authentication budget is separate: spoofing a device ID must not
+	// consume an enrolled device's acceptance quota. Edge protection is also required.
+	if !s.limits.allow("device-ingress-global", 20000, time.Now()) {
 		fail(w, 429, "RATE_LIMITED")
 		return
 	}
@@ -419,6 +421,9 @@ func (s *Service) HandleDevice(w http.ResponseWriter, r *http.Request) {
 		}
 		if json.Unmarshal(raw, &claim) != nil || !tokenPattern.MatchString(claim.Token) {
 			fail(w, 422, "INVALID_ENROLLMENT")
+			return
+		}
+		if !s.budget(w, "device-claim|"+digest(claim.Token), 20) {
 			return
 		}
 		key, e := base64.StdEncoding.DecodeString(claim.PublicKey)
@@ -461,6 +466,9 @@ func (s *Service) HandleDevice(w http.ResponseWriter, r *http.Request) {
 	d, e := s.device(r, raw)
 	if e != nil {
 		fail(w, 403, "DEVICE_AUTHORIZATION_REJECTED")
+		return
+	}
+	if !s.budget(w, "device-authenticated-global", 12000) || !s.budget(w, "device-authenticated|"+r.Header.Get("X-Ekmivo-Device-ID"), 600) {
 		return
 	}
 	switch r.PathValue("action") {

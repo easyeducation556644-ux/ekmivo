@@ -24,6 +24,7 @@ type PipelineWorker struct {
 	Realm         string
 	EncryptionKey []byte
 	NoticeSMTP    *receiptnotice.SMTPConfig
+	TrackHealth   bool
 }
 
 func (w *PipelineWorker) Timeout(*river.Job[PipelineArgs]) time.Duration { return 20 * time.Second }
@@ -59,7 +60,10 @@ func (w *PipelineWorker) pending(ctx context.Context, function string) ([]pendin
 	}
 	return items, rows.Err()
 }
-func (w *PipelineWorker) Work(ctx context.Context, job *river.Job[PipelineArgs]) error {
+func (w *PipelineWorker) Work(ctx context.Context, job *river.Job[PipelineArgs]) (workErr error) {
+	if w.TrackHealth {
+		defer func() { RecordWorkerHealth(w.Pool, "critical", w.Realm, workErr == nil) }()
+	}
 	if job.Args.Environment != w.Realm || len(w.EncryptionKey) != 32 {
 		return errors.New("pipeline configuration unavailable")
 	}

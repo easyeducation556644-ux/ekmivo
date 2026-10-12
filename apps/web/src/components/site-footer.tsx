@@ -15,6 +15,6 @@ export function SiteFooter({ locale }: { locale: Locale }) {
     <Link href={`/${locale}/login`}>{t.login}</Link>
     <Link href={`/${locale}/register`}>{t.register}</Link>
    </nav>
-   <div className="footer-bottom"><span>© {new Date().getFullYear()} Ekmivo. {t.rights}</span><span className="footer-status"><i aria-hidden="true" />{t.footerStatus}</span></div>
+   <div className="footer-bottom"><span>© {new Date().getFullYear()} Ekmivo. {t.rights}</span><span className="footer-status"><Link href={`/${locale}/status`}>{locale==="bn"?"সেবার অবস্থা":"Service status"}</Link></span></div>
  </div></footer>;
 }

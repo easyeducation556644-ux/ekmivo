@@ -1,5 +1,18 @@
 # Ekmivo — consolidated manual verification register
 
+## PG10–PG17 combined verification — source still in progress
+
+Do not execute or accept this pass as completed yet. Use isolated staging accounts/workspaces and finance databases after all source work closes. Additive migrations are not applied. No secrets in retained evidence.
+
+- [ ] PG10 real-data CRUD, concurrent visitor intent/invoice totals/due, cross-tenant reads, draft/version conflicts, custom fields/private scanner/upload ownership, CSV duplicate/error/formula handling, queued exports and actor revocation, public share/print; 320/768/1024/desktop EN/BN × Light/Dark/System.
+- [ ] PG11 actual verified payment → customer refund request → encrypted seller contact/view → allowed seller states, concurrent refundable cap, duplicate webhook, original funds unchanged; seller-reported returned remains unverified; real statement idempotency/mismatch/reconciliation.
+- [ ] PG12 merchant-owned receiving/source bindings and real payment-only connector roundtrip; configured tiles do not substitute for live evidence. No official API prerequisite for default phone verification.
+- [ ] PG13 last-owner/concurrent team/invite/verified-email/revocation/grant checks; settings/version/support history; reports reconcile to ledger; dedicated platform billing payment, renewal once, expiry/grace and accepted events; privacy/retention once source closes.
+- [ ] PG14 clean-account documented quickstart, generated client drift/schema conformance, all language webhook consumers, isolated sandbox scenarios/reset.
+- [ ] PG15 security/failure/races/design/load checks, actual readiness/alerts, encrypted backup and timed isolated restore, key availability and post-restore reconciliation/rollback.
+- [ ] PG16 consented real bKash/Nagad/Rocket device/receipt matrix, actual webhook consumer, at least seven observed paid-cohort days, incidents and response evidence.
+- [ ] PG17 exact release source/CI/deployment manifest, owner release decision, production smoke/rollback/support and truthful released-capability list.
+
 ## PG06–PG09 receipt notice follow-up — 2026-10-12
 
 Code branch: `codex/pg06-pg09-code`; see current [audit](evidence/PG06-PG09-AUDIT.md) for tested SHA. These rows are **MANUAL PENDING**, not automated PASS. Bundle with the existing PG06–PG09 pass; no production migration/deploy occurred here.
@@ -429,3 +442,20 @@ At **source SHA `0b7a4fd`**, [CI 38186957573](https://github.com/masharzy/ekmivo
 - [ ] **Staging failover/retention:** withheld/failing webhook and offline device show accurate next retry, backlog, missing evidence and recorded reason; repeat same event without double credit; browser refresh fetches source-of-truth. Record redacted evidence and operator response/rollback before production.
 
 Record actual date/time, tested commit + deployment, role/workspace/realm, source and environment, device/browser, case, PASS/FAIL/BLOCKED, sanitized screenshot or trace, reviewer and follow-up. PG09 **implementation + isolated automated verification PASS, overall product acceptance OPEN**. [Evidence](evidence/PG09/README.md), [audit](evidence/PG06-PG09-AUDIT.md).
+
+## Owner five-day combined test intent — 2026-10-12
+
+After source completion and one reviewed deployment, the owner intends five days of combined payment testing. No day is observed yet. Include real default receipts, wrong/missing five-field cases, duplicate/restart/offline recovery, signed consumer fulfilment, seller refund requests, tenant/role/session boundaries, documents/exports/files, billing, EN/BN/theme/mobile and latency. PG02 extended starts after outstanding PG10–PG17 source and must keep the shell mounted across navigation. Deployment region and production latency need actual measurements; `sin1` source configuration alone is not evidence. Existing formal cohort/release gates are not silently accepted by this five-day test intent.
+
+
+### PG10–PG17 local continuation — 2026-10-12
+
+These are remaining test requirements, not PASS claims. New migrations 0042–0044 and the extension suite have not run. Missing privacy/connector/design/state code is still in the implementation status and must not be moved into this manual ledger as if implemented.
+
+- [ ] Disposable control/live/sandbox databases: run the existing coordinator plus extension SQL smoke; prove all thirteen matcher scenarios, cross-tenant cursor denial, refund cap, orphan lease cleanup and privacy operator/runtime separation. No production database for this pass.
+- [ ] Dedicated owner/admin/viewer accounts: exercise refund/statement filters/pagination, report account/customer/refund views, public branding, Bengali filenames and document-field upload scan/errors. Verify 320/768/1024/desktop, EN/BN and Light/Dark/System, keyboard and loading/error/empty/forbidden/offline states.
+- [ ] Lost checkout/CSV export response: retry same immutable key/body; leave and return to an export without creating a duplicate job; user/business/environment switch never restores another user's export.
+- [ ] Independent sandbox service: tools use GO_SANDBOX_API_URL; absence produces unavailable, never Live simulation. SMTP/scanner/storage outages and maintenance/invoice worker failure must turn relevant readiness false.
+- [ ] Privacy operator: test open owner export request, separate SQL operator/realm boundaries, encrypted snapshot credentials/raw-body exclusion and cross-tenant negatives. Do not record full export/deletion until private objects, device cache, queues and backups have their own actual outcomes.
+- [ ] Prepared 25-workspace sandbox fixtures: run receipt-load, worker observer and read-load against one tested source; failures/drops/unknowns block target PASS. No Live load.
+- [ ] Real phones/accounts and merchant receiver: complete existing receipt/payment/webhook/source, backup restore and real observed cohort/release gates. No synthetic result substitutes for these.

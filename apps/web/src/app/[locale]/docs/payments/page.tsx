@@ -1,65 +1,21 @@
 import Link from "next/link";
 import {notFound} from "next/navigation";
-export const metadata={title:"Ekmivo Payment API — Developer guide"};
-export default async function PaymentDocs({params}:{params:Promise<{locale:string}>}){
- const {locale}=await params;if(locale!=="bn"&&locale!=="en")notFound();
- const bn=locale==="bn";
- return <main className="ek-app-shell" style={{minHeight:"75svh"}}>
-  <article style={{width:"min(100% - 32px, 920px)",margin:"40px auto 80px",display:"grid",gap:24,lineHeight:1.75}}>
-   <p><Link href={`/${locale}/workspaces`}>← {bn?"ওয়ার্কস্পেসে ফিরুন":"Back to workspaces"}</Link></p>
-   <header><p className="ds-eyebrow">PAYMENT API · SANDBOX GUIDE</p>
-    <h1>{bn?"Payment API developer guide":"Payment API developer guide"}</h1>
-    <p>{bn?"PG05 source-এ sandbox request, issued order/invoice ও payer-locked checkout রয়েছে। অনুমোদিত isolated sandbox-এ database ও service প্রস্তুত হলে ব্যবহার করুন। Live receipt matching ও webhook এখনও আলাদা gate।":"PG05 source provides sandbox requests, issued order/invoice sources and payer-locked checkout. Use an explicitly provisioned isolated sandbox. Deployment parity, receipt matching and signed payment webhooks remain separate gates."}</p>
-   </header>
-   <section className="ds-panel" style={{display:"grid",gap:14}}>
-    <h2>{bn?"১. Sandbox key তৈরি করুন":"1. Create a sandbox key"}</h2>
-    <p>{bn?"বাম মেনু থেকে Payments → Developers খুলুন, Sandbox নির্বাচন করুন এবং ব্যবসার owner/admin অ্যাকাউন্ট দিয়ে key তৈরি করুন। আপনার বর্তমান পাসওয়ার্ড নিশ্চিত করতে হবে।":"Open Payments → Developers, select Sandbox and issue a key as workspace owner/admin. Confirm your current password."}</p>
-    <p>{bn?"Raw secret শুধু একবার দেখানো হয়; server-only secret manager-এ রাখুন। key browser বা mobile APK-তে embed করবেন না।":"The raw secret is shown only once. Store it in a server-side secret manager; never embed it in a browser bundle or mobile APK."}</p>
-    <p>Sandbox: <code>ek_test_…</code> · Live: <code>ek_live_…</code></p>
-    <p>{bn?"Key-এর environment, business, scope ও মেয়াদ সার্ভারে যাচাই হয়। শুধু prefix দিয়ে কোনো অনুমতি পাওয়া যায় না।":"Environment, business, scopes and expiry are checked on the server; a prefix alone grants no permissions."}</p>
-   </section>
-   <section className="ds-panel" style={{display:"grid",gap:12}}>
-    <h2>{bn?"২. Auth probe পরীক্ষা করুন":"2. Test the authentication probe"}</h2>
-    <p><code>GET https://ekmivo-go-api.onrender.com/v1/merchant/context?environment=sandbox</code></p>
-    <pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere",background:"var(--color-canvas)",padding:18,borderRadius:8}}>{'curl -H "Authorization: Bearer $EKMIVO_SECRET" \\\n  "https://ekmivo-go-api.onrender.com/v1/merchant/context?environment=sandbox"'}</pre>
-    <p>{bn?"payments:read scope ছাড়া probe 403; ভুল/বাতিল/মেয়াদোত্তীর্ণ key 401; Live key দিয়ে Sandbox 403।":"The probe returns 403 without payments:read; an invalid, revoked or expired key returns 401; live keys cannot be used in sandbox (403)."}</p>
-    <p>{bn?"সফল উত্তরে workspace_id, environment, key_id, scopes ও financial_api_ready:false থাকবে। এটি কোনো পেমেন্ট যাচাইয়ের প্রমাণ নয়।":"A valid response includes workspace_id, environment, key_id, scopes and financial_api_ready:false. It is not evidence of payment processing."}</p>
-   </section>
-   <section className="ds-panel" style={{display:"grid",gap:12}}>
-    <h2>{bn?"Sandbox request ও hosted checkout":"Sandbox requests and hosted checkout"}</h2>
-    <p>{bn?"payments:write scope-সহ server-only key ব্যবহার করুন। GO_API_URL আপনার অনুমোদিত sandbox API; WORKSPACE_ID কীটির একই business। এই উদাহরণ production deploy-এর প্রমাণ নয়।":"Use a server-only key with payments:write. GO_API_URL is your provisioned sandbox API and WORKSPACE_ID is the key's business. This example does not establish production deployment."}</p>
-    <pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{`POST /v1/workspaces/{workspaceID}/payment-intents?environment=sandbox
-Authorization: Bearer <server-only sandbox key>
-Idempotency-Key: <persist one unique key for this request>
+import {SiteHeader} from "../../../../components/site-header";
+import {SiteFooter} from "../../../../components/site-footer";
+import {PaymentAPIReference} from "../../../../components/payment-api-reference";
+export default async function PaymentGuide({params}:{params:Promise<{locale:string}>}){
+ const {locale}=await params;if(locale!=="en"&&locale!=="bn")notFound();const bn=locale==="bn",t=(en:string,bnText:string)=>bn?bnText:en;
+ return <><SiteHeader locale={locale} initialTheme="system"/><main className="pg10-workspace" style={{maxWidth:1000,margin:"120px auto 64px",padding:24}}><h1>{t("Payment developer guide","Payment developer guide")}</h1><p>{t("Build against the isolated sandbox, then complete live acceptance. Source capabilities and observed live evidence are separate.","Isolated sandbox ব্যবহার করে integration তৈরি করুন। Live acceptance আলাদাভাবে সম্পূর্ণ করতে হবে।")}</p><Link href={`/${locale}/workspaces`}>{t("Open your workspace","Workspace খুলুন")}</Link>
+ <section className="ds-panel"><h2>{t("1. Create a server credential","১. Server credential তৈরি")}</h2><p>{t("Payments → Developers → Sandbox. Owners/admins issue a scoped key after password confirmation. Store the one-time secret in your server secret manager. Never embed it in browser code, a bot client or an APK.","Payments → Developers → Sandbox। Owner/admin password নিশ্চিত করে scoped key তৈরি করবেন। একবার দেখানো secret server secret manager-এ রাখুন; browser, bot client বা APK-তে রাখবেন না।")}</p><p>{t("Use payments:write for creating requests and payments:read for authoritative queries. Document APIs require their named customer/invoice scopes. Live and sandbox keys cannot cross environments.","Request তৈরিতে payments:write, authoritative query-তে payments:read। Document API-তে নির্ধারিত customer/invoice scope লাগবে। Live ও sandbox key আলাদা।")}</p></section>
+ <section className="ds-panel"><h2>{t("2. Create hosted checkout","২. Hosted checkout তৈরি")}</h2><pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{`POST /v1/workspaces/{workspaceID}/payment-intents?environment=sandbox
+Authorization: Bearer <server-only key>
+Idempotency-Key: <persisted unique request key>
 Content-Type: application/json
 
-{"merchant_reference":"SANDBOX-REQUEST-001","amount_minor":50050,"currency":"BDT","expires_in_minutes":15}`}</pre>
-    <p>{bn?"201 উত্তরে id ও checkout_token পাওয়া যায়। /bn/checkout/{checkout_token} বা /en/checkout/{checkout_token} খুলুন। একই key ও body retry করলে একই request আসে; body বদলালে 409।":"201 returns id and checkout_token. Open /bn/checkout/{checkout_token} or /en/checkout/{checkout_token}. Retry the same key and body for the same request; changed body returns 409."}</p>
-    <p>{bn?"প্রকৃত প্রেরক নম্বর ও মাধ্যম নিশ্চিত করলে শুধু payer lock হয়। Sandbox-এ আসল টাকা পাঠাবেন না। Redirect, query বা customer দাবি payment verified করে না।":"Confirming the actual sending number and method creates a payer lock. Do not send real money in sandbox. A redirect, query parameter or customer assertion cannot verify funds."}</p>
-   </section>
-   <section className="ds-panel" style={{display:"grid",gap:12}}>
-    <h2>{bn?"Order / Invoice-এর authoritative source":"Authoritative order and invoice sources"}</h2>
-    <pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{`POST /v1/workspaces/{workspaceID}/linked-sources?environment=sandbox
-{"source_kind":"invoice","source_reference":"SANDBOX-INVOICE-001","items":[{"title":"Service","quantity":2,"unit_amount_minor":2500},{"title":"Delivery","quantity":1,"unit_amount_minor":1735}]}
-
-POST /v1/workspaces/{workspaceID}/payment-intents?environment=sandbox
-Idempotency-Key: <persist a separate request key>
-{"merchant_reference":"SANDBOX-INVOICE-001-PAY","invoice_id":"<issued source id>","currency":"BDT","expires_in_minutes":15}`}</pre>
-    <p>{bn?"প্রথম POST-এ সার্ভার 6735 paisa হিসাব করে immutable নথি ইস্যু করে। দ্বিতীয় POST-এ amount পাঠাবেন না; একই business/environment-এর source থেকে সার্ভার amount নেয়। একসঙ্গে একই source-এর একাধিক active request 409।":"The first POST issues an immutable document with a database-calculated 6735-paisa total. Omit amount in the second POST; the server reads the same business/environment source. Competing active full-amount requests for one source return 409."}</p>
-    <p>{bn?"GET payment-intents/{id}?environment=sandbox দিয়ে original terms, masked payer/window, issued lines ও history পড়ুন। POST payment-intents/{id}/cancel?environment=sandbox unpaid/unexpired request বাতিল করে; এটি refund নয়। Viewer শুধু পড়তে পারে।":"GET payment-intents/{id}?environment=sandbox reads original terms, masked payer/window, issued lines and history. POST payment-intents/{id}/cancel?environment=sandbox cancels an unpaid, unexpired request; cancellation is not a refund. Viewers have read access."}</p>
-    <p>{bn?"Minimal issued snapshot রয়েছে; পূর্ণ invoice drafting/correction/tax/discount, paid receipt ও verified webhook পরবর্তী PG-তে। 429 এ Retry-After অনুসরণ করুন; service বা Live source না থাকলে 503।":"The minimal issued snapshot is available in source. Full invoice lifecycle, paid receipts and verified webhooks belong to later gates. Respect Retry-After on 429; unavailable services/live sources return 503."}</p>
-   </section>
-   <section className="ds-panel" style={{display:"grid",gap:12}}>
-    <h2>{bn?"৩. Rotation ও security":"3. Rotation and security"}</h2>
-    <p>{bn?"Rotate পুরোনো কী তাৎক্ষণিক বাতিল করে একই scopes/expiry-সহ নতুন গোপন কী তৈরি করে। Revoke করলে আর ব্যবহার করা যাবে না। দুটো কাজই password-confirmed এবং audited।":"Rotate revokes the old key immediately and issues a new key with the same scopes and expiry. Revoke permanently disables a key. Both operations require password confirmation and are audited."}</p>
-    <p>{bn?"API token কখনো query string, webhook payload, client-side localStorage বা browser analytics-এ পাঠাবেন না।":"Never put API tokens in query strings, webhook payloads, client localStorage or browser analytics."}</p>
-   </section>
-   <section className="ds-panel" style={{display:"grid",gap:12}}>
-    <h2>{bn?"৪. Scope ও error contract":"4. Scope and error contract"}</h2>
-    <p><code>payments:read · payments:write · customers:read/write · invoices:read/write · refunds:read/write · webhooks:manage</code></p>
-    <p>{bn?"400 invalid env; 401 invalid key; 403 wrong scope/env; 503 unavailable service। OpenAPI source repository-তে রক্ষিত।":"400 invalid environment; 401 invalid credential; 403 wrong scope or environment; 503 unavailable dependency. OpenAPI source is versioned in the repository."}</p>
-    <p><a href="https://github.com/masharzy/ekmivo/blob/main/contracts/openapi.yaml" rel="noopener noreferrer" target="_blank">OpenAPI contract ↗</a></p>
-   </section>
-  </article>
- </main>;
+{"merchant_reference":"ORDER-123","amount_minor":12500,"currency":"BDT","expires_in_minutes":30}`}</pre><p>{t("12500 minor units = BDT 125. Use the returned checkout_token to open /en/checkout/{token} or /bn/checkout/{token}. Keep one idempotency key for retries; changed payload with the same key conflicts. Order/invoice-linked amounts are calculated on the server.","১২৫০০ minor unit = ১২৫ টাকা। checkout_token দিয়ে /en/checkout/{token} বা /bn/checkout/{token} খুলুন। Retry-তে একই idempotency key রাখুন; বদলানো payload conflict হবে। Linked order/invoice-এর পরিমাণ server হিসাব করে।")}</p></section>
+ <section className="ds-panel"><h2>{t("3. Automatic verification","৩. Automatic verification")}</h2><p>{t("A signed Android receipt is parsed using its approved source rule. Go matches actual payer number, original transaction time, amount, receiving account and method. Only a unique valid match confirms payment and atomically creates the signed webhook event. The SMS sender identity is not the payer.","Signed Android receipt অনুমোদিত source rule দিয়ে parse হবে। Go প্রকৃত payer number, আসল transaction time, amount, receiving account ও method মিলাবে। একমাত্র সঠিক match হলেই confirmation ও webhook event এক transaction-এ তৈরি হবে। SMS-এর উৎসের নাম payer নয়।")}</p><p>{t("No customer transaction ID, screenshot or routine merchant approval is required. Missing, conflicting or ambiguous evidence remains pending/exception; a success redirect never proves payment.","Customer transaction ID, screenshot বা নিয়মিত merchant approval লাগবে না। Missing/ambiguous receipt pending/exception থাকবে; success redirect payment proof নয়।")}</p></section>
+ <section className="ds-panel"><h2>{t("4. Signed webhook and fulfilment","৪. Signed webhook ও delivery")}</h2><p>{t("Register an HTTPS endpoint under Payments → Webhooks. Validate the untouched body with X-Ekmivo-Timestamp, Signature, Key-ID, Event-ID and Delivery-ID; enforce the five-minute replay window and workspace/environment. Query Go payment state, compare exact order reference/amount/currency, then transactionally persist event dedup and fulfilment. Acknowledge only after commit.","Payments → Webhooks-এ HTTPS endpoint দিন। Raw body দিয়ে Timestamp, Signature, Key-ID, Event-ID ও Delivery-ID যাচাই করুন; পাঁচ মিনিটের replay window ও workspace/environment মিলান। Go payment query করে reference/amount/currency মিলিয়ে event dedup ও delivery এক database transaction-এ সংরক্ষণ করুন। Commit-এর পর acknowledgement দিন।")}</p><pre>{`signature = "v1=" + HMAC-SHA256(secret, timestamp + "." + raw_body)`}</pre><p>{t("Runnable Go receiver and transactional TypeScript/Python/PHP consumers live in examples/webhook-receiver. The WooCommerce plugin lives in integrations/woocommerce. Configure credentials server-side, including the webhook endpoint secret. Fulfilment is idempotent; a duplicate delivery must not ship twice.","examples/webhook-receiver-এ Go receiver ও transactional TypeScript/Python/PHP consumer রয়েছে। integrations/woocommerce-এ plugin রয়েছে। Server-এ credentials ও webhook secret সেট করুন। Duplicate delivery দ্বিতীয়বার পণ্য পাঠাবে না।")}</p></section>
+ <section className="ds-panel"><h2>{t("5. Refund and reconciliation","৫. Refund ও reconciliation")}</h2><p>{t("Customers submit refund requests with contact and payment details to the seller. The seller approves/rejects and returns money outside Ekmivo. Seller-reported returned is not independently verified settlement. Statement imports only reconcile already verified payments; they never create verified funds.","Customer যোগাযোগ ও payment তথ্যসহ seller-কে refund request দেবেন। Seller approve/reject করবেন এবং Ekmivo-এর বাইরে টাকা ফেরত দেবেন। Seller-reported returned স্বাধীনভাবে যাচাইকৃত settlement নয়। Statement import কেবল verified payment reconcile করে; verified টাকা তৈরি করে না।")}</p></section>
+ <section className="ds-panel"><h2>{t("6. Sandbox and release checks","৬. Sandbox ও release checks")}</h2><p>{t("Exercise unique receipt match, missing/wrong payer/time/account/method, same-amount collision, duplicate delivery, expired checkout, cancelled late receipt, source offline/reboot and tenant/key isolation. Simulations must stay in the separate sandbox; no sandbox parser or fixture may confirm live money. Keep resets isolated and retain safe evidence.","Unique match, wrong/missing payer/time/account/method, same-amount collision, duplicate, expiry, cancelled late receipt, offline/reboot ও tenant/key isolation পরীক্ষা করুন। Simulation আলাদা sandbox-এ থাকবে; sandbox parser/fixture live টাকা confirm করবে না। Reset isolated রাখুন ও safe evidence সংরক্ষণ করুন।")}</p><p>{t("Release tooling under tools/release requires actual device observations, seven days of paid-cohort evidence, exact source/deployment commit, no open high-severity incident and owner release approval. Readiness and a green build alone do not satisfy release.","tools/release-এ actual device evidence, সাত দিনের paid cohort, source/deployment commit, serious incident বন্ধ হওয়া ও owner approval প্রয়োজন। Ready service বা green build একা release proof নয়।")}</p></section>
+ <PaymentAPIReference locale={locale}/></main><SiteFooter locale={locale}/></>;
 }

@@ -46,9 +46,17 @@ export async function runPG05Browser({control,goOrigin,tenant,sessions,token,exp
   await page.getByRole("button",{name:"Issue document",exact:true}).click();
   await page.getByRole("option",{name:new RegExp(ref)}).waitFor({state:"attached"});
   await page.getByLabel("Merchant reference",{exact:true}).fill(ref+"-PAY");
-  const created=page.waitForResponse(r=>r.url().includes("/payment-intents?")&&r.request().method()==="POST");
-  await page.getByRole("button",{name:"Create sandbox request",exact:true}).click();
-  const issued=await (await created).json();
+  // Synchronize with the *rendered* submit action: a stale accessible name
+  // previously left waitForResponse pending without ever submitting a POST.
+  const createRequest=page.getByRole("button",{name:"Create request",exact:true});
+  await createRequest.waitFor({state:"visible"});
+  assert.ok(await createRequest.isEnabled(),"payment request submit unexpectedly disabled");
+  const [createResponse]=await Promise.all([
+   page.waitForResponse(r=>r.url().includes("/payment-intents?")&&r.request().method()==="POST"),
+   createRequest.click()
+  ]);
+  assert.ok(createResponse.ok(),"financial POST rejected with HTTP "+createResponse.status());
+  const issued=await createResponse.json();
   assert.equal(issued.amount_minor,6735,"browser linked source total must come from DB");
   const card=page.locator(".pg05-record").filter({has:page.getByText(ref+"-PAY",{exact:true})});
   await card.waitFor();

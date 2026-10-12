@@ -48,7 +48,12 @@ jobs:
         run: npm run lint
       - name: Strict OpenAPI contract and schema references
         working-directory: apps/web
-        run: node scripts/openapi-check.mjs
+        run: npm run payment:contract-check
+      - name: Typecheck generated merchant SDK and TypeScript integrations
+        working-directory: apps/web
+        run: npx tsc --noEmit -p tsconfig.payment-examples.json
+      - name: Release gate negative tests (fictional fixtures)
+        run: node --test tools/release/evidence.test.mjs tools/testing/sdk-transport.test.mjs tools/privacy/store-registry.test.mjs tools/privacy/archive-codec.test.mjs tools/recovery/backup-registry.test.mjs tools/release/compile-cohort.test.mjs
       - name: Verify PostgreSQL schema on ephemeral local database
         working-directory: apps/web
         env:
