@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
-import {randomUUID,randomBytes,createHmac,createHash} from "node:crypto";
+import {randomUUID,randomBytes,createHmac,createHash,generateKeyPairSync,sign} from "node:crypto";
 import {execFileSync,spawn} from "node:child_process";
 import postgres from "postgres";
 
@@ -1306,7 +1306,7 @@ try{
   AUTHZ_DATABASE_URL:ds(source.pathname.slice(1),"ekmivo_financial_runtime","pg01-ci-only-password"),
   PG05_SANDBOX_DATABASE_URL:ds("ekmivo_pg04_sandbox","ekmivo_finance_reader_sandbox","pg04-sandbox-reader-only"),
   PG05_TOKEN_SECRET:pg09Auth.tokenSecret,PG05_PAYER_SECRET:pg09Auth.payerSecret,
-  PG06_PIPELINE_ENABLED:"true",PG06_PARSER_RULES_JSON:"[]",
+  PG06_PIPELINE_ENABLED:"true",PG06_PARSER_RULES_JSON:await readFile(new URL("../../../examples/receipt-parser/sandbox-fixture.json",import.meta.url),"utf8"),
   PG06_ENCRYPTION_KEY_HEX:Buffer.alloc(32,88).toString("hex"),
   PG06_CONTROL_PROJECTION_URL:ds(source.pathname.slice(1),"ekmivo_financial_projection_operator","pg04-control-projection-only")
  },stdio:["ignore","pipe","pipe"]});
@@ -1366,6 +1366,52 @@ try{
   same((await disabledState.json()).items[0].active,false,
    "PG09 successful mutation did not reflect in real database detail");
   console.log("PG09 REAL GO HTTP PASS: owner/viewer/editor sessions, restricted finance, query and create/disable endpoint, server search, once-visible signing secret, no live fallback (SYNTHETIC DB ONLY)");
+  // Genuine signed HTTP -> restricted Go -> PostgreSQL matcher, fictional
+  // receipt and software key only. This is NOT Android Keystore/provider proof.
+  const fixturePayer="+8801700000001",fixtureReceiving="+8801700000002";
+  const newAccount=await fetch(route+"gateways?environment=sandbox",{method:"POST",headers:head("owner"),body:JSON.stringify({method:"bkash",account_number:fixtureReceiving})});
+  same(newAccount.status,200,"signed HTTP fixture account creation failed");
+  const fixtureAccount=(await newAccount.json()).id;
+  const newPair=await fetch(route+"devices?environment=sandbox",{method:"POST",headers:head("owner"),body:JSON.stringify({account_id:fixtureAccount,name:"Fictional signed ingress",source:"EKMIVO_SANDBOX",binding:"sms:1",parser_id:"sandbox-incoming-v1"})});
+  same(newPair.status,200,"signed HTTP fixture enrollment failed");
+  const pair=(await newPair.json());
+  const fixtureKeys=generateKeyPairSync("ec",{namedCurve:"prime256v1"});
+  let fixtureDevice="";
+  async function signedPost(action,body,event=randomUUID(),stamp=String(Math.floor(Date.now()/1000)),tamper=false){
+   const path="/v1/device/"+action;const raw=JSON.stringify(body);
+   const canonical=["POST",path,stamp,event,createHash("sha256").update(raw).digest("hex")].join("\n");
+   const signature=sign("sha256",Buffer.from(canonical),fixtureKeys.privateKey).toString("base64");
+   return fetch(apiTestOrigin+path,{method:"POST",headers:{"Content-Type":"application/json","X-Ekmivo-Device-ID":fixtureDevice,"X-Ekmivo-Event-ID":event,"X-Ekmivo-Timestamp":stamp,"X-Ekmivo-Signature":signature},body:tamper?raw+" ":raw});
+  }
+  const claim=await signedPost("claim",{pairing_token:pair.pairing_token,public_key:fixtureKeys.publicKey.export({type:"spki",format:"der"}).toString("base64")});
+  same(claim.status,200,"signed HTTP enrollment proof rejected");
+  fixtureDevice=(await claim.json()).id;
+  // Isolate route selection from older synthetic healthy device fixtures.
+  await pg07DB.unsafe("UPDATE pg06_devices SET permission_ok=false WHERE workspace_id=$1::uuid AND environment='sandbox' AND id<>$2::uuid",[pg07WS,fixtureDevice]);
+  const scoped={enrollment_id:fixtureDevice,environment:"sandbox"};
+  same((await signedPost("heartbeat",{...scoped,permission_ok:true,backlog:0,model:"CI software signer",app_version:"fixture"})).status,200,"signed HTTP heartbeat failed");
+  const create=await fetch(apiTestOrigin+"/v1/workspaces/"+pg07WS+"/payment-intents?environment=sandbox",{method:"POST",headers:{...head("owner"),"Idempotency-Key":"signed-ingress-"+randomUUID()},body:JSON.stringify({merchant_reference:"SIGNED-CI-"+randomUUID(),amount_minor:5500,currency:"BDT",expires_in_minutes:30})});
+  same(create.status,201,"signed HTTP checkout creation failed");
+  const createdIntent=await create.json();
+  const lock=await fetch(apiTestOrigin+"/v1/public/checkout/"+createdIntent.checkout_token+"/lock",{method:"POST",headers:{Origin:apiTestOrigin,"Content-Type":"application/json"},body:JSON.stringify({payer_number:fixturePayer,method:"bkash"})});
+  same(lock.status,200,"signed HTTP real customer payer lock failed");
+  const parts=Object.fromEntries(new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Dhaka",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"}).formatToParts(new Date(Date.now()+2000)).map(p=>[p.type,p.value]));
+  const stampText=`${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
+  const packet={...scoped,source:"EKMIVO_SANDBOX",binding:"sms:1",kind:"device_sms",evidence:`Received 55.00 from ${fixturePayer} at ${stampText} ref CI${randomUUID().replaceAll("-","").toUpperCase()}`,observed_at:new Date().toISOString(),sequence:1};
+  same((await signedPost("events",packet,randomUUID(),undefined,true)).status,403,"tampered signed HTTP packet accepted");
+  same((await signedPost("events",{...packet,environment:"live"})).status,403,"signed HTTP packet crossed physical realm");
+  same((await signedPost("events",{...packet,source:"WRONG_SOURCE"})).status,422,"signed wrong-source HTTP packet accepted");
+  const eventID=randomUUID();const ingest=await signedPost("events",packet,eventID);
+  same(ingest.status,202,"signed HTTP receipt did not obtain durable ACK");
+  const ack=await ingest.json();ok(ack.observation_id,"signed receipt was not parsed into an observation");
+  const replay=await signedPost("events",packet,eventID);same(replay.status,202,"signed HTTP replay not ACKed");
+  same((await replay.json()).observation_id,ack.observation_id,"signed HTTP replay duplicated receipt");
+  const fixtureWorker=postgres(ds("ekmivo_pg04_sandbox","ekmivo_financial_worker_sandbox","pg04-sandbox-worker-only"),{max:1,prepare:false});
+  try{same(await pg07Match(ack.observation_id,pg07Version,fixtureWorker),"matched","signed HTTP receipt did not automatically match");}finally{await fixtureWorker.end({timeout:3})}
+  same(Number((await pg07DB.unsafe("SELECT count(*) n FROM financial_payments WHERE observation_id=$1::uuid",[ack.observation_id]))[0].n),1,"signed HTTP duplicate funded twice");
+  same((await fetch(route+"devices/"+fixtureDevice+"/revoke?environment=sandbox",{method:"POST",headers:head("owner"),body:"{}"})).status,200,"signed HTTP device revocation failed");
+  same((await signedPost("history",scoped)).status,403,"revoked device can still query HTTP history");
+  console.log("PG06 signed HTTP -> PG07 financial matching PASS: software P256 claim, heartbeat, immutable checkout, tamper/realm/source/replay/revoke, one payment (FICTIONAL receipt; no Android/provider proof)");
  }finally{
   apiProcess.kill("SIGTERM");
   await Promise.race([new Promise(resolve=>apiProcess.once("close",resolve)),new Promise(resolve=>setTimeout(resolve,4000))]);
