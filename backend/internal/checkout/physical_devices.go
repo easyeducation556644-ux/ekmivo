@@ -173,18 +173,9 @@ func (s *Service) HandlePhysicalDevice(w http.ResponseWriter,r *http.Request,raw
   // Forwarding is independent of parser availability and account selection.
   // The fixed sender allowlist only scopes collection; it is not approval
   // of a receipt format or a promise that payment matching is ready.
-  allowedSources:=[]string{}
-  for _,candidate:=range []struct{method,sender string}{{"bkash","bKash"},{"nagad","NAGAD"},{"rocket","Rocket"}} {
-   rows,err:=pool.Query(r.Context(),"SELECT account_id FROM pg06_phone_candidate_accounts($1::uuid,$2)",id,candidate.method)
-   if err!=nil{fail(w,503,"RECEIVING_ACCOUNT_UNAVAILABLE");return}
-   available:=rows.Next()
-   scanErr:=error(nil)
-   if available{var uuid string;scanErr=rows.Scan(&uuid)}
-   if rows.Err()!=nil{scanErr=rows.Err()}
-   rows.Close()
-   if scanErr!=nil{fail(w,503,"RECEIVING_ACCOUNT_UNAVAILABLE");return}
-   if available{allowedSources=append(allowedSources,candidate.sender)}
-  }
+  // Only approved provider labels are forwarded after explicit handset consent.
+  // Payment account count and SIM mapping are not a reason to discard SMS.
+  allowedSources:=[]string{"bKash","NAGAD","Rocket"}
   // A configured receiving method permits narrow collection, not paid status.
   // Backend parser readiness is separate, and no financial destination
   // number/account identifier is returned to the phone.
@@ -193,20 +184,27 @@ func (s *Service) HandlePhysicalDevice(w http.ResponseWriter,r *http.Request,raw
    "config_version":result.ConfigVersion,
    "forwarder":true,"forward_sources":allowedSources,
   }
-  for i:=range result.Bindings{
-   a:=&result.Bindings[i];rule,ok:=s.Pipeline.Rules[a.ParserID]
-   if !ok||!rule.Approved||rule.Source!=a.Source||(rule.SandboxOnly&&realm!="sandbox"){
-    fail(w,503,"APPROVED_SOURCE_UNAVAILABLE");return
+  // Legacy per-account source bindings are optional compatibility metadata.
+  // A revoked/unsupported old parser must not disable the new physical SMS
+  // forwarding path, which depends only on the signed phone + source allowlist.
+  approvedBindings:=[]phoneAssociation{}
+  for _,binding:=range result.Bindings {
+   rule,ok:=s.Pipeline.Rules[binding.ParserID]
+   if !ok||!rule.Approved||rule.Source!=binding.Source||(rule.SandboxOnly&&realm!="sandbox"){
+    continue
    }
    pat:=rule.CapturePattern;if pat==""{pat=rule.Pattern}
-   a.CapturePattern=strings.ReplaceAll(pat,"(?P<","(?<")
+   binding.CapturePattern=strings.ReplaceAll(pat,"(?P<","(?<")
    var method,label,suffix string
-   if err:=pool.QueryRow(r.Context(),"SELECT a.method,c.label,a.display_suffix FROM financial_receiving_accounts a JOIN pg06_account_configuration c ON c.account_id=a.id WHERE a.id=$1::uuid AND a.workspace_id=$2::uuid AND a.environment=$3 AND c.disabled_at IS NULL",a.AccountID,ws,realm).Scan(&method,&label,&suffix);err!=nil{
-    fail(w,503,"RECEIVING_ACCOUNT_UNAVAILABLE");return
+   if err:=pool.QueryRow(r.Context(),
+     "SELECT a.method,c.label,a.display_suffix FROM financial_receiving_accounts a JOIN pg06_account_configuration c ON c.account_id=a.id WHERE a.id=$1::uuid AND a.workspace_id=$2::uuid AND a.environment=$3 AND c.disabled_at IS NULL",
+     binding.AccountID,ws,realm).Scan(&method,&label,&suffix);err!=nil{
+    continue
    }
-   a.Method=method;a.Label=label;a.DisplaySuffix=suffix
+   binding.Method=method;binding.Label=label;binding.DisplaySuffix=suffix
+   approvedBindings=append(approvedBindings,binding)
   }
-  forwarding["bindings"]=result.Bindings
+  forwarding["bindings"]=approvedBindings
   write(w,200,forwarding);return
  }
  if r.PathValue("action")=="phone-heartbeat" {
