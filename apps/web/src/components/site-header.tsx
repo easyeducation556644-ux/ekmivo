@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {useEffect,useRef,useState} from "react";
-import {usePathname} from "next/navigation";
+import {usePathname,useSelectedLayoutSegment} from "next/navigation";
 import {SiteControls} from "./site-controls";
 import {siteCopy,type Locale} from "../lib/site-copy";
 
@@ -17,6 +17,7 @@ const pages=[
 export function SiteHeader({locale,initialTheme,authenticated=false}:{locale:Locale;initialTheme:Theme;authenticated?:boolean}){
  const t=siteCopy[locale];
  const pathname=usePathname();
+ const segment=useSelectedLayoutSegment();
  const [scrolled,setScrolled]=useState(false);
  const [hidden,setHidden]=useState(false);
  const [menuOpen,setMenuOpen]=useState(false);
@@ -60,7 +61,7 @@ export function SiteHeader({locale,initialTheme,authenticated=false}:{locale:Loc
  // The locale layout can be retained across client navigation: never let
  // public chrome leak into workspace or standalone account routes.
  const visiblePath=(pathname||"/").replace(/^\/(bn|en)(?=\/|$)/,"")||"/";
- if(/^\/(?:w|account|admin|pay|checkout|receipt|invoice)(?:\/|$)/.test(visiblePath))return null;
+ if(["w","account","admin","pay","checkout","receipt","invoice"].includes(segment||"")||/^\/(?:w|account|admin|pay|checkout|receipt|invoice)(?:\/|$)/.test(visiblePath))return null;
  return <header className={`site-header ek-public-header${scrolled?" is-wide":""}${hidden?" is-hidden":""}${menuOpen?" menu-open":""}`}>
   <div className="header-inner">
    <Link className="brand" href="/" aria-label="Ekmivo home" onClick={closeMenu}>
