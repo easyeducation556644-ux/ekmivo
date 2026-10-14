@@ -249,7 +249,7 @@ export function CheckoutExperience({locale,token,initialMethod}:{locale:Locale;t
          aria-invalid={payerInvalid} aria-describedby="provider-payer-help" value={payer}
          onBlur={()=>setPayerTouched(true)} onChange={e=>{setPayer(e.target.value);setCode("")}}/>
         {payerInvalid?<p className="provider-payer-error" role="alert" id="provider-payer-help">{bn?"সঠিক BD নম্বর দিন: 01XXXXXXXXX বা +8801XXXXXXXXX":"Enter a valid BD number: 01XXXXXXXXX or +8801XXXXXXXXX"}</p>
-        :<p className="provider-payer-format" id="provider-payer-help">{bn?"01XXXXXXXXX অথবা +8801XXXXXXXXX":"01XXXXXXXXX or +8801XXXXXXXXX"}</p>
+        :<p className="provider-payer-format" id="provider-payer-help">{bn?"01XXXXXXXXX অথবা +8801XXXXXXXXX":"01XXXXXXXXX or +8801XXXXXXXXX"}</p>}
         <p>{bn?"নম্বরটি নিশ্চিত করলে পরে বদলানো যাবে না।":"Confirming locks your sending number to this payment."}</p>
         <div className="provider-payer-consent">{bn?"এগিয়ে গেলে আপনি শর্তাবলীতে সম্মতি দিচ্ছেন।":"By proceeding you agree to the payment terms."}</div>
         <div className="provider-flow-controls">
