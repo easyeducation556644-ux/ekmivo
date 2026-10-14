@@ -90,6 +90,7 @@
 @media(max-width:760px){
  .er-heading{align-items:flex-start;flex-wrap:wrap}
  .er-heading-actions{width:100%;justify-content:flex-start}
+ .er-heading-actions button,.er-period-buttons button,.er-tabs button,.er-filter-fields :is(input,select),.er-filter-fields .er-apply{min-height:44px}
  .er-filter-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
  .er-filter-fields .er-account-filter{grid-column:1}
  .er-filter-fields .er-apply{grid-column:2;align-self:end}
