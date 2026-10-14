@@ -1,3 +1,16 @@
+## Payment Overview Mission Control — NEW (2026-10-14, MANUAL PENDING)
+
+- [ ] Owner/admin new workspace: no plan state leads to **Billing** without showing plan cards in Overview; verified active or grace subscription creates tick; cancelled invoice does not.
+- [ ] Verify profile + active receiving account + consented paired phone SMS permission and first heartbeat + active published link OR issued request + real verified transaction (no fake test) reach six verified milestones, show compact operational view.
+- [ ] Existing workspace with payment history but expired plan or temporarily offline phone: historical payment access persists; unfinished setup is still visible, never falsely marked complete.
+- [ ] Verified merchant transactions, summaries, refunds, webhook failure counts and online devices match each authorized source (no synthetic 0 for unavailable data).
+- [ ] Workspace/role isolation (Owner, Admin, Editor, Viewer), 401/403/503/offline/timeout, site EN/BN, Light/Dark/System, 320/375/768/1024/1440, keyboard and 200% zoom; chart is one third width on wide desktop.
+- [ ] Capture exact deployed frontend SHA and authenticated browser results. Vercel READY only proves Next build, not these real merchant flows.
+
+Source/evidence: docs/evidence/PAYMENT-OVERVIEW-MISSION-CONTROL-20261014.md. No financial mutation or real-device test was performed for this UI change.
+
+---
+
 ## Applied-schema update — 2026-10-14 (after the source audit)
 
 **MIGRATION 0056 APPLIED TO BOTH PRIMARY FINANCIAL DATABASES.** With explicit owner approval, the exact reviewed `infra/migrations/0056_phone_incoming_and_late_refund_reports.sql` migration was applied atomically to `ekmivo_sandbox_financial` and `ekmivo_live_financial`. Neon migration preview could not parse the PostgreSQL dollar-quoted procedure bodies, so a dollar-quote-aware 8-statement transaction was used for each database (the same statements previously verified on the disposable branch). Both financial realms were confirmed isolated from control; both functions and `ekmivo_finance_reader` EXECUTE grants are present.
