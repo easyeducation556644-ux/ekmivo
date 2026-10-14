@@ -113,7 +113,7 @@ export function PaymentOverviewMission({locale,workspaceId,environment,canManage
  const accountOk=configured?configured.some(a=>Boolean(a.ID||a.id)&&!a.Disabled):fallback?fallback.some(a=>Boolean(a.id||a.ID)&&!a.disabled_at&&!a.Disabled):null;
  // One successful heartbeat completes the initial setup milestone.
  // Going temporarily offline must not erase onboarding history.
- const phoneOk=phoneItems?phoneItems.some(p=>Boolean(p.claimed_at&&!p.revoked_at&&p.heartbeat_at)):null;
+ const phoneOk=phoneItems?phoneItems.some(p=>Boolean(p.claimed_at&&!p.revoked_at&&p.heartbeat_at&&p.permission_ok)):null;
  const online=phoneItems?phoneItems.filter(p=>p.claimed_at&&!p.revoked_at&&p.permission_ok&&p.heartbeat_at&&now-Date.parse(p.heartbeat_at)<20*60*1000).length:null;
  const existingLinks=loaded(links)&&Array.isArray(links.value.items)?links.value.items:null;
  const existingIntents=loaded(intents)&&Array.isArray(intents.value.data)?intents.value.data:null;
