@@ -24,3 +24,13 @@
 - [ ] Verify no ciphertext, OTP, evidence plaintext or full phone in logs, analytics, summary export or unauthorized endpoint.
 - [ ] Check EN/BN, Light/Dark, mobile scroll table and keyboard, print, refund ledger semantics, and explicit difference from Overview.
 - [ ] Verify both Go Render and Vercel production deploy on exact merged commit; authenticated API test required.
+
+## Follow-up: Detailed breakdown payer visibility (isolated branch)
+
+- Reports had two disconnected report surfaces: full verified payer numbers in a separate ledger above, but the **Detailed breakdown** only had receiving account suffixes and invoice-linked customers. The latter must not be presented as actual verified payer identity.
+- Move the existing already-authorized `PaymentReportLedger` into a new **Detailed breakdown → Payers** tab, selected by default only for workspace Owner/Admin. Render the tab conditionally; Viewer/Editor cannot call the full-number endpoint from the UI, and server role checks remain in place.
+- Rename **Accounts** to **Receiving accounts** and **Customers** to **Invoice customers** to distinguish funds destination, invoice relationship, and actual SMS payer.
+- Keep Payers API independent of the summary report request; a summary API failure does not hide verified payer records. Ledger filters, pagination, print/loaded-only CSV, absent-cipher labels, encryption boundary and server-side authorization are unchanged. No financial migrations or API changes.
+- Confirmed Vercel preview for branch commit `722425461f61fc5cd5adcc395969e69ff31696db`: **READY**; Next.js build/typecheck passed. Actual signed-in merchant browser number verification, 320px responsive inspection and role tests remain manual-pending.
+- **Not merged to main.** Owner explicitly requested a separate branch.
+
