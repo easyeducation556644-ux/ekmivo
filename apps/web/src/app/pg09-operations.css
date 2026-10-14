@@ -234,7 +234,7 @@
 .em-overview{--em-content-inset:24px}
 .em-overview>.em-heading{width:100%;padding-inline-start:max(var(--em-content-inset),calc((100% - 1416px)/2))}
 .em-overview>.em-heading .em-actions{margin-inline-start:auto;margin-inline-end:0}
-.em-overview>:not(.em-heading){width:min(calc(100% - var(--em-content-inset)*2),1416px);margin-inline:auto}
+.em-overview>:not(.em-heading){width:min(calc(100% - var(--em-content-inset) - var(--em-content-inset)),1416px);margin-inline:auto}
 @media(max-width:800px){
  .ds-content:has(> .em-overview){padding:8px 8px 18px}
  .em-overview{--em-content-inset:8px}
