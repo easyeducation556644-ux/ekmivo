@@ -49,7 +49,7 @@ function KeyControls({locale,workspaceId,environment,keyItem}:{locale:Locale;wor
  const state=operation==="rotate"?rotate:revoke;
  return <div className="ds-key-management">
   <div className="ds-key-actions">
-   <button type="button" aria-expanded={operation==="rotate"} onClick={()=>setOperation(operation==="rotate"?null:"rotate")}>{bn?"ঘোরান":"Rotate"}</button>
+   <button type="button" aria-expanded={operation==="rotate"} onClick={()=>setOperation(operation==="rotate"?null:"rotate")}>{bn?"কী পরিবর্তন":"Rotate"}</button>
    <button type="button" aria-expanded={operation==="revoke"} onClick={()=>setOperation(operation==="revoke"?null:"revoke")}>{bn?"বাতিল করুন":"Revoke"}</button>
   </div>
   {operation&&<form action={chosen} className="ds-key-confirm">
@@ -61,7 +61,7 @@ function KeyControls({locale,workspaceId,environment,keyItem}:{locale:Locale;wor
    </label>
    <p>{operation==="revoke"?(bn?"কীটি তাৎক্ষণিকভাবে অকার্যকর হবে।":"This key stops working immediately."):
     (bn?"আগের কীটি বাতিল হবে; নতুন কী শুধু একবার দেখানো হবে।":"The old key will be revoked; the replacement is shown once.")}</p>
-   <SaveButton label={operation==="revoke"?(bn?"কী বাতিল নিশ্চিত করুন":"Confirm revoke"):(bn?"কী ঘোরান":"Rotate key")}/>
+   <SaveButton label={operation==="revoke"?(bn?"কী বাতিল নিশ্চিত করুন":"Confirm revoke"):(bn?"নতুন কী তৈরি করুন":"Rotate key")}/>
    <Result state={state} locale={locale}/>
   </form>}
  </div>;

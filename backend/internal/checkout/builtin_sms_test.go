@@ -12,7 +12,7 @@ func TestBuiltinSMSParsersRecognizeSupportedReceipts(t *testing.T) {
  }{
   {"bkash-basic","bKash","You have received Tk 500.00 from 01881114519. Fee Tk 0.00. Balance Tk 505.89. TrxID DJ168FS582 at 01/10/2026 15:40","+8801881114519","DJ168FS582"},
   {"bkash-ref","bKash","You have received Tk 500.00 from 01881114519. Ref Order 123. Fee Tk 0.00. Balance Tk 505.89. TrxID DJ168FS583 at 01/10/2026 15:40","+8801881114519","DJ168FS583"},
-  {"nagad","NAGAD","You have received Tk 500.00 from 01881114519. Ref: Order 123. Current Balance: Tk 505.89. TxnID DJ168FS584 Date: 01/10/2026 15:40","+8801881114519","DJ168FS584"},
+  {"nagad","NAGAD","You have received Tk 500.00 from 01881114519. Ref: Order 123. Current Balance: Tk 505.89. TxnID: DJ168FS584 Date: 01/10/2026 15:40","+8801881114519","DJ168FS584"},
  }
  for _,tc:=range cases {
   t.Run(tc.name,func(t *testing.T){

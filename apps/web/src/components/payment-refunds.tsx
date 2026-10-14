@@ -24,7 +24,7 @@ export function PaymentRefunds({locale,workspaceId,environment,canManage,detailI
   }catch(e){if(!signal.aborted)setError(t("Refund records are unavailable. Retry.","রিফান্ডের তথ্য পাওয়া যায়নি। আবার চেষ্টা করুন।")+" ("+(e instanceof Error?e.message:"")+")")}
   finally{if(!signal.aborted)setLoading(false)}
  },[base,detailId,environment,status,cursor,bn]);
- useEffect(()=>{const c=new AbortController();void load(c.signal);return()=>c.abort()},[load,nonce]);
+ useEffect(()=>{const c=new AbortController();void Promise.resolve().then(()=>{if(!c.signal.aborted)void load(c.signal)});return()=>c.abort()},[load,nonce]);
  useEffect(()=>{if(!selected)return;const onEscape=(e:KeyboardEvent)=>{if(e.key==="Escape"&&!busy)setSelected(null)};window.addEventListener("keydown",onEscape);return()=>window.removeEventListener("keydown",onEscape)},[selected,busy]);
  const eligible=(row:Row)=>canManage&&!["rejected","cancelled","seller_reported_returned"].includes(row.status);
  const choose=(row:Row)=>{setSelected(row);setAction(row.status==="approved"?"report-returned":row.status==="reviewing"?"approve":"review");setNote("");setReference("");setConfirmed(false);setError("");};

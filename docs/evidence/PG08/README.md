@@ -50,3 +50,7 @@ The exact-source CI 38158507367 at 8aaf240 compiled signed webhook source and ap
 
 ### PG08 customer notice implementation follow-up — 2026-10-12
 In-progress source adds consented contact verification, same-checkout keyed capabilities, encrypted email storage, atomic payment-event notice enqueue, leased SMTP drain, safe unknown outcome, withdrawal, bilingual checkout controls and explicit migration 0015. No production migration or SMTP account was used. Local receiptnotice tests PASS, including real local TLS SMTP acceptance/lost-DATA-response tests; Go regression PASS before final wiring. Web lint PASS (existing warnings), TypeScript PASS before final follow-up; final checks/CI SQL verification pending. New disposable SQL scenarios authored, NOT yet observed PASS. PG06–PG09 acceptance stays OPEN; PG10–PG17 untouched. Existing audit table has historical rows superseded by later entries; complete consolidation still pending.
+
+## Integration section UI — 2026-10-14
+
+See [combined implementation/evidence](../INTEGRATIONS-EVENTS-20261014/README.md) for the redesigned developer/webhook/event/connection screens, local checks and rollback-only sandbox SQL. This does not close this PG's production acceptance. Permanent 0058 migration, deployment and real runtime/receiver tests remain in the consolidated manual ledger.

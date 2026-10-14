@@ -352,6 +352,8 @@ func (s *Service) HandleMerchant(w http.ResponseWriter, r *http.Request) {
 	if !s.budget(w, "merchant:"+ws+":"+r.Method, 120) {
 		return
 	}
+	w, finishActivity := s.observeAPI(w, r, ws, realm)
+	defer finishActivity()
 	switch r.Method {
 	case "GET":
 		var raw []byte
@@ -476,6 +478,8 @@ func (s *Service) HandleSources(w http.ResponseWriter, r *http.Request) {
 	if !s.budget(w, "merchant:"+ws+":"+r.Method, 120) {
 		return
 	}
+	w, finishActivity := s.observeAPI(w, r, ws, realm)
+	defer finishActivity()
 	if r.Method == "GET" {
 		var raw []byte
 		err := s.scoped(r.Context(), ws, realm, func(tx pgx.Tx) error {

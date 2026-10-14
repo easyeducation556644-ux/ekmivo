@@ -353,6 +353,16 @@ func (s *Service) HandleOperations(w http.ResponseWriter, r *http.Request) {
 		fail(w, 503, "INVALID_SERVICE_RESPONSE")
 		return
 	}
+	if r.Method == "GET" && resource == "deliveries" && id != "" {
+		var history []byte
+		if err := s.pipelineScoped(r.Context(), ws, realm, func(tx pgx.Tx) error {
+			return tx.QueryRow(r.Context(), "SELECT pg58_delivery_history($1::uuid,$2,$3::uuid)", ws, realm, id).Scan(&history)
+		}); err != nil {
+			mapped(w, err)
+			return
+		}
+		result["attempt_history"] = json.RawMessage(history)
+	}
 	if secret != "" {
 		result["signing_secret"] = secret
 		hash := sha256.Sum256([]byte(secret))

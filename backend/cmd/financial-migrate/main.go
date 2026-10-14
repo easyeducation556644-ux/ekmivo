@@ -443,4 +443,13 @@ func main() {
   }
  }
 
+ if os.Getenv("PG58_INTEGRATION_ACTIVITY_ALLOW_MIGRATION") == "true" {
+  file:=os.Getenv("PG58_INTEGRATION_ACTIVITY_MIGRATION_FILE")
+  for _,target:=range []realmDSN{{"sandbox",sa},{"live",lv}} {
+   if err:=migrateIntegrationActivity(ctx,target.environment,target.raw,file);err!=nil {
+    log.Fatalf("0058 integration activity migration blocked in %s: %v",target.environment,err)
+   }
+  }
+ }
+
 }

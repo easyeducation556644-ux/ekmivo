@@ -47,3 +47,7 @@ The exact-source CI 38158507367 at 8aaf240 passed Next build/lint/typecheck and 
 4. **OPERATOR GATE:** Real alerting, retention/key management, staging restore/crash, browser accessibility and owner-approved production sign-off. Cross-service genuine provider receipt→payment→merchant webhook not yet accepted.
 
 **Disposition:** PG09 implemented source and available **isolated automated verification PASS**. **PG09 overall product acceptance OPEN**, because owner real-browser/live/provider and dependent service requirements above are untested/unavailable. Audit: [PG06–PG09](../PG06-PG09-AUDIT.md), owner-only tests: [MANUAL-VERIFICATION.md](../../MANUAL-VERIFICATION.md); draft [PR #9](https://github.com/masharzy/ekmivo/pull/9) remains open and unmerged. No production deployment/migration.
+
+## Integration section UI — 2026-10-14
+
+See [combined implementation/evidence](../INTEGRATIONS-EVENTS-20261014/README.md) for the redesigned developer/webhook/event/connection screens, local checks and rollback-only sandbox SQL. This does not close this PG's production acceptance. Permanent 0058 migration, deployment and real runtime/receiver tests remain in the consolidated manual ledger.

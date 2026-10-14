@@ -11,6 +11,7 @@
 @import "./public-experience.css";
 @import "./public-polish.css";
 @import "./sms-devices.css";
+@import "./integrations.css";
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 100px; }

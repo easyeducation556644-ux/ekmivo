@@ -16,3 +16,7 @@ Shared source checks and remaining code: [implementation status](../../IMPLEMENT
 ## Local source continuation — 2026-10-12
 
 The merchant quickstart has an explicit dedicated Sandbox run gate and exercises wrong-realm/tenant denial, server-created intents, idempotency and public checkout without recording credentials. It has passed syntax only; no account HTTP execution, real receipt or webhook confirmation is claimed.
+
+## Integration section UI — 2026-10-14
+
+See [combined implementation/evidence](../INTEGRATIONS-EVENTS-20261014/README.md) for the redesigned developer/webhook/event/connection screens, local checks and rollback-only sandbox SQL. This does not close this PG's production acceptance. Permanent 0058 migration, deployment and real runtime/receiver tests remain in the consolidated manual ledger.

@@ -30,7 +30,7 @@ func (s *Service) OperationalReadiness(ctx context.Context) bool {
 			return false
 		}
 		var schemaReady bool
-		if p.QueryRow(ctx, "SELECT to_regprocedure('pg10_read(uuid,text,text,uuid,uuid,text)') IS NOT NULL AND to_regprocedure('pg11_emit_expiry()') IS NOT NULL AND to_regprocedure('pg10_invoice_delivery(uuid,text,uuid)') IS NOT NULL AND to_regprocedure('pg15_file_claim()') IS NOT NULL AND to_regclass('pg14_sandbox_runs') IS NOT NULL AND to_regprocedure('pg10_import(uuid,text,uuid,text,text,jsonb)') IS NOT NULL AND to_regprocedure('pg15_prune_receipt_evidence()') IS NOT NULL AND to_regprocedure('pg15_orphan_claim()') IS NOT NULL AND to_regprocedure('pg11_page(uuid,text,text,uuid,uuid,text,uuid)') IS NOT NULL").Scan(&schemaReady) != nil || !schemaReady {
+		if p.QueryRow(ctx, "SELECT to_regprocedure('pg58_activity_read(uuid,text,text,uuid,uuid,text)') IS NOT NULL AND to_regprocedure('pg58_delivery_history(uuid,text,uuid)') IS NOT NULL AND to_regprocedure('pg10_read(uuid,text,text,uuid,uuid,text)') IS NOT NULL AND to_regprocedure('pg11_emit_expiry()') IS NOT NULL AND to_regprocedure('pg10_invoice_delivery(uuid,text,uuid)') IS NOT NULL AND to_regprocedure('pg15_file_claim()') IS NOT NULL AND to_regclass('pg14_sandbox_runs') IS NOT NULL AND to_regprocedure('pg10_import(uuid,text,uuid,text,text,jsonb)') IS NOT NULL AND to_regprocedure('pg15_prune_receipt_evidence()') IS NOT NULL AND to_regprocedure('pg15_orphan_claim()') IS NOT NULL AND to_regprocedure('pg11_page(uuid,text,text,uuid,uuid,text,uuid)') IS NOT NULL").Scan(&schemaReady) != nil || !schemaReady {
 			return false
 		}
 		var raw []byte
