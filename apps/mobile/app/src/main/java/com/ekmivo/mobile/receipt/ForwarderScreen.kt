@@ -100,7 +100,10 @@ fun ForwarderScreen(bn:Boolean){
    ReceiptTransport.post("configuration",active.getString("id"),UUID.randomUUID().toString(),payload)
   }.getOrNull()}
   if(response?.first==200){
-   ReceiptStore(context).use{it.savePhoneConfiguration(JSONObject(response.second))}
+   ReceiptStore(context).use{
+    it.savePhoneConfiguration(JSONObject(response.second))
+    it.resumeAuthorizedPhone(active.getString("id"))
+   }
    serverCheck="connected"
    ReceiptSyncWorker.scheduleNow(context)
   }else {
