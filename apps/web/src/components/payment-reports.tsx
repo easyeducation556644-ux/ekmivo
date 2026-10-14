@@ -126,7 +126,7 @@ export function PaymentReports({locale,workspaceId,environment}:{locale:Locale;w
  function quick(days:7|30|90){const to=dhakaToday(),from=startDate(to,days);const next={...draft,from,to};setPreset(String(days) as Preset);setDraft(next);setApplied(next);setRefresh(n=>n+1)}
  const displayed=response?.report??null;
  const active=response?.filters??applied;
- const stale=Boolean(response&&(loading||error||active.from!==applied.from||active.to!==applied.to||active.account!==applied.account));
+ const stale=Boolean(response&&(loading||error||!applies||active.from!==applied.from||active.to!==applied.to||active.account!==applied.account));
  const max=Math.max(1,...(displayed?.daily??[]).map(x=>Math.max(0,x.amount_minor)));
  const methods=displayed?.methods??[];
  const total=methods.reduce((a,b)=>a+b.amount_minor,0);
@@ -151,7 +151,7 @@ export function PaymentReports({locale,workspaceId,environment}:{locale:Locale;w
     <label className="er-account-filter"><span>{t("Account","অ্যাকাউন্ট")}</span><select value={draft.account} disabled={accountError} onChange={e=>setDraft(v=>({...v,account:e.target.value}))}>
       <option value="">{t("All accounts","সব অ্যাকাউন্ট")}</option>{accounts.map(a=><option key={a.id} value={a.id}>{a.method} · ••••{a.display_suffix}</option>)}
      </select></label>
-    <button type="submit" className="er-apply" disabled={loading||!pending}>{t("Apply","প্রয়োগ করুন")}</button>
+    <button type="submit" className="er-apply" disabled={loading}>{t("Apply","প্রয়োগ করুন")}</button>
    </form>
    {accountError&&<p className="er-inline-notice" role="status">{t("Account filter unavailable. All-account reporting still works.","অ্যাকাউন্ট ফিল্টার পাওয়া যাচ্ছে না; সব অ্যাকাউন্টের রিপোর্ট দেখা যাবে।")}</p>}
    {!applies&&!loading&&<p className="er-inline-notice" role="status">{t("Filters changed — apply to update the report.","ফিল্টার বদলেছে—রিপোর্ট আপডেট করতে প্রয়োগ করুন।")}</p>}
