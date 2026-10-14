@@ -270,7 +270,7 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
    <div className="pg05-topline">
     <div><p className="ds-eyebrow">{bn?"রিকোয়েস্ট ব্যবস্থাপনা":"REQUEST OPERATIONS"}</p>
      <h2>{bn?"পেমেন্ট রিকোয়েস্ট":"Payment requests"}</h2>
-     <p>{bn?"সার্ভার-নির্ধারিত পরিমাণ, নির্দিষ্ট মেয়াদ ও প্রেরকের নম্বর। পেমেন্ট কেবল প্রকৃত প্রমাণে যাচাই হবে।":"Create a payment request for one specific bill or customer. Unlike a reusable Payment Link, this request has its own amount, expiry and payer-verification window."}</p></div>
+     <p>{bn?"নির্দিষ্ট গ্রাহক বা একটি বিলের জন্য Payment Request তৈরি করুন। Payment Link বারবার ব্যবহার করা যায়, কিন্তু প্রতিটি Request-এর আলাদা সময়সীমা ও যাচাই থাকে।":"Create a payment request for one specific bill or customer. Unlike a reusable Payment Link, this request has its own amount, expiry and payer-verification window."}</p></div>
     <button type="button" className="ek-action" onClick={()=>setExpanded(x=>!x)} aria-expanded={expanded} disabled={!canWrite||load==="forbidden"}>
      {expanded?(bn?"ফর্ম বন্ধ":"Close form"):(bn?"রিকোয়েস্ট তৈরি":"+ Create request")}</button>
    </div>
