@@ -10,7 +10,7 @@ const metrics:[keyof Overview,string,string,string][]=[
  ["verified_minor","Verified volume","যাচাইকৃত টাকা","payments"],
  ["pending_requests","Pending requests","অপেক্ষমাণ রিকোয়েস্ট","requests"],
  ["unmatched_receipts","Receipt exceptions","Receipt সমস্যা","incoming"],
- ["online_devices","Online devices","সক্রিয় ডিভাইস","devices"],
+ ["online_devices","Online legacy sources","পুরোনো সংযুক্ত সোর্স","devices"],
  ["failed_deliveries","Failed webhooks","ব্যর্থ ওয়বহুক","webhooks"]
 ];
 export function PaymentOverview({locale,workspaceId,environment}:{locale:Locale;workspaceId:string;environment:PaymentEnvironment}){
@@ -63,9 +63,21 @@ export function PaymentOverview({locale,workspaceId,environment}:{locale:Locale;
     recent.length===0?<p>{loading?(bn?"লোড হচ্ছে…":"Loading…"):(bn?"এখনো যাচাইকৃত পেমেন্ট নেই।":"No verified payments yet.")}</p>:
     <div className="pg-operation-table"><table><thead><tr><th>{bn?"রেফারেন্স":"Reference"}</th><th>{bn?"পরিমাণ":"Amount"}</th><th>{bn?"যাচাইয়ের সময়":"Verified at"}</th><th>{bn?"ওয়েবহুক":"Webhook"}</th></tr></thead><tbody>{recent.map(p=><tr key={p.id}><td><Link href={href("payments",p.id)}>{p.merchant_reference}</Link></td><td>{money(p.verified_amount_minor)}</td><td>{time(p.verified_at)}</td><td>{p.webhook_status||"—"}</td></tr>)}</tbody></table></div>}
   </section>
+  {data&&<section className="ds-panel" aria-label={bn?"যে কাজগুলো খেয়াল করা প্রয়োজন":"Operational attention"}>
+   <div className="ds-panel-heading"><h2>{bn?"যে কাজগুলো খেয়াল করা প্রয়োজন":"Needs your attention"}</h2></div>
+   <div className="pg09-quick-links">
+    {data.unmatched_receipts>0&&<Link href={href("incoming")}>{bn?`${data.unmatched_receipts}টি receipt-এর অমিল যাচাই করুন`:`Review ${data.unmatched_receipts} receipt exceptions`}</Link>}
+    {data.failed_deliveries>0&&<Link href={href("webhooks")}>{bn?`${data.failed_deliveries}টি failed webhook দেখুন`:`Investigate ${data.failed_deliveries} failed webhooks`}</Link>}
+    {data.pending_requests>0&&<Link href={href("requests")}>{bn?`${data.pending_requests}টি অপেক্ষমাণ request দেখুন`:`Review ${data.pending_requests} pending requests`}</Link>}
+    {data.online_devices===0&&<Link href={href("devices")}>{bn?"সংযুক্ত ফোনের heartbeat যাচাই করুন":"Check paired-phone connection and heartbeat"}</Link>}
+   </div>
+   {data.unmatched_receipts===0&&data.failed_deliveries===0&&data.pending_requests===0&&data.online_devices>0&&
+     <p>{bn?"বর্তমান সারাংশে জরুরি receipt বা webhook সমস্যা নেই।":"No receipt exceptions or failed webhooks in the current overview."}</p>}
+   <small>{bn?"ফোনের প্রকৃত অবস্থা SMS devices পেজে দেখুন; পুরোনো সোর্সের সংখ্যা physical-phone count নয়।":"Check actual handset status in SMS devices; the legacy-source metric is not a physical-phone count."}</small>
+  </section>}
   <section className="ds-panel">
    <h2>{bn?"যাচাই ও সেটআপ":"Verification and setup"}</h2>
-   <p>{bn?"মূল লেনদেনের সময়, প্রকৃত প্রেরক, পরিমাণ, গ্রহণকারী অ্যাকাউন্ট ও মাধ্যম—পাঁচটি এককভাবে মিললে যাচাই স্বয়ংক্রিয়। Offline ডিভাইসের দেরি টাকা হারানোর প্রমাণ নয়।":"Exactly one complete original-time, full-payer, amount, receiving-account and method match verifies automatically. Offline sync delay is not evidence of missing money."}</p>
+   <p>{bn?"সার্ভার প্রেরকের পূর্ণ নম্বর, provider, সঠিক পরিমাণ ও মূল লেনদেনের সময় এককভাবে মিলিয়ে পেমেন্ট যাচাই করে। SMS গ্রহণকারী SIM/নম্বর মেলানোর শর্ত নয়। Offline থাকলে SMS পাঠাতে দেরি হতে পারে।":"The server matches provider, full payer number, exact amount and original transaction time to one active attempt. SIM or receiving-number matching is not required. Offline forwarding may delay verification."}</p>
    <nav className="pg09-quick-links" aria-label={bn?"পেমেন্ট পরিচালনা":"Payment operations"}>{(["requests","incoming","gateways","devices","webhooks","events"] as const).map(section=><Link key={section} href={href(section)}>{({requests:bn?"রিকোয়েস্ট":"Requests",incoming:bn?"ইনকামিং":"Incoming",gateways:bn?"গ্রহণকারী অ্যাকাউন্ট":"Receiving accounts",devices:bn?"ডিভাইস":"Devices",webhooks:bn?"ওয়েবহুক":"Webhooks",events:bn?"ইভেন্ট":"Events"})[section]}</Link>)}</nav>
   </section>
  </div>;
