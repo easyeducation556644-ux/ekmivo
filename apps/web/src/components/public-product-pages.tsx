@@ -2,6 +2,7 @@ import Link from "next/link";
 import type {Locale} from "../lib/site-copy";
 import {PublicMotion} from "./public-motion";
 import {PaymentScrollJourney} from "./payment-scroll-journey";
+import {PaymentEditorialArt,PaymentEditorialIcon} from "./payment-editorial-art";
 
 type TextPair={en:string;bn:string};
 type Step={title:TextPair;body:TextPair};
@@ -59,27 +60,19 @@ function EmSectionTitle({eyebrow,title,marked}:{eyebrow:string;title:string;mark
 }
 export function PaymentGatewayPage({locale}:{locale:Locale}){
  const t=paymentCopy[locale],bn=locale==="bn";
- return <PublicMotion><main className="ek-product-page ek-pg-detail" lang={locale}>
+ return <PublicMotion><main className="ek-product-page ek-pg-detail pg-editorial" lang={locale}>
   <div className="ek-pg-mast"><div className="ek-public-wrap">
-   <div className="ek-pg-crumb"><Link href="/">ekmivo</Link><span aria-hidden="true">/</span><strong>Payment Gateway</strong><span className="ek-pg-status">{bn?"পেমেন্ট":"PAYMENTS"}</span></div>
+   <div className="pg-hero-kicker"><span aria-hidden="true">↗</span> {bn?"আপনার ব্যবসার Payment Gateway":"The payment gateway for your business"}</div>
    <div className="ek-pg-mast-grid">
     <div className="ek-pg-intro">
-     <h1>{bn?"ব্যবসার পেমেন্ট এক জায়গায়":"Payments for your business"}</h1>
+     <h1>{bn?"পেমেন্ট নেওয়া সহজ হোক।":"Good business."}<br/><span className="pg-hero-brush">{bn?"ব্যবসায় মন দিন।":"Simpler payments."}</span><svg className="pg-title-spark" viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="m32 3 6 20 19-10-10 19 18 5-20 5 10 18-18-10-5 19-5-20-20 10 10-19-20-5 20-5-10-18 19 10Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/></svg></h1>
      <p>{t.intro}</p>
      <div className="ek-pg-mast-actions">
-      <Link href="/register" className="ek-public-action">{t.primary}<span aria-hidden="true">↗</span></Link>
+      <Link href={`/${locale}/register`} className="ek-public-action">{t.primary}<span aria-hidden="true">↗</span></Link>
       <a href="#payment-workflow" className="ek-pg-text-link">{t.secondary} <span aria-hidden="true">↓</span></a>
      </div>
     </div>
-    <div className="ek-pg-route-panel" aria-label={bn?"পেমেন্ট প্রক্রিয়ার সংক্ষিপ্ত বিবরণ":"Payment process overview"}>
-     <div className="ek-pg-route-header"><span>{bn?"যেভাবে পেমেন্ট হয়":"PAYMENT PATH"}</span><span>01—03</span></div>
-     <div className="ek-pg-route-node"><span className="ek-pg-route-icon">↗</span><div><strong>{bn?"পেমেন্টের অনুরোধ":"Payment request"}</strong><small>{bn?"লিংক · ইনভয়েস · API":"Link · Invoice · API"}</small></div></div>
-     <div className="ek-pg-route-connector" aria-hidden="true"/>
-     <div className="ek-pg-route-node"><span className="ek-pg-route-icon">⌁</span><div><strong>{bn?"কাস্টমার পেমেন্ট":"Customer checkout"}</strong><small>{bn?"বিকাশ, নগদ বা রকেট দিয়ে":"Pay with a supported wallet"}</small></div></div>
-     <div className="ek-pg-route-connector" aria-hidden="true"/>
-     <div className="ek-pg-route-node"><span className="ek-pg-route-icon">✓</span><div><strong>{bn?"পেমেন্ট যাচাই ও আপডেট":"Receipt verification and status"}</strong><small>{bn?"ড্যাশবোর্ড · ওয়েবহুক":"Dashboard · Webhook"}</small></div></div>
-     <span className="ek-pg-route-note">{bn?"পেমেন্ট প্রক্রিয়ার নমুনা":"Illustrative process · Not a live transaction"}</span>
-    </div>
+    <PaymentEditorialArt locale={locale}/>
    </div>
   </div></div>
   <nav className="ek-pg-section-nav" aria-label={bn?"এই পেজে":"On this page"}><div className="ek-public-wrap">
@@ -96,12 +89,12 @@ export function PaymentGatewayPage({locale}:{locale:Locale}){
   <section id="payment-receipts" className="ek-public-section ek-evidence-section"><div className="ek-public-wrap ek-evidence-layout">
    <div className="ek-evidence-copy"><EmSectionTitle eyebrow={t.verifyLabel} title={t.verifyTitle} marked={t.verifyMarked}/><p>{t.verifyDescription}</p></div>
    <div className="ek-evidence-stack">
-    <article className="ek-sketch-panel"><span className="ek-sketch-icon" aria-hidden="true">↗</span><h3>{t.phoneTitle}</h3><p>{t.phoneBody}</p></article>
-    <article className="ek-sketch-panel"><span className="ek-sketch-icon" aria-hidden="true">✓</span><h3>{t.proofTitle}</h3><p>{t.proofBody}</p></article>
+    <article className="ek-sketch-panel"><span className="ek-sketch-icon"><PaymentEditorialIcon kind="phone"/></span><h3>{t.phoneTitle}</h3><p>{t.phoneBody}</p></article>
+    <article className="ek-sketch-panel"><span className="ek-sketch-icon"><PaymentEditorialIcon kind="check"/></span><h3>{t.proofTitle}</h3><p>{t.proofBody}</p></article>
    </div>
   </div></section>
   <section id="payment-features" className="ek-public-section ek-benefits-section"><div className="ek-public-wrap"><EmSectionTitle eyebrow={t.backendKicker} title={t.backendTitle} marked={t.backendMarked}/>
-   <div className="ek-public-benefits">{benefits.map((card,i)=><article key={card.index} className={"ek-public-benefit benefit-"+i}><div className="ek-benefit-symbol">{card.tag}</div><h3>{card.label[locale]}</h3><p>{card.body[locale]}</p></article>)}</div>
+   <div className="ek-public-benefits">{benefits.map((card,i)=><article key={card.index} className={"ek-public-benefit benefit-"+i}><div className="ek-benefit-symbol"><PaymentEditorialIcon kind={(["link","check","code","phone"] as const)[i%4]}/></div><h3>{card.label[locale]}</h3><p>{card.body[locale]}</p></article>)}</div>
   </div></section>
   <section id="payment-audiences" className="ek-public-section ek-audience-section"><div className="ek-public-wrap"><EmSectionTitle eyebrow={t.forLabel} title={t.forTitle} marked={t.forMarked}/>
    <div className="ek-public-audiences">{audiences.map(item=><article key={item.title.en}><span>EKMIVO</span><h3>{item.title[locale]}</h3><p>{item.body[locale]}</p></article>)}</div>
@@ -109,7 +102,7 @@ export function PaymentGatewayPage({locale}:{locale:Locale}){
   <section id="payment-questions" className="ek-public-section ek-public-faq"><div className="ek-public-wrap ek-faq-layout"><EmSectionTitle eyebrow={t.faqKicker} title={t.faqTitle} marked={t.faqMarked}/>
    <div className="ek-public-questions">{faqs.map((item,i)=><details key={i}><summary>{item.q[locale]}<b aria-hidden="true">+</b></summary><p>{item.a[locale]}</p></details>)}</div>
   </div></section>
-  <section className="ek-pg-finish"><div className="ek-public-wrap"><div><span className="ek-public-kicker">{t.endKicker}</span><h2>{bn?"আপনার ব্যবসায় Ekmivo ব্যবহার করুন":"Bring payments into your workflow"}</h2><p>{t.endBody}</p></div><Link href="/register" className="ek-public-action">{t.endButton}<span aria-hidden="true">↗</span></Link></div></section>
+  <section className="ek-pg-finish"><div className="ek-public-wrap"><div><span className="ek-public-kicker">{t.endKicker}</span><h2>{bn?"পেমেন্টের ব্যবস্থা করুন।":"Less payment busywork."}<br/><span className="pg-hero-brush">{bn?"এবার ব্যবসায় মন দিন।":"More room for business."}</span></h2><p>{t.endBody}</p></div><Link href={`/${locale}/register`} className="ek-public-action">{t.endButton}<span aria-hidden="true">↗</span></Link></div></section>
  </main></PublicMotion>;
 }
 
