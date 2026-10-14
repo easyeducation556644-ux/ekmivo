@@ -1,4 +1,6 @@
 /* Payment product narrative: the homepage's editorial language, scoped to this page. */
+.ek-product-page.ek-pg-detail{overflow:clip}
+@media(min-width:831px){.ek-pg-detail .ek-journey-rail{position:sticky;top:103px;align-self:start;max-height:calc(100dvh - 125px);overflow-y:auto;scrollbar-width:thin}}
 .pg-editorial .ek-pg-intro h1{max-width:100%}
 .pg-editorial .pg-hero-brush:before{background:var(--ek-pub-cream)}
 .pg-editorial .pg-hero-kicker>span,.pg-editorial .pg-art-pay{background:var(--ek-pub-ink);color:var(--ek-pub-paper)}
