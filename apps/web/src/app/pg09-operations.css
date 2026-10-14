@@ -270,7 +270,7 @@
 .opw-workbench button:hover:not(:disabled){background:var(--color-hover)}
 .opw-workbench :is(a,button,input,select,.opw-scroll):focus-visible{outline:2px solid var(--color-focus);outline-offset:3px}
 .opw-refresh{margin-inline-start:auto}
-.opw-filters{display:grid;grid-template-columns:minmax(190px,1.65fr) minmax(125px,.8fr) minmax(125px,.8fr) auto;gap:8px;align-items:end;padding:12px 14px;border:1px solid var(--color-border);border-radius:var(--radius-panel);background:var(--color-surface)}
+.opw-filters{display:grid;grid-template-columns:minmax(170px,1.5fr) minmax(115px,.8fr) minmax(115px,.8fr) minmax(120px,.9fr) auto;gap:8px;align-items:end;padding:12px 14px;border:1px solid var(--color-border);border-radius:var(--radius-panel);background:var(--color-surface)}
 .opw-filters label{display:grid;gap:5px;min-width:0}
 .opw-filters label span{font-size:11px;color:var(--color-text-secondary);font-weight:600}
 .opw-filters input,.opw-filters select{width:100%;min-width:0;min-height:40px;padding:8px 10px;border:1px solid var(--color-control-border);border-radius:var(--radius-control);background:var(--color-surface);color:var(--color-text);font-size:12px}
@@ -333,3 +333,6 @@
 .opw-detail .pg-operations>section>.pg-operation-table{max-width:100%;overflow-x:auto}
 @media(max-width:900px){.opw-detail .pg-operation-detail{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:500px){.opw-detail .pg-operation-detail{grid-template-columns:1fr}.opw-detail>.pg-operations{padding:11px}.opw-detail .pg-operation-record-summary{padding:10px}.opw-detail .pg-operation-detail dd{font-size:13px}}
+
+@media(max-width:1200px){.opw-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.opw-filter-actions{grid-column:1/-1}}
+@media(max-width:600px){.opw-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
