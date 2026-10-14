@@ -1,3 +1,16 @@
+## Reports vs Overview separation — 2026-10-14 (MANUAL PENDING)
+
+- [ ] Confirm Reports now opens as an analytical workspace, not a duplicate operational KPI dashboard; Overview remains compact alerts, heartbeat and recent activity.
+- [ ] Opt-in previous-period comparison uses the same authorized workspace/environment/receiving account; equal-length consecutive Bangladesh calendar ranges; no automatic extra request when comparison disabled.
+- [ ] Verify BDT payment averages, previous-period % change and blank/no-baseline on zero earlier volume; independently reconcile the two scoped report queries.
+- [ ] Test daily and 7-day bucket grouping with active and zero-volume days, UTC boundary labels, all breakdown tabs, allocation/provenance and exports.
+- [ ] EN/BN, Light/Dark/System, 320–1440px, 200% zoom, keyboard, offline/502/503/504+retry and valid empty data.
+- [ ] Record Vercel and Render release SHA and signed-in browser/API response after deploy. Preview Next build != authenticated production acceptance.
+
+Evidence: docs/evidence/REPORTS-ANALYTICS-SEPARATION-20261014.md.
+
+---
+
 ## PG13 Reports Redesign — 2026-10-14 (MANUAL PENDING)
 
 - [ ] Actual signed-in merchant: automatic 30-day initial load; 7/30/90 preset and custom inclusive Dhaka dates, filter apply/race/timeout/refresh, invalid >366-day range and valid empty data.
