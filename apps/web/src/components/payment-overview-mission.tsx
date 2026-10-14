@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import {DashboardIcon} from "./dashboard-icon";
 import {useCallback,useEffect,useState} from "react";
 import type {Locale,PaymentEnvironment} from "../lib/dashboard-navigation";
 
@@ -65,6 +66,7 @@ export function PaymentOverviewMission({locale,workspaceId,environment,canManage
  const update=useCallback(()=>setRefresh(n=>n+1),[]);
  useEffect(()=>{
   const abort=new AbortController();
+  void Promise.resolve().then(()=>{if(!abort.signal.aborted)setLoading(true)});
   const qs="?environment="+encodeURIComponent(environment);
   const load=async()=>{
    const [billing,settings,phones,gateways,links,intents,overview,payments,refunds]=await Promise.all([
@@ -125,7 +127,7 @@ export function PaymentOverviewMission({locale,workspaceId,environment,canManage
   {id:"account",en:"Receiving account",bn:"টাকা গ্রহণের অ্যাকাউন্ট",detailEn:"Add an enabled payment account",detailBn:"সক্রিয় bKash/Nagad/Rocket অ্যাকাউন্ট",target:"gateways",icon:"wallet",ok:accountOk},
   {id:"phone",en:"SMS Forwarder",bn:"SMS Forwarder",detailEn:"Pair phone and complete first sync",detailBn:"ফোন pair করে প্রথম sync করুন",target:"devices",icon:"smartphone",ok:phoneOk},
   {id:"entry",en:"First payment entry",bn:"প্রথম Payment Link/Request",detailEn:"Publish a link or issue a request",detailBn:"একটি Link publish বা Request তৈরি করুন",target:"payment-links",icon:"link-2",ok:entryOk},
-  {id:"verify",en:"First verified payment",bn:"প্রথম verified payment",detailEn:"Confirmed by the real payment backend",detailBn:"সার্ভারে যাচাইকৃত প্রথম পেমেন্ট",target:"payments",icon:"shield-check",ok:verifyOk}
+  {id:"verify",en:"First verified payment",bn:"প্রথম verified payment",detailEn:"Confirmed by the real payment backend",detailBn:"সার্ভারে যাচাইকৃত প্রথম পেমেন্ট",target:"requests",icon:"shield-check",ok:verifyOk}
  ];
  const completed=tasks.filter(s=>s.ok===true).length;
  const unknown=tasks.some(s=>s.ok===null);
@@ -165,7 +167,7 @@ export function PaymentOverviewMission({locale,workspaceId,environment,canManage
    <div className="em-section-label"><h2>{t("Activation hub","শুরু করার ধাপ")}</h2><span>{count(completed)}/6 {t("completed","সম্পূর্ণ")}</span></div>
    <div className="em-task-grid">
     {tasks.map((step,i)=><button key={step.id} type="button" className={"em-task"+(chosen.id===step.id?" is-focused":"")} onClick={()=>setFocused(step.id)} aria-pressed={chosen.id===step.id}>
-     <span className="em-task-index">{String(i+1).padStart(2,"0")}</span><span className={"em-task-status "+(step.ok===true?"is-done":"")} aria-label={step.ok===true?t("Completed","সম্পূর্ণ"):step.ok===false?t("To do","বাকি"):t("Could not check","যাচাই করা যায়নি")}>{step.ok===true?"✓":step.ok===false?"○":"—"}</span>
+     <span className="em-task-index"><DashboardIcon name={step.target} width={17} height={17}/>{String(i+1).padStart(2,"0")}</span><span className={"em-task-status "+(step.ok===true?"is-done":"")} aria-label={step.ok===true?t("Completed","সম্পূর্ণ"):step.ok===false?t("To do","বাকি"):t("Could not check","যাচাই করা যায়নি")}>{step.ok===true?"✓":step.ok===false?"○":"—"}</span>
      <strong>{t(step.en,step.bn)}</strong><small>{t(step.detailEn,step.detailBn)}</small>
     </button>)}
    </div>
