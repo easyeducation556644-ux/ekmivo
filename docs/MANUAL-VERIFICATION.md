@@ -1,3 +1,10 @@
+## SMS Devices / QR / standalone checkout — 2026-10-14
+
+- [ ] On a consented Android phone, create one real pairing QR in SMS Devices, scan it using Ekmivo and finish app permission prompts. Verify the correct workspace/realm, recent heartbeat, and code disappearing after claim.
+- [ ] Verify expired-code rejection, copy/paste fallback, offline recovery and revoke blocking new receipt uploads. Web tests used mocked APIs and a synthetic QR; they are not real device/payment evidence.
+- [ ] Refresh and client-navigation checks on deployed /pay and /checkout: no site header/footer; provider branding and checkout controls remain. Local EN/BN checks passed.
+- [ ] Owner/admin device access and viewer denial, existing device detail deep links, rename, and controlled disconnect. No production device was modified by the local UI tests.
+
 ## Public/auth polish — 2026-10-14
 
 Local evidence: `docs/evidence/PUBLIC-AUTH-POLISH-20261014/README.md`.

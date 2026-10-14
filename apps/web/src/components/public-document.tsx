@@ -100,7 +100,7 @@ export function PublicDocument({locale,token,standalone=false}:{locale:"en"|"bn"
  const amount=(payable/100).toLocaleString(bn?"bn-BD":"en-BD",{maximumFractionDigits:2});
  const support=safeUrl(doc?.brand?.support_url),email=doc?.brand?.support_email||"";
  const logo=safeUrl(doc?.brand?.logo_url);
- return <main className="customer-pay-screen" data-standalone={standalone} lang={locale}>
+ return <main data-customer-checkout="true" className="customer-pay-screen" data-standalone={standalone} lang={locale}>
   <div className="customer-pay-shell">
    <div className="customer-pay-toolbar">
     <button type="button" onClick={back} aria-label={t("Go back","ফিরে যান")}>←</button>

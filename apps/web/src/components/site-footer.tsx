@@ -1,12 +1,13 @@
 "use client";
-import {usePathname} from "next/navigation";
+import {usePathname,useSelectedLayoutSegment} from "next/navigation";
 import Link from "next/link";
 import {siteCopy,type Locale} from "../lib/site-copy";
 
 export function SiteFooter({locale}:{locale:Locale}){
  const pathname=usePathname();
+ const segment=useSelectedLayoutSegment();
  const path=(pathname||"/").replace(/^\/(bn|en)(?=\/|$)/,"")||"/";
- if(/^\/(?:workspaces|w|account|admin|login|register|forgot-password|verify-email|pay|checkout|receipt|invoice)(?:\/|$)/.test(path))return null;
+ if(["pay","checkout","receipt","invoice"].includes(segment||"")||/^\/(?:workspaces|w|account|admin|login|register|forgot-password|verify-email|pay|checkout|receipt|invoice)(?:\/|$)/.test(path))return null;
  const t=siteCopy[locale];
  return <footer className="site-footer ek-public-footer">
   <div className="footer-inner">
