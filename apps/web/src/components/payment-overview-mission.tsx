@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import {useCallback,useEffect,useMemo,useState} from "react";
+import {useCallback,useEffect,useState} from "react";
 import type {Locale,PaymentEnvironment} from "../lib/dashboard-navigation";
 
 type Read<T>={value:T|null;error:string|null};
@@ -171,7 +171,7 @@ export function PaymentOverviewMission({locale,workspaceId,environment,canManage
    </div>
    <section className="em-next-panel" aria-label={t("Selected setup action","সেটআপের নির্বাচিত কাজ")}>
     <div><span className="em-eyebrow">{chosen.ok===true?t("COMPLETED","সম্পূর্ণ"):chosen.ok===null?t("CHECK UNAVAILABLE","যাচাই করা যায়নি"):t("NEXT ACTION","পরবর্তী কাজ")}</span><h3>{t(chosen.en,chosen.bn)}</h3>
-     <p>{chosen.id==="plan"?t("Plans and pricing are managed on the Billing page; no plan selection here.","সব প্ল্যান, মূল্য ও কেনার ব্যবস্থা Billing পেজে থাকবে—Overview-তে নয়।"):t(chosen.detailEn,chosen.detailBn)}</p></div>
+     <p>{chosen.id==="plan"?(canManage?t("Plans and pricing are managed on the Billing page; no plan selection here.","সব প্ল্যান, মূল্য ও কেনার ব্যবস্থা Billing পেজে থাকবে—Overview-তে নয়।"):t("Ask your workspace owner or admin to activate a plan from Billing.","প্ল্যান কিনতে ও সক্রিয় করতে owner বা admin-এর সহায়তা প্রয়োজন।")):t(chosen.detailEn,chosen.detailBn)}</p></div>
     <Link className="em-primary" href={go(chosen.target)}>{chosen.id==="plan"?t("Go to Billing","Billing-এ যান"):chosen.ok===true?t("View details","বিস্তারিত দেখুন"):t("Open setup","সেটআপ খুলুন")} <span aria-hidden="true">↗</span></Link>
    </section>
    <div className="em-activation-foot">
