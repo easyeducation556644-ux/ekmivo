@@ -204,3 +204,31 @@
  .er-period-analysis,.er-allocation-analysis{break-inside:avoid;background:#fff!important;border-color:#bbb!important}
  .er-analysis-total>strong{color:#111!important}
 }
+
+
+/* Report-specific ledger: readable financial rows rather than Overview charts. */
+.er-ledger-workbench{display:grid;gap:0;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-panel);min-width:0;overflow:hidden}
+.er-ledger-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:15px 17px;border-bottom:1px solid var(--color-border)}
+.er-ledger-head h2{font-size:16px;font-weight:650;margin:0;line-height:1.35}
+.er-ledger-head p{margin:4px 0 0;font-size:12px;color:var(--color-text-secondary)}
+.er-ledger-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-inline-start:auto}
+.er-ledger-actions button,.er-ledger-pagination button,.er-ledger-error button{min-height:36px;padding:7px 12px;border:1px solid var(--color-control-border);background:var(--color-surface);border-radius:var(--radius-control);color:var(--color-text);font-size:12px;font-weight:600;cursor:pointer}
+.er-ledger-actions button:hover:not(:disabled),.er-ledger-pagination button:hover:not(:disabled){background:var(--color-hover)}
+.er-ledger-actions button:disabled,.er-ledger-pagination button:disabled{opacity:.55;cursor:not-allowed}
+.er-ledger-state{padding:18px;margin:0;font-size:12px;color:var(--color-text-secondary)}
+.er-ledger-error{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;padding:12px 17px;background:var(--color-danger-bg);color:var(--color-danger)}
+.er-payer-table-wrap{width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain}
+.er-payer-table{border-collapse:collapse;width:100%;min-width:930px;font-size:12px}
+.er-payer-table th{padding:11px 13px;background:var(--color-surface-subtle);font-size:11px;color:var(--color-text-secondary);font-weight:650;text-align:start;white-space:nowrap;border-bottom:1px solid var(--color-border)}
+.er-payer-table td{padding:12px 13px;border-bottom:1px solid var(--color-border);white-space:nowrap;vertical-align:middle;font-variant-numeric:tabular-nums}
+.er-payer-table tbody tr:last-child td{border-bottom:0}
+.er-payer-table tbody tr:hover{background:var(--color-surface-subtle)}
+.er-payer-table td:first-child{max-width:280px;overflow:hidden;text-overflow:ellipsis}
+.er-payer-table td:first-child a{color:var(--color-text);font-weight:600;text-decoration:none}
+.er-payer-table td:first-child a:hover{text-decoration:underline}
+.er-payer-phone{display:inline-block;font-weight:700;letter-spacing:.012em;font-size:13px;color:var(--color-text);white-space:nowrap;user-select:text}
+.er-payer-table .er-num{text-align:end;font-weight:650;white-space:nowrap}
+.er-ledger-pagination{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-top:1px solid var(--color-border);font-size:11px;color:var(--color-text-secondary)}
+.er-ledger-workbench :is(button,a,.er-payer-table-wrap):focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+@media(max-width:760px){.er-ledger-head{padding:12px}.er-ledger-actions{margin-inline-start:0}.er-ledger-actions button,.er-ledger-pagination button,.er-ledger-error button{min-height:44px}.er-payer-table td{padding:12px}}
+@media print{.er-ledger-actions,.er-ledger-pagination{display:none!important}.er-payer-table-wrap{overflow:visible}.er-payer-table{min-width:0;font-size:10px}.er-payer-table th,.er-payer-table td{padding:7px 5px}}
