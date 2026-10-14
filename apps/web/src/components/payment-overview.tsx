@@ -19,7 +19,7 @@ export function PaymentOverview({locale,workspaceId,environment}:{locale:Locale;
  const [error,setError]=useState(""),[recentError,setRecentError]=useState(""),[loading,setLoading]=useState(true),[generation,setGeneration]=useState(0);
  const [phoneCount,setPhoneCount]=useState<number|null>(null),[phoneCountError,setPhoneCountError]=useState(false);
  const root="/"+locale+"/w/"+workspaceId+"/payments";
- const href=(section:string,id="")=>root+"/"+section+(id?"/"+id:"")+"?env="+environment;
+ const href=(section:string,id="")=>root+"/"+section+(id?"/"+id:"");
  const money=(n:number)=>new Intl.NumberFormat(bn?"bn-BD":"en-BD",{style:"currency",currency:"BDT"}).format(n/100);
  const time=(value:string)=>new Date(value).toLocaleString(bn?"bn-BD":"en-BD",{timeZone:"Asia/Dhaka",dateStyle:"medium",timeStyle:"short"});
  useEffect(()=>{
