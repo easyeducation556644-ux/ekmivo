@@ -147,8 +147,14 @@ func (s *Service) HandlePhysicalDevice(w http.ResponseWriter,r *http.Request,raw
  var ws,realm string;var key []byte;var version int64
  if e:=pool.QueryRow(r.Context(),"SELECT * FROM pg06_phone_key($1::uuid)",id).Scan(&ws,&realm,&key,&version);e!=nil||realm!=body.Environment{fail(w,403,"PHONE_AUTHORIZATION_REJECTED");return}
  var active bool;var authoritative int64
- if e:=s.Pipeline.Control.QueryRow(r.Context(),"SELECT source_version,active FROM resolve_financial_projection($1::uuid,$2)",ws,realm).Scan(&authoritative,&active);e!=nil||!active||authoritative!=version{
+ if e:=s.Pipeline.Control.QueryRow(r.Context(),"SELECT source_version,active FROM resolve_financial_projection($1::uuid,$2)",ws,realm).Scan(&authoritative,&active);e!=nil||!active{
   fail(w,403,"PHONE_AUTHORIZATION_REJECTED");return
+ }
+ // Never conflate a stale control->financial projection with an actual phone revocation.
+ // A separately authorized projection reconciler must update the financial realm;
+ // failing closed here prevents stale entitlements from accepting new evidence.
+ if authoritative!=version {
+  fail(w,503,"PHONE_PROJECTION_STALE");return
  }
  canonical,e:=deviceevidence.CanonicalRequest(r.Method,r.URL.Path,r.Header.Get("X-Ekmivo-Timestamp"),r.Header.Get("X-Ekmivo-Event-ID"),raw)
  signature,se:=base64.StdEncoding.DecodeString(r.Header.Get("X-Ekmivo-Signature"))
