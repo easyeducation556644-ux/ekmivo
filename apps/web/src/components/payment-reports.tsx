@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect,useMemo,useState} from "react";
+import {useCallback,useEffect,useMemo,useState} from "react";
 import type {FormEvent} from "react";
 import Link from "next/link";
 import {DashboardIcon} from "./dashboard-icon";
@@ -89,7 +89,7 @@ function exportReport(report:Report,period:Filters){
  window.setTimeout(()=>URL.revokeObjectURL(uri),2000);
 }
 export function PaymentReports({locale,workspaceId,environment,canReveal}:{locale:Locale;workspaceId:string;environment:string;canReveal:boolean}){
- const bn=locale==="bn",t=(en:string,bengali:string)=>bn?bengali:en;
+ const bn=locale==="bn",t=useCallback((en:string,bengali:string)=>bn?bengali:en,[bn]);
  const [draft,setDraft]=useState<Filters>(defaults);
  const [applied,setApplied]=useState<Filters>(defaults);
  const [preset,setPreset]=useState<Preset>("30");
@@ -138,7 +138,7 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
    }finally{if(!controller.signal.aborted)setLoading(false)}
   };
   void run();return()=>controller.abort();
- },[workspaceId,environment,applied,refresh,locale]);
+ },[workspaceId,environment,applied,refresh,locale,t]);
 
  useEffect(()=>{
   if(!compare||!response||loading||error)return;

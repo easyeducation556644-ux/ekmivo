@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import {useEffect,useState} from "react";
+import {useCallback,useEffect,useState} from "react";
 
 type Locale="en"|"bn";
 type Filters={from:string;to:string;account:string};
@@ -23,18 +23,19 @@ function downloadCsv(rows:LedgerRow[],period:Filters){
  const link=document.createElement("a");link.href=url;link.download="ekmivo-verified-ledger-"+period.from+"-"+period.to+"-loaded.csv";document.body.appendChild(link);link.click();link.remove();
  window.setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
-export function PaymentReportLedger({locale,workspaceId,environment,period,canReveal}:{
+export function PaymentReportLedger(props:Parameters<typeof ScopedLedger>[0]){
+ return <ScopedLedger key={JSON.stringify([props.workspaceId,props.environment,props.period.from,props.period.to,props.period.account,props.canReveal])} {...props}/>;
+}
+function ScopedLedger({locale,workspaceId,environment,period,canReveal}:{
  locale:Locale;workspaceId:string;environment:string;period:Filters;canReveal:boolean
 }){
- const bn=locale==="bn",t=(en:string,be:string)=>bn?be:en;
+ const bn=locale==="bn",t=useCallback((en:string,be:string)=>bn?be:en,[bn]);
  const [rows,setRows]=useState<LedgerRow[]>([]);
  const [cursor,setCursor]=useState<string|null>(null);
  const [next,setNext]=useState<string|null>(null);
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState("");
  const [refresh,setRefresh]=useState(0);
- const key=JSON.stringify([workspaceId,environment,period.from,period.to,period.account,canReveal]);
- useEffect(()=>{setRows([]);setCursor(null);setNext(null);setError("")},[key]);
  useEffect(()=>{
   if(!canReveal)return;
   const controller=new AbortController();
@@ -59,7 +60,7 @@ export function PaymentReportLedger({locale,workspaceId,environment,period,canRe
   };
   void run();
   return()=>controller.abort();
- },[key,workspaceId,environment,period.from,period.to,period.account,canReveal,cursor,refresh,locale]);
+ },[workspaceId,environment,period.from,period.to,period.account,canReveal,cursor,refresh,locale,t]);
  return <section className="er-ledger-workbench" aria-label={t("Verified payment ledger","যাচাইকৃত পেমেন্টের তালিকা")}>
   <div className="er-ledger-head">
    <div><h2>{t("Verified payment ledger","যাচাইকৃত পেমেন্টের তালিকা")}</h2>
