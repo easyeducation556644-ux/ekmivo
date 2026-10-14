@@ -227,16 +227,16 @@ export function CheckoutExperience({locale,token,initialMethod}:{locale:Locale;t
          </div>
          <input id="ek-nagad-number" className="ek-nagad-number-input" type="tel" inputMode="tel" autoComplete="tel-national"
           aria-label={bn?"নগদ নম্বর লিখুন (01 বা +8801)":"Enter Nagad number starting with 01 or +8801"}
-          aria-invalid={payerInvalid} aria-describedby="ek-nagad-number-help"
+          aria-invalid={payerInvalid} aria-describedby={payerInvalid?"ek-nagad-number-error":"ek-nagad-number-help"}
           maxLength={20} required disabled={locking} value={payer}
           onBlur={()=>setPayerTouched(true)} onChange={e=>{setPayer(e.target.value);setCode("")}}/>
         </div>
         <p className="ek-nagad-consent" id="ek-nagad-number-help">{bn?"Proceed চাপলে শর্তাবলীতে সম্মতি দিচ্ছেন।":"By clicking Proceed, you agree to our Terms and Conditions."}</p>
-        {payerInvalid&&<p className="ek-nagad-error" role="alert">{bn?"সঠিক BD নম্বর দিন: 01XXXXXXXXX বা +8801XXXXXXXXX":"Enter a valid BD number: 01XXXXXXXXX or +8801XXXXXXXXX"}</p>}
-        {code&&<p className="ek-nagad-error" role="alert">{describe(code,bn)}</p>}
+        {payerInvalid&&<p className="ek-nagad-error" id="ek-nagad-number-error" role="alert">{bn?"সঠিক BD নম্বর দিন: 01XXXXXXXXX বা +8801XXXXXXXXX":"Enter a valid BD number: 01XXXXXXXXX or +8801XXXXXXXXX"}</p>}
+        {code&&!(payerInvalid&&code==="INVALID_PAYER_OR_METHOD")&&<p className="ek-nagad-error" role="alert">{describe(code,bn)}</p>}
         <div className="ek-nagad-actions">
          <button type="submit" disabled={locking}>{locking?"…":bn?"এগিয়ে যান":"Proceed"}</button>
-         <button type="button" onClick={()=>void cancelPayment()} disabled={locking||cancelling}>{bn?"বন্ধ":"Close"}</button>
+         <button type="button" onClick={leave} disabled={locking}>{bn?"বন্ধ":"Close"}</button>
         </div>
        </form>
        <div className="ek-nagad-footer-brand"><ProviderMark method="nagad" bn={bn}/></div>
