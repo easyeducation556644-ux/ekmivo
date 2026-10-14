@@ -425,4 +425,13 @@ func main() {
   }
  }
 
+ if os.Getenv("PG56_INCOMING_REPORTS_ALLOW_MIGRATION") == "true" {
+  file:=os.Getenv("PG56_INCOMING_REPORTS_MIGRATION_FILE")
+  for _,target:=range []realmDSN{{"sandbox",sa},{"live",lv}} {
+   if err:=migratePhoneIncomingReports(ctx,target.environment,target.raw,file);err!=nil {
+    log.Fatalf("0056 incoming/refund reporting migration blocked in %s: %v",target.environment,err)
+   }
+  }
+ }
+
 }
