@@ -165,7 +165,7 @@ function LineIcon({name}:{name:string}){
 
 function SectionHead({eyebrow,title,marked,lead,center=false}:{eyebrow:string;title:string;marked:string;lead?:string;center?:boolean}){
  return <div className={"em-heading"+(center?" em-centered":"")}>
-  <span className="em-kicker">{eyebrow}</span>
+  <span className="em-kicker">{eyebrow.replace(/^[0-9০-৯]+\s*\/\s*/, "")}</span>
   <h2>{title} <span className="em-brush em-brush-small">{marked}</span></h2>
   {lead&&<p>{lead}</p>}
  </div>;
@@ -185,29 +185,29 @@ export function MarketingExperience({locale}:{locale:Locale}){
     <span className="em-hero-eyebrow"><span className="em-dot"/> {t.eyebrow}</span>
     <h1 id="em-title"><span>{t.heroLine1}</span><span className="em-brush em-hero-highlight">{t.heroLine2}</span></h1>
     <p className="em-hero-lead">{t.heroLead}</p>
-    <div className="em-actions"><a href={"/"+locale+"/payment-gateway"} className="em-button em-button-primary">{t.explore}<span aria-hidden="true">↗</span></a><a href={"/"+locale+"/ai-bot"} className="em-button em-button-secondary">{t.aiAction}<span aria-hidden="true">↗</span></a></div>
+    <div className="em-actions"><Link href="/payment-gateway" className="em-button em-button-primary">{t.explore}<span aria-hidden="true">↗</span></Link><Link href="/ai-bot" className="em-button em-button-secondary">{t.aiAction}<span aria-hidden="true">↗</span></Link></div>
    </div>
    <a href="#services" className="em-scroll-link"><span>{t.scroll}</span><span className="em-scroll-down" aria-hidden="true">↓</span></a>
   </section>
 
   <section className="em-section em-services" id="services">
    <div className="em-container">
-    <SectionHead eyebrow={t.serviceEyebrow} title={t.servicesTitle} marked={t.servicesMarked} lead={t.servicesLead} center/>
+    <SectionHead eyebrow={t.serviceEyebrow} title={t.servicesTitle} marked={t.servicesMarked} center/>
     <div className="em-service-grid">
      <article className="em-service-card em-service-pay" id="commerce">
-      <div className="em-service-card-top"><span>{t.payNumber}</span><span className="em-service-status">{t.payStatus}</span></div>
+      <div className="em-service-card-top"><span>{t.payNumber.replace(/^[0-9০-৯]+\s*\/\s*/, "")}</span><span className="em-service-status">{t.payStatus}</span></div>
       <div className="em-service-mark em-symbol-wallet" aria-hidden="true"><LineIcon name="link"/><span>৳</span></div>
       <h3>{t.payName}</h3><p>{t.payBody}</p>
       <ul>{t.payBullets.map(item=><li key={item}><span aria-hidden="true">↗</span>{item}</li>)}</ul>
-      <Link className="em-card-link" href={"/"+locale+"/payment-gateway"}>{t.payExplore}<span aria-hidden="true">↗</span></Link>
+      <Link className="em-card-link" href="/payment-gateway">{t.payExplore}<span aria-hidden="true">↗</span></Link>
       <Doodle type="arrow" className="em-card-doodle"/>
      </article>
      <article className="em-service-card em-service-ai" id="ai">
-      <div className="em-service-card-top"><span>{t.aiNumber}</span><span className="em-service-status">{t.aiStatus}</span></div>
+      <div className="em-service-card-top"><span>{t.aiNumber.replace(/^[0-9০-৯]+\s*\/\s*/, "")}</span><span className="em-service-status">{t.aiStatus}</span></div>
       <div className="em-service-mark em-symbol-ai" aria-hidden="true"><LineIcon name="spark"/><span>AI</span></div>
       <h3>{t.aiName}</h3><p>{t.aiBody}</p>
       <ul>{t.aiBullets.map(item=><li key={item}><span aria-hidden="true">↗</span>{item}</li>)}</ul>
-      <Link className="em-card-link" href={"/"+locale+"/ai-bot"}>{t.aiExplore}<span aria-hidden="true">↗</span></Link>
+      <Link className="em-card-link" href="/ai-bot">{t.aiExplore}<span aria-hidden="true">↗</span></Link>
       <Doodle type="loop" className="em-card-doodle"/>
      </article>
     </div>
@@ -236,7 +236,7 @@ export function MarketingExperience({locale}:{locale:Locale}){
     <SectionHead eyebrow={t.benefitEyebrow} title={t.benefitTitle} marked={t.benefitMarked} lead={t.benefitLead} center/>
     <div className="em-benefits-grid">
      {t.benefitCards.map((item,i)=><article className={"em-benefit-card em-tilt-"+i} key={item.n}>
-      <span className="em-benefit-index">{item.n} / EKMIVO</span><div className="em-benefit-icon"><LineIcon name={item.icon}/></div>
+      <div className="em-benefit-icon"><LineIcon name={item.icon}/></div>
       <h3>{item.title}</h3><p>{item.text}</p><span className="em-benefit-squiggle" aria-hidden="true">⌁⌁⌁</span>
      </article>)}
     </div>
@@ -247,7 +247,7 @@ export function MarketingExperience({locale}:{locale:Locale}){
   <section className="em-section em-product em-product-payment" id="payments">
    <div className="em-container em-product-grid">
     <div className="em-product-copy"><SectionHead eyebrow={t.payStoryEyebrow} title={t.payStoryTitle} marked={t.payStoryMarked}/>
-     <p>{t.payStoryBody}</p><Link href={"/"+locale+"/register"} className="em-button em-button-primary">{t.payStoryButton}<span aria-hidden="true">↗</span></Link>
+     <p>{t.payStoryBody}</p><Link href="/register" className="em-button em-button-primary">{t.payStoryButton}<span aria-hidden="true">↗</span></Link>
      <Doodle type="arrow" className="em-product-arrow"/>
     </div>
     <div className="em-product-visual em-pay-visual">
@@ -276,7 +276,7 @@ export function MarketingExperience({locale}:{locale:Locale}){
      <Doodle type="spark" className="em-chat-doodle"/>
     </div>
     <div className="em-product-copy"><SectionHead eyebrow={t.aiStoryEyebrow} title={t.aiStoryTitle} marked={t.aiStoryMarked}/>
-     <p>{t.aiStoryBody}</p><Link className="em-button em-button-secondary" href={"/"+locale+"/ai-bot"}>{t.aiStoryButton}<span aria-hidden="true">↗</span></Link>
+     <p>{t.aiStoryBody}</p><Link className="em-button em-button-secondary" href="/ai-bot">{t.aiStoryButton}<span aria-hidden="true">↗</span></Link>
     </div>
    </div>
   </section>
@@ -285,7 +285,7 @@ export function MarketingExperience({locale}:{locale:Locale}){
    <div className="em-container">
     <SectionHead eyebrow={t.audienceEyebrow} title={t.audienceTitle} marked={t.audienceMarked} center/>
     <div className="em-audience-grid">{t.audienceCards.map(item=><article className="em-audience-card" key={item.title}>
-     <div className="em-audience-icon"><LineIcon name={item.icon}/></div><span>{item.n}</span><h3>{item.title}</h3><p>{item.body}</p><span className="em-audience-arrow" aria-hidden="true">↗</span>
+     <div className="em-audience-icon"><LineIcon name={item.icon}/></div><h3>{item.title}</h3><p>{item.body}</p><span className="em-audience-arrow" aria-hidden="true">↗</span>
     </article>)}</div>
    </div>
   </section>
@@ -293,19 +293,15 @@ export function MarketingExperience({locale}:{locale:Locale}){
   <section className="em-section em-trust" id="principles">
    <div className="em-container em-trust-layout">
     <div className="em-trust-intro"><SectionHead eyebrow={t.promiseEyebrow} title={t.promiseTitle} marked={t.promiseMarked}/><p>{t.promiseText}</p></div>
-    <div className="em-trust-notes">{t.promiseItems.map((item,i)=><div className="em-trust-note" key={item}><span className="em-trust-number">0{i+1}</span><p>{item}</p><span aria-hidden="true" className="em-trust-check">✓</span></div>)}</div>
+    <div className="em-trust-notes">{t.promiseItems.map(item=><div className="em-trust-note" key={item}><p>{item}</p><span aria-hidden="true" className="em-trust-check">✓</span></div>)}</div>
    </div>
   </section>
 
-  <section className="em-section em-pricing" id="pricing"><div className="em-container em-pricing-band">
-   <Doodle type="spark" className="em-pricing-spark"/><div><span className="em-kicker">{t.pricingEyebrow}</span><h2>{t.pricingTitle}</h2><small>{t.pricingNote}</small></div>
-   <Link href={"/"+locale+"/register"} className="em-button em-button-primary">{t.pricingCTA}<span aria-hidden="true">↗</span></Link>
-  </div></section>
 
   <section className="em-section em-faq" id="faq"><div className="em-container em-faq-grid"><SectionHead eyebrow={t.faqEyebrow} title={t.faqTitle} marked=""/><div className="em-questions">
-   {t.faqs.map(([question,answer],i)=><details key={question}><summary><span className="em-question-index">0{i+1}</span><strong>{question}</strong><span className="em-faq-plus" aria-hidden="true">+</span></summary><p>{answer}</p></details>)}
+   {t.faqs.map(([question,answer])=><details key={question}><summary><strong>{question}</strong><span className="em-faq-plus" aria-hidden="true">+</span></summary><p>{answer}</p></details>)}
   </div></div></section>
 
-  <section className="em-ending" id="contact"><div className="em-ending-ink" aria-hidden="true"/><Doodle type="loop" className="em-ending-doodle"/><div className="em-container em-ending-content"><span className="em-kicker">{t.finalEyebrow}</span><h2>{t.finalTitle} <span className="em-brush">{t.finalMarked}</span></h2><p>{t.finalBody}</p><div className="em-actions"><Link href={"/"+locale+"/register"} className="em-button em-button-primary">{t.finalButton}<span aria-hidden="true">↗</span></Link><a href="#workflow" className="em-button em-button-secondary">{t.finalSecondary}<span aria-hidden="true">↓</span></a></div></div></section>
+  <section className="em-ending" id="contact"><div className="em-ending-ink" aria-hidden="true"/><Doodle type="loop" className="em-ending-doodle"/><div className="em-container em-ending-content"><span className="em-kicker">{t.finalEyebrow}</span><h2>{t.finalTitle} <span className="em-brush">{t.finalMarked}</span></h2><p>{t.finalBody}</p><div className="em-actions"><Link href="/register" className="em-button em-button-primary">{t.finalButton}<span aria-hidden="true">↗</span></Link></div></div></section>
  </main>;
 }

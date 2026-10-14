@@ -46,7 +46,7 @@ Service mode controls navigation, **not paid entitlements**. Provider integratio
 
 ### Checklist before enabling customer data
 
-- Test with a real Neon development database: registration, duplicate email, 12-character password minimum, invalid login, five-attempt lockout, workspace create/switch and cross-tenant denial.
+- Test with a real Neon development database: registration, duplicate email, 8-character minimum with a letter and number, invalid login, five-attempt lockout, workspace create/switch and cross-tenant denial.
 - Add verified email delivery, reset tokens, robust signup/IP rate limits, bot defenses, MFA (especially admin), device/session management, CSRF/Origin tests, role audits and incident logging.
 - Confirm deployment region vs Neon region, queries and indexes under load. The goal is fast, measurable p95 latency rather than a speculative '10x faster' claim.
 - Check Vercel and preview builds, both locales, three theme settings, mobile keyboard/touch and server-error toast, before considering production access enabled.

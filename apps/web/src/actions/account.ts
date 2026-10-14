@@ -21,25 +21,36 @@ export async function registerAction(localeParam:string,_previous:FormErrorState
  const locale=safeLocale(localeParam),t=strings[locale];
  const name=asText(form.get("name")),email=asText(form.get("email")).toLowerCase();
  const password=form.get("password"),confirm=form.get("confirm");
+ const workspaceName=asText(form.get("workspace_name"));
  const fields:Record<string,string>={};
  if(!validatedName(name))fields.name=locale==="bn"?"নাম অন্তত ২ অক্ষরের হতে হবে।":"Enter 2–100 characters.";
+ if(!validatedName(workspaceName))fields.workspace_name=locale==="bn"?"ওয়ার্কস্পেসের নাম ২–১০০ অক্ষর হতে হবে।":"Enter a workspace name (2–100 characters).";
  if(!validEmail(email))fields.email=locale==="bn"?"সঠিক ইমেইল দিন।":"Enter a valid email.";
- if(typeof password!=="string"||!strongPassword(password))fields.password=locale==="bn"?"অন্তত ১২ অক্ষরের পাসওয়ার্ড দিন।":"Use 12–256 characters.";
+ if(typeof password!=="string"||!strongPassword(password))fields.password=locale==="bn"?"৮–২৫৬ অক্ষর, অন্তত একটি অক্ষর ও একটি সংখ্যা দিন।":"Use 8–256 characters, including a letter and a number.";
  if(password!==confirm)fields.confirm=locale==="bn"?"পাসওয়ার্ড দুটি মিলছে না।":"Passwords don't match.";
  if(Object.keys(fields).length)return fail(t.invalid,fields);
- let created=false;
  let verify=false;
  try {
   verify=await verificationEnabled();
   if(verify&&!mailReady())return fail(locale==="bn"?"ইমেইল সেবা কনফিগার করা হয়নি।":"Email verification is unavailable. Please try again later.");
   const hash=await passwordHash(password as string);
-  const rows=await database()`INSERT INTO app_users (display_name,email,password_hash)
-   VALUES (${name},${email},${hash}) ON CONFLICT (email) DO NOTHING RETURNING id`;
-  if(!rows.length)return fail(t.duplicate,{email:t.duplicate});
-  created=true;
-  await createSession(String(rows[0].id));
+  const account=await database().begin(async sql=>{
+   const users=await sql`INSERT INTO app_users (display_name,email,password_hash)
+    VALUES (${name},${email},${hash}) ON CONFLICT (email) DO NOTHING RETURNING id`;
+   if(!users.length)return null;
+   const userId=String(users[0].id);
+   const spaces=await sql`INSERT INTO workspaces(name,service_mode,created_by)
+    VALUES(${workspaceName},'commerce',${userId}::uuid) RETURNING id`;
+   const workspaceId=String(spaces[0].id);
+   await sql`INSERT INTO workspace_members(workspace_id,user_id,role)
+    VALUES(${workspaceId}::uuid,${userId}::uuid,'owner')`;
+   return {userId,workspaceId};
+  });
+  if(!account)return fail(t.duplicate,{email:t.duplicate});
+  await createSession(account.userId);
+  await selectDefaultWorkspace(account.userId,account.workspaceId);
   if(verify){
-   try{await sendCode(String(rows[0].id),email,"verify_email");}
+   try{await sendCode(account.userId,email,"verify_email");}
    catch(e){report("send initial verification email",e);}
   }
  } catch(e){report("register",e);return fail(t.generic);}

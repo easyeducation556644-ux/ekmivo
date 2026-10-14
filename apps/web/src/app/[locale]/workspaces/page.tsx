@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { requireUser, workspacesFor, preferredWorkspaceFor } from "../../../lib/server/auth";
 import {setDefaultWorkspaceAction} from "../../../actions/account";
@@ -11,7 +10,7 @@ export default async function WorkspacesPage({params}:{params:Promise<{locale:st
  const spaces=await workspacesFor(user.id);
  const preferred=await preferredWorkspaceFor(user.id);
  return <main className="ek-app-shell ek-workspace-page">
-  <div className="ek-app-topbar"><Link href={`/${locale}`} className="ek-wordmark">ekmivo.</Link><div><span>{user.name}</span><span className="ek-avatar">{user.name.slice(0,1).toUpperCase()}</span></div></div>
+  <div className="ek-app-topbar"><span className="ek-wordmark">{locale==="bn"?"আপনার ওয়ার্কস্পেস":"Your workspace"}</span><div><span>{user.name}</span><span className="ek-avatar">{user.name.slice(0,1).toUpperCase()}</span></div></div>
   <div className="ek-page-wrap">
    {spaces.length>0&&<section className="ek-existing" aria-labelledby="workspace-existing"><div className="ek-page-kicker">{locale==="bn"?"আপনার ব্যবসাসমূহ":"YOUR WORKSPACES"} / {spaces.length}</div><h2 id="workspace-existing">{locale==="bn"?"আপনার ওয়ার্কস্পেস":"Your workspaces"}</h2><p className="ek-workspace-default-help">{locale==="bn"?"যেটিকে ডিফল্ট করবেন, পরেরবার লগইন করলে সরাসরি সেটিই খুলবে।":"Your default opens immediately after sign-in."}</p><div className="ek-existing-grid">{spaces.map(w=><article className="ek-workspace-choice" key={w.id}><Link className="ek-existing-card" href={`/${locale}/w/${w.id}/dashboard`}><span className="ek-avatar">{w.name.slice(0,1).toUpperCase()}</span><div><strong>{w.name}</strong><small>{
  w.mode==="both"?(locale==="bn"?"AI ও পেমেন্ট":"AI & Payments"):

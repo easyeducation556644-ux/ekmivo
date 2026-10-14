@@ -1,3 +1,12 @@
+## Public/auth polish — 2026-10-14
+
+Local evidence: `docs/evidence/PUBLIC-AUTH-POLISH-20261014/README.md`.
+
+- [ ] With dedicated test accounts on staging, complete two-step signup with an 8-character letter+number password; verify one account, one workspace and owner membership, default workspace, and persisted personal/business names.
+- [ ] Existing-password login, duplicate-email recovery, email verification when enabled, reset password, session/rate-limit behavior. Registration transaction failures were unit simulations, not live SQL tests.
+- [ ] Verify authenticated workspace chooser/create form and return-home header in EN/BN and Light/Dark/System. Anonymous auth and public navigation/browser responsiveness passed locally.
+- [ ] Final subjective review of Bengali copy, motion and keyboard navigation in the branch preview. No production merge/deploy authorized by this branch-only request.
+
 ## Payment Operations UX rebuild — 2026-10-14 (MANUAL / BUILD PENDING)
 
 - [ ] Transactions canonical route `/w/{workspace}/payments/transactions` and detail; bookmarked legacy `/payments/payments` redirects. Test global search opens Transactions.
