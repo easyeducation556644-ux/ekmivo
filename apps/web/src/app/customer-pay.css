@@ -162,3 +162,61 @@
 @media(max-width:330px){.customer-pay-methods{grid-template-columns:repeat(2,minmax(0,1fr))}.provider-instruction-tiles b{width:32px;height:32px}}
 @media(prefers-reduced-motion:reduce){.provider-waiting-dot{animation:none}.customer-pay-contact a:hover,.customer-pay-methods button[aria-pressed=true]{transform:none}}
 @media print{.provider-checkout.pg05-checkout.pg05-standalone{padding:0;background:#fff!important}.provider-checkout-nav,.provider-flow-controls,.provider-payer-form button{display:none!important}.provider-checkout-modal{box-shadow:none;max-width:none}}
+
+
+/* Nagad: a compact, single-screen red provider panel. The same input accepts
+   typed, pasted, +88 and 01 numbers while displaying eleven local digits. */
+.provider-checkout.pg05-checkout.pg05-standalone:has(.ek-nagad-entry){padding:12px;background:#f5f5f5;align-items:center;min-height:100dvh}
+.provider-checkout-modal:has(.ek-nagad-entry){max-width:410px;height:min(620px,calc(100dvh - 24px));min-height:0;border:3px solid #341b1e;border-radius:3px;box-shadow:0 10px 34px #3103072b}
+.provider-flow:has(.ek-nagad-entry){height:100%}
+.provider-flow-content:has(.ek-nagad-entry){height:100%;min-height:0;display:block}
+.ek-nagad-entry{height:100%;min-height:0;display:flex;flex-direction:column;align-items:stretch;justify-content:space-between;gap:12px;padding:53px 23px 16px;background:radial-gradient(ellipse at 60% 55%,#d52a30 0%,#ad2124 53%,#791b1d 100%);color:#fff;text-align:center;overflow:auto;scrollbar-width:thin}
+.ek-nagad-top{position:relative;min-height:35px;display:flex;justify-content:center;align-items:center}
+.ek-nagad-top svg{width:88px;height:37px;max-width:45%;filter:brightness(0) invert(1)}
+.ek-nagad-realm{position:absolute;left:0;top:0;font-size:9px;font-weight:700;letter-spacing:.04em;padding:3px 5px;border:1px solid #ffffff70;border-radius:3px}
+.ek-nagad-merchant{font-size:clamp(14px,2vw,17px);font-weight:700;line-height:1.35;letter-spacing:.01em;margin:0;overflow-wrap:anywhere}
+.ek-nagad-facts{display:grid;gap:5px;text-align:left;margin:0;padding:0 2px;font-size:clamp(10px,1.9vw,12px);line-height:1.4}
+.ek-nagad-facts p{display:flex;align-items:baseline;gap:7px;min-width:0;margin:0}
+.ek-nagad-facts p span{white-space:nowrap;font-weight:600}
+.ek-nagad-facts p strong{min-width:0;font-weight:700;overflow-wrap:anywhere;text-align:start}
+.ek-nagad-form{display:flex;flex-direction:column;align-items:center;gap:10px;margin:2px 0;min-width:0;width:100%}
+.ek-nagad-form>label{font-size:clamp(11px,2vw,13px);font-weight:700}
+.ek-nagad-digit-entry{position:relative;width:100%;max-width:340px;min-height:32px;cursor:text}
+.ek-nagad-digits{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:3px;pointer-events:none;min-height:32px}
+.ek-nagad-digit{display:grid;place-items:center;height:31px;min-width:0;background:#fff;border:1px solid #eee8e8;color:#611e23;border-radius:2px;font-size:clamp(10px,2.6vw,15px);font-weight:700;line-height:1}
+.ek-nagad-number-input{position:absolute!important;inset:0!important;z-index:1;width:100%!important;height:100%!important;min-height:0!important;opacity:.01!important;border:0!important;outline:0!important;box-shadow:none!important;padding:0!important;font-size:16px!important;cursor:text}
+.ek-nagad-digit-entry:focus-within .ek-nagad-digit{background:#fffaf2}
+.ek-nagad-consent{font-size:clamp(9px,1.6vw,11px);font-weight:500;line-height:1.45;margin:0;max-width:320px;color:#ffebeb}
+.ek-nagad-error{font-size:11px;line-height:1.4;color:#fff;background:#5e151c;border-radius:4px;padding:6px 8px;margin:0;max-width:100%}
+.ek-nagad-actions{display:flex;justify-content:space-evenly;gap:15px;width:100%;margin-top:4px}
+.ek-nagad-actions button{min-width:93px;min-height:35px;padding:7px 14px;background:#fff;color:#782022;border:0;border-radius:4px;font-size:12px;font-weight:750;box-shadow:0 1px 2px #0003}
+.ek-nagad-actions button:disabled{opacity:.5}
+.ek-nagad-footer-brand{display:flex;justify-content:center;align-items:center;min-height:33px}
+.ek-nagad-footer-brand svg{width:90px;height:36px;filter:brightness(0) invert(1)}
+/* bKash's standard input used to draw competing nested outlines from both
+   pg05 checkout and customer-pay. Keep only label focus feedback, no box ring. */
+.provider-flow[data-provider="bkash"] .provider-payer-form input:focus,
+.provider-flow[data-provider="bkash"] .provider-payer-form input:focus-visible{
+ outline:0!important;outline-offset:0!important;box-shadow:none!important;border:0!important;
+}
+.provider-flow[data-provider="bkash"] .provider-payer-form:focus-within>label{text-decoration:underline;text-underline-offset:5px}
+.provider-payer-error{font-size:12px!important;color:#fff!important;background:#7614364d;padding:7px 9px;border-radius:5px}
+.provider-payer-format{font-size:11px!important;color:#fffbefff!important;opacity:.9}
+@media(max-width:575px){
+ .provider-checkout.pg05-checkout.pg05-standalone:has(.ek-nagad-entry){padding:0}
+ .provider-checkout-modal:has(.ek-nagad-entry){border:0;max-width:none;width:100%;height:100dvh;min-height:100dvh;border-radius:0;box-shadow:none}
+ .ek-nagad-entry{padding:53px 20px 17px;gap:12px}
+ .ek-nagad-digit-entry{max-width:350px}
+ .ek-nagad-digits{gap:4px}
+ .ek-nagad-digit{height:35px}
+}
+@media(max-height:490px){
+ .ek-nagad-entry{gap:5px;padding-top:37px;padding-bottom:8px}
+ .ek-nagad-top{min-height:20px}
+ .ek-nagad-top svg,.ek-nagad-footer-brand svg{height:24px}
+ .ek-nagad-footer-brand{min-height:24px}
+ .ek-nagad-form{gap:5px}
+ .ek-nagad-digits{min-height:25px}
+ .ek-nagad-digit{height:25px}
+ .ek-nagad-actions button{min-height:29px;padding:4px 10px}
+}
