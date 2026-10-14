@@ -68,10 +68,11 @@ func (s *Service) HandlePhones(w http.ResponseWriter,r *http.Request) {
    fail(w,403,"PHONE_AUTHORIZATION_REJECTED");return
   }
   var projected int64
-  if s.pipelinePool(realm)==nil {fail(w,503,"PIPELINE_SOURCE_UNAVAILABLE");return}
-  if err:=s.pipelinePool(realm).QueryRow(r.Context(),
-   "SELECT entitlement_version FROM financial_workspace_registry WHERE workspace_id=$1::uuid AND environment=$2",
-   ws,realm).Scan(&projected);err!=nil||projected!=authoritative{
+  if err:=s.pipelineScoped(r.Context(),ws,realm,func(tx pgx.Tx)error{
+   return tx.QueryRow(r.Context(),
+    "SELECT entitlement_version FROM financial_workspace_registry WHERE workspace_id=$1::uuid AND environment=$2",
+    ws,realm).Scan(&projected)
+  });err!=nil||projected!=authoritative{
    fail(w,503,"PHONE_PROJECTION_STALE");return
   }
  }
