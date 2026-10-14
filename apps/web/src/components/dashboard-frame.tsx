@@ -7,6 +7,7 @@ import { dashboardHref, navigation, searchableNavigation, searchableBusinesses, 
 import { DashboardIcon as Icon } from "./dashboard-icon";
 import { SiteControls } from "./site-controls";
 import { PaymentNotifications } from "./payment-notifications";
+import { PaymentRecordSearch } from "./payment-record-search";
 import { activeDrafts,saveActiveDrafts,discardActiveDrafts } from "../lib/client/draft-navigation";
 
 type Space = { id: string; name: string; mode: "ai" | "commerce" | "both" | "off"; role: "owner" | "admin" | "editor" | "viewer" };
@@ -210,6 +211,12 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
  const nav=(key:SectionKey)=>{
   goTo(workspace.id,service,environment,key);
  };
+ const openPaymentSearchResult=(destination:string)=>{
+  if(!destination.startsWith(`/w/${workspace.id}/payments/`))return;
+  setSearchOpen(false);
+  if(activeDrafts().length){setBlockedRoute(destination);setDraftError("");return;}
+  startTransition(()=>router.push(destination));
+ };
  const activateSearchResult=(index:number)=>{
   if(index<foundKeys.length){
    const key=foundKeys[index];
@@ -290,7 +297,7 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
      */}
     </div>
     <div className="ds-topbar-tools">
-     <button type="button" className="ds-global-search-button" aria-label={bn?"পৃষ্ঠা বা ব্যবসা খুঁজুন":"Search pages or businesses"} onClick={()=>{searchReturnFocus.current=document.activeElement instanceof HTMLElement?document.activeElement:null;setSearchOpen(true);setGlobalQuery("");setActiveResult(0);}}><Icon name="search"/><span>{bn?"খুঁজুন":"Search"}</span><kbd>⌘ K</kbd></button>
+     <button type="button" className="ds-global-search-button" aria-label={bn?"পৃষ্ঠা, ব্যবসা বা পেমেন্ট রেকর্ড খুঁজুন":"Search pages, businesses or payment records"} onClick={()=>{searchReturnFocus.current=document.activeElement instanceof HTMLElement?document.activeElement:null;setSearchOpen(true);setGlobalQuery("");setActiveResult(0);}}><Icon name="search"/><span>{bn?"খুঁজুন":"Search"}</span><kbd>⌘ K</kbd></button>
      <SiteControls locale={locale} initialTheme={theme}/>
      <details className="ds-notifications" open={noticeOpen} onToggle={event=>setNoticeOpen(event.currentTarget.open)}>
       <summary className="ds-icon-button" aria-label={bn?"নোটিফিকেশন":"Notifications"}><Icon name="bell"/></summary>
@@ -323,7 +330,7 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
    <footer className="ds-footnote"><span>{serviceNames[service][locale]} · {workspace.name}</span><span>Asia/Dhaka</span></footer>
   </div>
   <dialog ref={searchDialog} className="ds-search-dialog" aria-label={bn?"ওয়ার্কস্পেস খুঁজুন":"Search workspace"} onCancel={()=>setSearchOpen(false)} onClose={()=>setSearchOpen(false)}>
-   <div className="ds-search-top"><Icon name="search"/><input ref={searchInput} autoFocus role="combobox" aria-autocomplete="list" aria-expanded={searchOpen} aria-controls="ds-global-results" aria-activedescendant={resultCount?`ds-global-result-${Math.min(activeResult,resultCount-1)}`:undefined} value={globalQuery} onChange={event=>{setGlobalQuery(event.target.value);setActiveResult(0);}} placeholder={bn?"পৃষ্ঠা ও অনুমোদিত ব্যবসা খুঁজুন…":"Find pages or your businesses…"} aria-label={bn?"পৃষ্ঠা বা ব্যবসা খুঁজুন":"Find a page or your business"}
+   <div className="ds-search-top"><Icon name="search"/><input ref={searchInput} autoFocus role="combobox" aria-autocomplete="list" aria-expanded={searchOpen} aria-controls="ds-global-results" aria-activedescendant={resultCount?`ds-global-result-${Math.min(activeResult,resultCount-1)}`:undefined} value={globalQuery} onChange={event=>{setGlobalQuery(event.target.value);setActiveResult(0);}} placeholder={bn?"পৃষ্ঠা, পেমেন্ট, ইনভয়েস বা গ্রাহক খুঁজুন…":"Find pages, payments, invoices or customers…"} aria-label={bn?"পৃষ্ঠা বা পেমেন্ট রেকর্ড খুঁজুন":"Find pages or payment records"}
      onKeyDown={event=>{
       if(event.key==="ArrowDown"){event.preventDefault();setActiveResult(i=>resultCount?(i+1)%resultCount:0);}
       if(event.key==="ArrowUp"){event.preventDefault();setActiveResult(i=>resultCount?(i+resultCount-1)%resultCount:0);}
@@ -335,9 +342,10 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
      const position=foundKeys.length+index;
      return <button id={`ds-global-result-${position}`} type="button" role="option" aria-selected={activeResult===position} onMouseEnter={()=>setActiveResult(position)} key={space.id} onClick={()=>switchBusiness(space)}><Icon name="settings"/><span>{space.name}</span><small>{space.id===workspace.id?(bn?"বর্তমান ব্যবসা":"Current business"):(bn?"ব্যবসা পরিবর্তন":"Switch business")}</small></button>;
     })}
-    {!resultCount&&<p role="status">{bn?"কোনো অনুমোদিত ফলাফল পাওয়া যায়নি":"No authorized results match"}</p>}
+    {!resultCount&&<p role="status">{bn?"মেলা পৃষ্ঠা বা ব্যবসা নেই":"No matching pages or businesses"}</p>}
    </div>
-   <p className="ds-search-hint">{bn?"শুধু বর্তমান সেবার পৃষ্ঠা ও আপনার অনুমোদিত ব্যবসা দেখানো হচ্ছে। পেমেন্ট/গ্রাহকের record search সংশ্লিষ্ট backend তৈরি হলে চালু হবে।":"Only this product's pages and your authorized businesses appear. Payment/customer record search requires the later data APIs."}</p>
+   {service==="payments"&&paymentContext&&<PaymentRecordSearch key={workspace.id+environment} locale={locale} workspaceId={workspace.id} environment={environment} query={globalQuery} open={searchOpen} onNavigate={openPaymentSearchResult}/>}
+   {service!=="payments"&&<p className="ds-search-hint">{bn?"শুধু অনুমোদিত পৃষ্ঠা ও ব্যবসা দেখানো হচ্ছে।":"Only authorized pages and businesses appear."}</p>}
   </dialog>
   <dialog ref={draftDialog} className="ds-draft-dialog" aria-label={bn?"সংরক্ষণ না করা পরিবর্তন":"Unsaved changes"} onCancel={()=>{setBlockedRoute(null);setDraftError("");}}>
    <h2>{bn?"পরিবর্তন সংরক্ষণ করা হয়নি":"You have unsaved changes"}</h2>

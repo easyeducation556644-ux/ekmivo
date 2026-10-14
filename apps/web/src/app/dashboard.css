@@ -368,3 +368,14 @@
  .ds-key-create,.ds-key-card{padding:14px}
  .ds-api-key-manager>.ds-panel-heading{flex-wrap:wrap}
 }
+
+
+/* Tenant-scoped record matches in the global command palette. */
+.ds-record-search{display:grid;gap:0.4rem;padding:0.8rem 1rem;border-top:1px solid var(--ds-border,rgba(127,127,127,.22));max-height:45vh;overflow:auto}
+.ds-record-search h3{font-size:.85rem;font-weight:650;margin:0 0 .25rem}
+.ds-record-search-result{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.75rem;border:1px solid transparent;border-radius:.65rem;text-align:start;background:transparent;color:inherit;cursor:pointer;min-width:0}
+.ds-record-search-result:hover,.ds-record-search-result:focus-visible{background:var(--ds-surface-soft,rgba(127,127,127,.09));border-color:currentColor;outline-offset:2px}
+.ds-record-search-result strong{overflow-wrap:anywhere;font-size:.87rem}
+.ds-record-search-result span{font-size:.75rem;opacity:.75;text-align:end;flex-shrink:0}
+.ds-record-search [role="alert"]{font-size:.8rem}
+@media(max-width:480px){.ds-record-search-result{align-items:flex-start;flex-direction:column;gap:.25rem}.ds-record-search-result span{text-align:start}}
