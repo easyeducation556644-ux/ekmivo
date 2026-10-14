@@ -1,4 +1,5 @@
 "use client";
+import {PublicIcon} from "./public-icon";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { createWorkspaceAction } from "../actions/account";
@@ -111,7 +112,7 @@ export function WorkspaceOnboarding({locale,userId}:{locale:Locale;userId:string
    <div className="ek-mode-grid" role="radiogroup" aria-label={locale==="bn"?"সেবার ধরন":"Service mode"}>
     {modes.map(item=><label className={`ek-mode-card ${mode===item.value?"is-selected":""}`} key={item.value}>
      <input type="radio" name="mode" value={item.value} checked={mode===item.value} onChange={()=>setMode(item.value)}/>
-     <span className="ek-mode-icon" aria-hidden="true">{item.icon}</span>
+     <span className="ek-mode-icon" aria-hidden="true"><PublicIcon name={item.value==="ai"?"inbox":item.value==="commerce"?"wallet":"business"}/></span>
      <strong>{item.title[locale]}</strong>
      <small>{item.description[locale]}</small>
     </label>)}

@@ -7,4 +7,4 @@ export const locales = ["bn","en"] as const;
 export function safeLocale(value:string):"bn"|"en"{return value==="en"?"en":"bn";}
 export function validEmail(email:string){return email.length<=254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);}
 export function validatedName(name:string){return name.length>=2 && name.length<=100;}
-export function strongPassword(password:string){return password.length>=12 && password.length<=256;}
+export {validNewPassword as strongPassword} from "../password-policy";

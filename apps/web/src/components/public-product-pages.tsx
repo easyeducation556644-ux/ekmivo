@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type {Locale} from "../lib/site-copy";
+import {PublicMotion} from "./public-motion";
 import {PaymentScrollJourney} from "./payment-scroll-journey";
 
 type TextPair={en:string;bn:string};
@@ -30,7 +31,7 @@ const faqs=[
  {q:bilingual("Can I integrate Ekmivo with my own website?","নিজের ওয়েবসাইটে কি Ekmivo ব্যবহার করা যাবে?"),a:bilingual("Yes. Merchant APIs, hosted checkout and signed webhooks support integrations. Test in sandbox before enabling a live payment workflow.","হ্যাঁ। API ও Hosted Checkout ব্যবহার করে নিজের ওয়েবসাইট বা অ্যাপে Ekmivo যুক্ত করতে পারবেন। প্রথমে Sandbox-এ পরীক্ষা করে নিন।")}
 ];
 const paymentCopy={
- en:{kicker:"PAYMENT GATEWAY / EKMIVO",title:"Payments that fit",marked:"the way you work.",intro:"Accept mobile-wallet payments through checkout, invoices or links. Track every request, verify eligible receipts and keep your own business systems informed.",primary:"Create your account",secondary:"Explore the workflow",strip:["PAYMENT LINKS","INVOICES","HOSTED CHECKOUT","API & WEBHOOKS"],sectionLabel:"01 / THE COMPLETE JOURNEY",flowTitle:"From your request",flowMarked:"to a clear result.",flowDesc:"A familiar experience for customers. A traceable process for your business.",verifyLabel:"02 / PAYMENT CONFIRMATION",verifyTitle:"Verification happens",verifyMarked:"behind the scenes.",verifyDescription:"Ekmivo uses evidence received through authorized merchant sources to determine the payment status. The verification logic runs securely on our backend; customers do not need to manually enter a transaction ID or upload a screenshot as part of the normal flow.",phoneTitle:"Your merchant phone plays a part.",phoneBody:"The companion Android app relays relevant wallet receipts to your Ekmivo workspace. It keeps captured receipts in a secure offline queue when the connection drops, then retries automatically when internet returns. A device that is powered off or force-stopped cannot receive new messages.",proofTitle:"When a payment needs attention",proofBody:"Missing or uncertain evidence is not treated as success. The merchant can review the request, and refund cases are handled by the seller outside Ekmivo.",backendKicker:"03 / WHY EKMIVO",backendTitle:"Built for real",backendMarked:"business workflows.",forLabel:"04 / WHO IT’S FOR",forTitle:"One payment service.",forMarked:"Different ways to use it.",faqKicker:"FREQUENT QUESTIONS",faqTitle:"Worth knowing",faqMarked:"before you begin.",endKicker:"START WITH PAYMENTS",endTitle:"Make payment collection",endMarked:"part of your workflow.",endBody:"Set up your workspace, connect your merchant receiving options and choose the checkout approach that suits your business.",endButton:"Get started",note:"Product capabilities depend on configuration and available payment methods. Ekmivo is not the wallet provider."},
+ en:{kicker:"PAYMENT GATEWAY / EKMIVO",title:"Payments that fit",marked:"the way you work.",intro:"Accept mobile-wallet payments through checkout, invoices or links. Track every request, verify eligible receipts and keep your own business systems informed.",primary:"Create your account",secondary:"Explore the workflow",strip:["PAYMENT LINKS","INVOICES","HOSTED CHECKOUT","API & WEBHOOKS"],sectionLabel:"01 / THE COMPLETE JOURNEY",flowTitle:"From your request",flowMarked:"to a clear result.",flowDesc:"A familiar experience for customers. A traceable process for your business.",verifyLabel:"02 / PAYMENT CONFIRMATION",verifyTitle:"Verification happens",verifyMarked:"behind the scenes.",verifyDescription:"Ekmivo uses evidence received through authorized merchant sources to determine the payment status. The verification logic runs securely on our backend; customers do not need to manually enter a transaction ID or upload a screenshot as part of the normal flow.",phoneTitle:"Connect the phone that receives payments.",phoneBody:"The companion Android app relays relevant wallet receipts to your Ekmivo workspace. It keeps captured receipts in a secure offline queue when the connection drops, then retries automatically when internet returns. A device that is powered off or force-stopped cannot receive new messages.",proofTitle:"When a payment needs attention",proofBody:"Missing or uncertain evidence is not treated as success. The merchant can review the request, and refund cases are handled by the seller outside Ekmivo.",backendKicker:"03 / WHY EKMIVO",backendTitle:"Built for real",backendMarked:"business workflows.",forLabel:"04 / WHO IT’S FOR",forTitle:"One payment service.",forMarked:"Different ways to use it.",faqKicker:"FREQUENT QUESTIONS",faqTitle:"Worth knowing",faqMarked:"before you begin.",endKicker:"START WITH PAYMENTS",endTitle:"Make payment collection",endMarked:"part of your workflow.",endBody:"Set up your workspace, connect your merchant receiving options and choose the checkout approach that suits your business.",endButton:"Get started",note:"Product capabilities depend on configuration and available payment methods. Ekmivo is not the wallet provider."},
  bn:{
   kicker:"পেমেন্ট গেটওয়ে",title:"ব্যবসার পেমেন্ট",marked:"এক জায়গা থেকে সামলান।",
   intro:"পেমেন্ট লিংক ও ইনভয়েস তৈরি করুন, অথবা ওয়েবসাইটে চেকআউট যুক্ত করুন। কাস্টমার টাকা পাঠানোর পর পেমেন্ট যাচাই ও আপডেট দেখুন একই ড্যাশবোর্ডে।",
@@ -40,7 +41,7 @@ const paymentCopy={
   flowDesc:"আপনার পেমেন্ট অ্যাকাউন্ট যুক্ত করা থেকে শুরু করে কাস্টমারের পেমেন্ট যাচাই—প্রতিটি ধাপ দেখুন।",
   verifyLabel:"পেমেন্ট যাচাই",verifyTitle:"রসিদ যাচাই হবে",verifyMarked:"স্বয়ংক্রিয়ভাবে।",
   verifyDescription:"মার্চেন্টের অনুমোদিত ফোন থেকে পাওয়া পেমেন্টের SMS Ekmivo-এর সার্ভারে যাচাই করা হয়। স্বাভাবিক অবস্থায় কাস্টমারকে আলাদা করে TrxID লিখতে বা স্ক্রিনশট দিতে হয় না।",
-  phoneTitle:"মার্চেন্টের Android অ্যাপের কাজ কী?",
+  phoneTitle:"পেমেন্টের SMS পাওয়া ফোনটি যুক্ত করুন।",
   phoneBody:"যে ফোনে পেমেন্টের SMS আসে, সেখানে Ekmivo অ্যাপ যুক্ত করতে হবে। অ্যাপটি প্রয়োজনীয় SMS নিরাপদে সার্ভারে পাঠায়। ইন্টারনেট না থাকলে ইতিমধ্যে পাওয়া SMS জমা থাকে এবং সংযোগ ফিরলে পাঠানোর চেষ্টা করে। ফোন বন্ধ বা অ্যাপ force-stop থাকলে নতুন SMS ধরা যাবে না।",
   proofTitle:"পেমেন্ট যাচাই না হলে কী হবে?",
   proofBody:"যাচাই নিশ্চিত না হওয়া পর্যন্ত পেমেন্ট সফল দেখাবে না। মার্চেন্ট ড্যাশবোর্ড থেকে অবস্থা দেখতে পারবেন। টাকা ফেরতের প্রয়োজন হলে বিক্রেতা নিজেই ব্যবস্থা নেবেন।",
@@ -54,19 +55,19 @@ const paymentCopy={
 }
 } as const;
 function EmSectionTitle({eyebrow,title,marked}:{eyebrow:string;title:string;marked:string}){
- return <div className="ek-product-heading"><span className="ek-public-kicker">{eyebrow}</span><h2>{title} <span className="ek-public-brush">{marked}</span></h2></div>;
+ return <div className="ek-product-heading"><span className="ek-public-kicker">{eyebrow.replace(/^[0-9০-৯]+\s*\/\s*/, "")}</span><h2>{title} <span className="ek-public-brush">{marked}</span></h2></div>;
 }
 export function PaymentGatewayPage({locale}:{locale:Locale}){
  const t=paymentCopy[locale],bn=locale==="bn";
- return <main className="ek-product-page ek-pg-detail" lang={locale}>
+ return <PublicMotion><main className="ek-product-page ek-pg-detail" lang={locale}>
   <div className="ek-pg-mast"><div className="ek-public-wrap">
-   <div className="ek-pg-crumb"><Link href={"/"+locale}>ekmivo</Link><span aria-hidden="true">/</span><strong>Payment Gateway</strong><span className="ek-pg-status">{bn?"পেমেন্ট":"PAYMENTS"}</span></div>
+   <div className="ek-pg-crumb"><Link href="/">ekmivo</Link><span aria-hidden="true">/</span><strong>Payment Gateway</strong><span className="ek-pg-status">{bn?"পেমেন্ট":"PAYMENTS"}</span></div>
    <div className="ek-pg-mast-grid">
     <div className="ek-pg-intro">
      <h1>{bn?"ব্যবসার পেমেন্ট এক জায়গায়":"Payments for your business"}</h1>
      <p>{t.intro}</p>
      <div className="ek-pg-mast-actions">
-      <Link href={"/"+locale+"/register"} className="ek-public-action">{t.primary}<span aria-hidden="true">↗</span></Link>
+      <Link href="/register" className="ek-public-action">{t.primary}<span aria-hidden="true">↗</span></Link>
       <a href="#payment-workflow" className="ek-pg-text-link">{t.secondary} <span aria-hidden="true">↓</span></a>
      </div>
     </div>
@@ -76,7 +77,7 @@ export function PaymentGatewayPage({locale}:{locale:Locale}){
      <div className="ek-pg-route-connector" aria-hidden="true"/>
      <div className="ek-pg-route-node"><span className="ek-pg-route-icon">⌁</span><div><strong>{bn?"কাস্টমার পেমেন্ট":"Customer checkout"}</strong><small>{bn?"বিকাশ, নগদ বা রকেট দিয়ে":"Pay with a supported wallet"}</small></div></div>
      <div className="ek-pg-route-connector" aria-hidden="true"/>
-     <div className="ek-pg-route-node"><span className="ek-pg-route-icon">✓</span><div><strong>{bn?"পেমেন্ট যাচাই ও আপডেট":"Receipt review and status"}</strong><small>{bn?"ড্যাশবোর্ড · ওয়েবহুক":"Dashboard · Webhook"}</small></div></div>
+     <div className="ek-pg-route-node"><span className="ek-pg-route-icon">✓</span><div><strong>{bn?"পেমেন্ট যাচাই ও আপডেট":"Receipt verification and status"}</strong><small>{bn?"ড্যাশবোর্ড · ওয়েবহুক":"Dashboard · Webhook"}</small></div></div>
      <span className="ek-pg-route-note">{bn?"পেমেন্ট প্রক্রিয়ার নমুনা":"Illustrative process · Not a live transaction"}</span>
     </div>
    </div>
@@ -100,16 +101,16 @@ export function PaymentGatewayPage({locale}:{locale:Locale}){
    </div>
   </div></section>
   <section id="payment-features" className="ek-public-section ek-benefits-section"><div className="ek-public-wrap"><EmSectionTitle eyebrow={t.backendKicker} title={t.backendTitle} marked={t.backendMarked}/>
-   <div className="ek-public-benefits">{benefits.map((card,i)=><article key={card.index} className={"ek-public-benefit benefit-"+i}><div className="ek-benefit-symbol">{card.tag}</div><span className="ek-benefit-count">{card.index}</span><h3>{card.label[locale]}</h3><p>{card.body[locale]}</p></article>)}</div>
+   <div className="ek-public-benefits">{benefits.map((card,i)=><article key={card.index} className={"ek-public-benefit benefit-"+i}><div className="ek-benefit-symbol">{card.tag}</div><h3>{card.label[locale]}</h3><p>{card.body[locale]}</p></article>)}</div>
   </div></section>
   <section id="payment-audiences" className="ek-public-section ek-audience-section"><div className="ek-public-wrap"><EmSectionTitle eyebrow={t.forLabel} title={t.forTitle} marked={t.forMarked}/>
-   <div className="ek-public-audiences">{audiences.map((item,i)=><article key={item.title.en}><span>0{i+1} — EKMIVO</span><h3>{item.title[locale]}</h3><p>{item.body[locale]}</p></article>)}</div>
+   <div className="ek-public-audiences">{audiences.map(item=><article key={item.title.en}><span>EKMIVO</span><h3>{item.title[locale]}</h3><p>{item.body[locale]}</p></article>)}</div>
   </div></section>
   <section id="payment-questions" className="ek-public-section ek-public-faq"><div className="ek-public-wrap ek-faq-layout"><EmSectionTitle eyebrow={t.faqKicker} title={t.faqTitle} marked={t.faqMarked}/>
-   <div className="ek-public-questions">{faqs.map((item,i)=><details key={i}><summary><span>0{i+1}</span>{item.q[locale]}<b aria-hidden="true">+</b></summary><p>{item.a[locale]}</p></details>)}</div>
+   <div className="ek-public-questions">{faqs.map((item,i)=><details key={i}><summary>{item.q[locale]}<b aria-hidden="true">+</b></summary><p>{item.a[locale]}</p></details>)}</div>
   </div></section>
-  <section className="ek-pg-finish"><div className="ek-public-wrap"><div><span className="ek-public-kicker">{t.endKicker}</span><h2>{bn?"আপনার ব্যবসায় Ekmivo ব্যবহার করুন":"Bring payments into your workflow"}</h2><p>{t.endBody}</p></div><Link href={"/"+locale+"/register"} className="ek-public-action">{t.endButton}<span aria-hidden="true">↗</span></Link></div></section>
- </main>;
+  <section className="ek-pg-finish"><div className="ek-public-wrap"><div><span className="ek-public-kicker">{t.endKicker}</span><h2>{bn?"আপনার ব্যবসায় Ekmivo ব্যবহার করুন":"Bring payments into your workflow"}</h2><p>{t.endBody}</p></div><Link href="/register" className="ek-public-action">{t.endButton}<span aria-hidden="true">↗</span></Link></div></section>
+ </main></PublicMotion>;
 }
 
 type ComingSlug="ai-bot"|"pricing"|"developers";
@@ -144,7 +145,7 @@ export function ComingSoonPage({locale,kind}:{locale:Locale;kind:ComingSlug}){
  const t=upcoming[kind][locale],bn=locale==="bn";
  if(kind==="ai-bot")return <main className="ek-product-page ek-public-interior ek-ai-interior" lang={locale}>
   <div className="ek-interior-wrap">
-   <div className="ek-interior-topline"><Link href={"/"+locale}>ekmivo</Link><span>/</span><strong>AI Bot</strong><span className="ek-interior-label">{bn?"তৈরি হচ্ছে":"IN DEVELOPMENT"}</span></div>
+   <div className="ek-interior-topline"><Link href="/">ekmivo</Link><span>/</span><strong>AI Bot</strong><span className="ek-interior-label">{bn?"তৈরি হচ্ছে":"IN DEVELOPMENT"}</span></div>
    <div className="ek-ai-layout">
     <aside className="ek-ai-aside" aria-label={bn?"বর্তমান অবস্থা":"Current status"}>
      <div className="ek-ai-aside-index">02 / EKMIVO</div>
@@ -160,27 +161,27 @@ export function ComingSoonPage({locale,kind}:{locale:Locale;kind:ComingSlug}){
       {t.items.map(([title,body],i)=><article key={title} className="ek-ai-roadmap-row"><span className="ek-ai-roadmap-number">0{i+1}</span><div><h2>{title}</h2><p>{body}</p></div><span className="ek-ai-roadmap-icon" aria-hidden="true">↗</span></article>)}
      </div>
      <p className="ek-ai-status-note">{t.availability}</p>
-     <Link href={"/"+locale} className="ek-ai-back">← {t.back}</Link>
+     <Link href="/" className="ek-ai-back">← {t.back}</Link>
     </div>
    </div>
   </div>
  </main>;
  if(kind==="pricing")return <main className="ek-product-page ek-public-interior ek-price-interior" lang={locale}>
   <div className="ek-interior-wrap">
-   <div className="ek-interior-topline"><Link href={"/"+locale}>ekmivo</Link><span>/</span><strong>Pricing</strong></div>
+   <div className="ek-interior-topline"><Link href="/">ekmivo</Link><span>/</span><strong>Pricing</strong></div>
    <div className="ek-price-heading"><div><span className="ek-interior-overline">{bn?"মূল্য ও প্যাকেজ":"PLANS & BILLING"}</span><h1>{bn?"প্যাকেজের দাম এখনো চূড়ান্ত হয়নি":"Pricing is being prepared."}</h1><p>{t.body}</p></div><span className="ek-price-badge">{bn?"এখনো প্রকাশ করা হয়নি":"COMING LATER"}</span></div>
    <div className="ek-price-panel-grid">
     <section className="ek-price-plan"><div className="ek-price-plan-head"><span>01</span><strong>Payment Gateway</strong></div><div className="ek-price-unavailable">—<small>{bn?"দাম ঘোষণা হয়নি":"NOT ANNOUNCED"}</small></div><p>{bn?"পেমেন্ট লিংক, ইনভয়েস ও চেকআউটের দাম এবং প্যাকেজ পরে জানানো হবে।":"Pricing for checkout, payment requests and integrations will be announced here."}</p><span className="ek-price-plan-foot">{bn?"দাম পরে জানানো হবে":"PRICES & LIMITS PENDING"}</span></section>
     <section className="ek-price-plan"><div className="ek-price-plan-head"><span>02</span><strong>AI Bot</strong></div><div className="ek-price-unavailable">—<small>{bn?"এখনো নির্ধারিত হয়নি":"NOT ANNOUNCED"}</small></div><p>{bn?"AI Bot চালু হওয়ার আগে এর প্যাকেজ ঘোষণা করা হবে না।":"AI Bot plans will be introduced when its scope and availability are confirmed."}</p><span className="ek-price-plan-foot">{bn?"AI Bot এখনো চালু হয়নি":"SERVICE IN DEVELOPMENT"}</span></section>
    </div>
    <div className="ek-price-note"><span aria-hidden="true">ⓘ</span><p>{t.availability} {bn?"দাম বা ব্যবহারের সীমা সম্পর্কে এখনো কোনো ঘোষণা দেওয়া হয়নি।":"No pricing tiers or usage limits are being represented as final."}</p></div>
-   <Link className="ek-ai-back" href={"/"+locale+"/payment-gateway"}>{bn?"Payment Gateway সম্পর্কে জানুন":"Explore Payment Gateway"} ↗</Link>
+   <Link className="ek-ai-back" href="/payment-gateway">{bn?"Payment Gateway সম্পর্কে জানুন":"Explore Payment Gateway"} ↗</Link>
   </div>
  </main>;
  return <main className="ek-product-page ek-public-interior ek-dev-interior" lang={locale}>
   <div className="ek-dev-layout">
    <aside className="ek-dev-sidebar">
-    <Link className="ek-dev-home" href={"/"+locale}>← ekmivo</Link>
+    <Link className="ek-dev-home" href="/">← ekmivo</Link>
     <div className="ek-dev-sidebar-title">DEVELOPERS <span>↗</span></div>
     <nav aria-label={bn?"ডেভেলপার পোর্টাল":"Developer navigation"}>
      <span>{bn?"শুরু করুন":"GETTING STARTED"}</span>
@@ -191,7 +192,7 @@ export function ComingSoonPage({locale,kind}:{locale:Locale;kind:ComingSlug}){
     <div className="ek-dev-sidebar-foot">{bn?"ডকুমেন্টেশন তৈরি হচ্ছে":"DOCUMENTATION IN PREPARATION"}</div>
    </aside>
    <div className="ek-dev-main">
-    <div className="ek-dev-breadcrumb"><Link href={"/"+locale}>Ekmivo</Link><span>/</span>Developers <span>/</span> Overview</div>
+    <div className="ek-dev-breadcrumb"><Link href="/">Ekmivo</Link><span>/</span>Developers <span>/</span> Overview</div>
     <header id="dev-overview" className="ek-dev-article-head">
      <div className="ek-dev-doc-icon" aria-hidden="true">&lt;/&gt;</div>
      <span className="ek-interior-overline">DEVELOPER HUB · PREVIEW</span>

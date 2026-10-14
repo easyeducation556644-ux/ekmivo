@@ -6,20 +6,20 @@ import {siteCopy,type Locale} from "../lib/site-copy";
 export function SiteFooter({locale}:{locale:Locale}){
  const pathname=usePathname();
  const path=(pathname||"/").replace(/^\/(bn|en)(?=\/|$)/,"")||"/";
- if(/^\/(?:workspaces|w|account|admin|login|register|forgot-password|verify-email)(?:\/|$)/.test(path))return null;
+ if(/^\/(?:workspaces|w|account|admin|login|register|forgot-password|verify-email|pay|checkout|receipt|invoice)(?:\/|$)/.test(path))return null;
  const t=siteCopy[locale];
  return <footer className="site-footer ek-public-footer">
   <div className="footer-inner">
-   <div className="footer-main"><Link className="footer-brand" href={`/${locale}`}>ekmivo<span>.</span></Link><p>{t.footerLine}</p></div>
+   <div className="footer-main"><Link className="footer-brand" href="/">ekmivo<span>.</span></Link><p>{t.footerLine}</p></div>
    <nav aria-label={locale==="bn"?"ফুটার মেনু":"Footer navigation"}>
-    <Link href={`/${locale}/payment-gateway`}>Payment Gateway</Link>
-    <Link href={`/${locale}/ai-bot`}>AI Bot</Link>
-    <Link href={`/${locale}/pricing`}>Pricing</Link>
-    <Link href={`/${locale}/developers`}>Developers</Link>
-    <Link href={`/${locale}/login`}>{t.login}</Link>
-    <Link href={`/${locale}/register`}>{t.register}</Link>
+    <Link href="/payment-gateway">Payment Gateway</Link>
+    <Link href="/ai-bot">AI Bot</Link>
+    <Link href="/pricing">Pricing</Link>
+    <Link href="/developers">Developers</Link>
+    <Link href="/login">{t.login}</Link>
+    <Link href="/register">{t.register}</Link>
    </nav>
-   <div className="footer-bottom"><span>© {new Date().getFullYear()} Ekmivo. {t.rights}</span><Link href={`/${locale}/status`}>{locale==="bn"?"সেবার অবস্থা":"Service status"}</Link></div>
+   <div className="footer-bottom"><span>© {new Date().getFullYear()} Ekmivo. {t.rights}</span><Link href="/status">{locale==="bn"?"সেবার অবস্থা":"Service status"}</Link></div>
   </div>
  </footer>;
 }

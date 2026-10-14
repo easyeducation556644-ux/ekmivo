@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: { params: Promise<{locale:str
  return {title,description,openGraph:{title,description,type:"website",siteName:"Ekmivo"}};
 }
 
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "../../components/site-header";
 import { SiteFooter } from "../../components/site-footer";
@@ -22,9 +22,8 @@ export default async function LocaleLayout({ children, params }: { children: Rea
   const jar=await cookies();
   const storedTheme = jar.get("ekmivo-theme")?.value;
   const initialTheme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : "system";
-  const routeHeaders=await headers();
-  const standalone=routeHeaders.get("x-ekmivo-application")==="1" || routeHeaders.get("x-ekmivo-auth-page")==="1";
-  if(standalone) return <>{children}</>;
+  // Always retain the chrome components. They decide visibility from the current
+  // client pathname; a retained layout must not omit the header after navigation.
   // A temporary auth-store outage must not take down the public marketing site.
   let user:Awaited<ReturnType<typeof currentUser>>=null;
   if(jar.has("ekmivo-session")){
