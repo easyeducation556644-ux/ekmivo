@@ -129,3 +129,78 @@
    shell top whitespace only on this route. */
 .ds-content:has(> .er-reports){padding-top:11px;padding-bottom:24px}
 @media(max-width:800px){.ds-content:has(> .er-reports){padding-top:9px;padding-bottom:18px}}
+
+
+/* Reports = analytical workbench; Overview alone owns operational KPI tiles. */
+.er-period-analysis{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(230px,.9fr);gap:14px;align-items:stretch;border:1px solid var(--color-border);border-radius:var(--radius-panel);background:var(--color-surface);padding:18px 20px;min-width:0}
+.er-analysis-total{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:7px;min-width:0}
+.er-eyebrow{font-size:10px;line-height:1.35;letter-spacing:.06em;font-weight:700;color:var(--color-text-secondary)}
+.er-analysis-total>strong{font-size:clamp(29px,3vw,44px);font-weight:650;letter-spacing:-.035em;line-height:1.12;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.er-analysis-context{font-size:12px;color:var(--color-text-secondary)}
+.er-analysis-metrics{display:grid;gap:9px;border-inline-start:1px solid var(--color-border);padding-inline-start:18px;min-width:0}
+.er-analysis-metrics>div{display:grid;gap:4px}
+.er-analysis-metrics>div>span{font-size:11px;color:var(--color-text-secondary)}
+.er-analysis-metrics>div>strong{font-size:18px;line-height:1.24;font-weight:650;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.er-comparison-toggle{display:flex;align-items:center;gap:9px;min-height:40px;font-size:12px;font-weight:600;cursor:pointer}
+.er-comparison-toggle input{width:17px;height:17px;accent-color:var(--color-primary)}
+.er-comparison-detail{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px;background:var(--color-surface-subtle);border-top:1px solid var(--color-border);margin:0 -20px -18px;padding:10px 20px;font-size:12px;color:var(--color-text-secondary)}
+.er-comparison-detail strong{color:var(--color-text);font-variant-numeric:tabular-nums}
+.er-analysis-grid{grid-template-columns:minmax(0,2fr) minmax(240px,1fr)}
+.er-trend .er-card-heading>div:first-child,.er-methods .er-card-heading>div:first-child{display:grid;gap:4px;min-width:0}
+.er-trend .er-card-heading>div:first-child span,.er-methods .er-card-heading>div:first-child span{font-size:11px;color:var(--color-text-muted)}
+.er-grain-toggle{display:flex;gap:2px;border:1px solid var(--color-border);padding:3px;border-radius:var(--radius-control);flex-shrink:0}
+.er-grain-toggle button{min-height:32px;padding:5px 10px;border:0;border-radius:4px;background:transparent;color:var(--color-text-secondary);cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap}
+.er-grain-toggle button[aria-pressed=true]{background:var(--color-primary-soft);color:var(--color-text)}
+.er-trend .er-trend-bars{height:215px;gap:6px;min-width:100%;padding-top:18px}
+.er-trend .er-trend-day{flex:1 0 33px;min-width:30px;gap:6px}
+.er-trend .er-trend-track{background:var(--color-surface-subtle)}
+.er-trend .er-trend-track>i{background:var(--color-primary)}
+.er-trend .er-trend-day>span{font-size:10px}
+.er-trend-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--color-border);margin-top:9px;padding-top:9px}
+.er-trend-footer span{font-size:11px;color:var(--color-text-secondary)}
+.er-trend-footer button{border:0;background:transparent;color:var(--color-text);font-size:11px;font-weight:650;cursor:pointer}
+.er-methods .er-method-bars{gap:17px;margin-top:16px}
+.er-method-line{gap:6px}
+.er-method-line small{font-size:10px;color:var(--color-text-secondary)}
+.er-allocation-analysis{display:grid;gap:13px;min-width:0;padding:14px 16px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-panel)}
+.er-allocation-head{display:flex;align-items:center;justify-content:space-between;gap:15px}
+.er-allocation-head>div{display:grid;gap:4px}
+.er-allocation-head h2{margin:0;font-size:14px;font-weight:650}
+.er-allocation-head span{font-size:11px;color:var(--color-text-muted)}
+.er-allocation-head a{white-space:nowrap;font-size:12px;text-decoration:none;color:var(--color-text);font-weight:600}
+.er-allocation-bar{height:9px;background:var(--color-surface-subtle);border:1px solid var(--color-border);border-radius:5px;overflow:hidden}
+.er-allocation-bar>i{height:100%;display:block;background:var(--color-primary)}
+.er-allocation-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.er-allocation-values>div{display:grid;gap:4px;min-width:0}
+.er-allocation-values>div:not(:first-child){border-inline-start:1px solid var(--color-border);padding-inline-start:14px}
+.er-allocation-values span{font-size:11px;color:var(--color-text-secondary)}
+.er-allocation-values strong{font-size:16px;font-weight:650;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+@media(max-width:900px){
+ .er-period-analysis{grid-template-columns:minmax(0,1fr) minmax(205px,.9fr)}
+ .er-analysis-grid{grid-template-columns:minmax(0,1.45fr) minmax(200px,1fr)}
+}
+@media(max-width:740px){
+ .er-period-analysis{grid-template-columns:1fr;padding:15px}
+ .er-analysis-metrics{grid-template-columns:repeat(2,minmax(0,1fr));border-inline-start:0;border-top:1px solid var(--color-border);padding:12px 0 0}
+ .er-comparison-toggle{grid-column:1/-1}
+ .er-comparison-detail{margin:0 -15px -15px;padding:10px 15px}
+ .er-analysis-grid{grid-template-columns:1fr}
+ .er-allocation-values{grid-template-columns:1fr;gap:9px}
+ .er-allocation-values>div{grid-template-columns:1fr 1fr;align-items:center}
+ .er-allocation-values>div:not(:first-child){border-inline-start:0;padding-inline-start:0;border-top:1px solid var(--color-border);padding-top:9px}
+ .er-allocation-values strong{text-align:end}
+ .er-trend .er-trend-bars{height:175px}
+ .er-grain-toggle button{min-height:44px}
+}
+@media(max-width:420px){
+ .er-analysis-total>strong{font-size:30px}
+ .er-analysis-metrics>div>strong{font-size:16px}
+ .er-period-analysis{gap:9px}
+ .er-allocation-head{flex-wrap:wrap}
+ .er-trend .er-trend-bars{height:150px}
+}
+@media print{
+ .er-comparison-toggle,.er-grain-toggle,.er-trend-footer button{display:none!important}
+ .er-period-analysis,.er-allocation-analysis{break-inside:avoid;background:#fff!important;border-color:#bbb!important}
+ .er-analysis-total>strong{color:#111!important}
+}
