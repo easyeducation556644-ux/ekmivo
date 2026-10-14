@@ -10,13 +10,14 @@ const metrics:[keyof Overview,string,string,string][]=[
  ["verified_minor","Verified volume","যাচাইকৃত টাকা","payments"],
  ["pending_requests","Pending requests","অপেক্ষমাণ রিকোয়েস্ট","requests"],
  ["unmatched_receipts","Receipt exceptions","Receipt সমস্যা","incoming"],
- ["online_devices","Online legacy sources","পুরোনো সংযুক্ত সোর্স","devices"],
+ ["online_devices","Online phones","সক্রিয় ফোন","devices"],
  ["failed_deliveries","Failed webhooks","ব্যর্থ ওয়বহুক","webhooks"]
 ];
 export function PaymentOverview({locale,workspaceId,environment}:{locale:Locale;workspaceId:string;environment:PaymentEnvironment}){
  const bn=locale==="bn";
  const [data,setData]=useState<Overview|null>(null),[recent,setRecent]=useState<Recent[]>([]);
  const [error,setError]=useState(""),[recentError,setRecentError]=useState(""),[loading,setLoading]=useState(true),[generation,setGeneration]=useState(0);
+ const [phoneCount,setPhoneCount]=useState<number|null>(null),[phoneCountError,setPhoneCountError]=useState(false);
  const root="/"+locale+"/w/"+workspaceId+"/payments";
  const href=(section:string,id="")=>root+"/"+section+(id?"/"+id:"")+"?env="+environment;
  const money=(n:number)=>new Intl.NumberFormat(bn?"bn-BD":"en-BD",{style:"currency",currency:"BDT"}).format(n/100);
@@ -31,9 +32,16 @@ export function PaymentOverview({locale,workspaceId,environment}:{locale:Locale;
    return payload.items;
   };
   let active=true;
-  void Promise.resolve().then(()=>{if(active){setLoading(true);setError("");setRecentError("");setData(null);setRecent([])}});
+  void Promise.resolve().then(()=>{if(active){setLoading(true);setError("");setRecentError("");setData(null);setRecent([]);setPhoneCount(null);setPhoneCountError(false)}});
   void read("overview").then(values=>{if(active)setData((values[0]||null) as Overview|null)}).catch(e=>{if(active&&!controller.signal.aborted)setError(e instanceof Error?e.message:"Source unavailable")}).finally(()=>{if(active)setLoading(false)});
   void read("payments").then(values=>{if(active)setRecent(values.slice(0,6) as Recent[])}).catch(e=>{if(active&&!controller.signal.aborted)setRecentError(e instanceof Error?e.message:"Recent payments unavailable")});
+  void fetch("/api/go/workspaces/"+workspaceId+"/phones"+query,{cache:"no-store",signal:controller.signal})
+   .then(async response=>{if(!response.ok)throw Error(String(response.status));const body=await response.json();if(!Array.isArray(body.items))throw Error("INVALID_DEVICE_RESULT");return body.items as {claimed_at?:string|null;revoked_at?:string|null;permission_ok?:boolean;heartbeat_at?:string|null}[]})
+   .then(phones=>{if(active){
+    const now=Date.now();setPhoneCount(phones.filter(p=>!!p.claimed_at&&!p.revoked_at&&p.permission_ok&&!!p.heartbeat_at&&now-Date.parse(p.heartbeat_at)<5*60000).length);setPhoneCountError(false)
+   }})
+   .catch(()=>{if(active&&!controller.signal.aborted){setPhoneCount(null);setPhoneCountError(true)}});
+
   return()=>{active=false;controller.abort()};
  },[workspaceId,environment,bn,generation]);
  const volume=data?.daily_volume||[],peak=Math.max(1,...volume.map(d=>Number(d.verified_minor)||0));
@@ -46,7 +54,7 @@ export function PaymentOverview({locale,workspaceId,environment}:{locale:Locale;
   {error?<div role="alert" className="pg-operation-error"><p>{error}</p><button onClick={()=>setGeneration(n=>n+1)}>{bn?"আবার চেষ্টা":"Retry"}</button></div>:
    <div className="ds-metrics" aria-busy={loading}>
     {metrics.map(([key,en,bengali,section])=><Link className="pg09-metric-link" key={key} href={href(section)}>
-     <article><span>{bn?bengali:en}</span><strong>{data?(key==="verified_minor"?money(Number(data[key])):new Intl.NumberFormat(bn?"bn-BD":"en-BD").format(Number(data[key]))):"—"}</strong>
+     <article><span>{bn?bengali:en}</span><strong>{data?(key==="verified_minor"?money(Number(data[key])):key==="online_devices"?(phoneCountError?"—":phoneCount===null?"—":new Intl.NumberFormat(bn?"bn-BD":"en-BD").format(phoneCount)):new Intl.NumberFormat(bn?"bn-BD":"en-BD").format(Number(data[key]))):"—"}</strong>
       <small>{data?(bn?"এই পরিবেশের server data":"Server data for this environment"):(bn?"লোড হচ্ছে…":"Loading…")}</small></article>
     </Link>)}
    </div>}
@@ -69,11 +77,11 @@ export function PaymentOverview({locale,workspaceId,environment}:{locale:Locale;
     {data.unmatched_receipts>0&&<Link href={href("incoming")}>{bn?`${data.unmatched_receipts}টি receipt-এর অমিল যাচাই করুন`:`Review ${data.unmatched_receipts} receipt exceptions`}</Link>}
     {data.failed_deliveries>0&&<Link href={href("webhooks")}>{bn?`${data.failed_deliveries}টি failed webhook দেখুন`:`Investigate ${data.failed_deliveries} failed webhooks`}</Link>}
     {data.pending_requests>0&&<Link href={href("requests")}>{bn?`${data.pending_requests}টি অপেক্ষমাণ request দেখুন`:`Review ${data.pending_requests} pending requests`}</Link>}
-    {data.online_devices===0&&<Link href={href("devices")}>{bn?"সংযুক্ত ফোনের heartbeat যাচাই করুন":"Check paired-phone connection and heartbeat"}</Link>}
+    {(phoneCount===0||phoneCountError)&&<Link href={href("devices")}>{bn?"সংযুক্ত ফোনের heartbeat যাচাই করুন":"Check paired-phone connection and heartbeat"}</Link>}
    </div>
-   {data.unmatched_receipts===0&&data.failed_deliveries===0&&data.pending_requests===0&&data.online_devices>0&&
+   {data.unmatched_receipts===0&&data.failed_deliveries===0&&data.pending_requests===0&&phoneCount!==null&&phoneCount>0&&
      <p>{bn?"বর্তমান সারাংশে জরুরি receipt বা webhook সমস্যা নেই।":"No receipt exceptions or failed webhooks in the current overview."}</p>}
-   <small>{bn?"ফোনের প্রকৃত অবস্থা SMS devices পেজে দেখুন; পুরোনো সোর্সের সংখ্যা physical-phone count নয়।":"Check actual handset status in SMS devices; the legacy-source metric is not a physical-phone count."}</small>
+   <small>{bn?"SMS devices-এর server data থেকে সক্রিয় ফোনের হিসাব নেওয়া হয়েছে; source unavailable হলে শূন্য না দেখিয়ে — দেখানো হবে।":"Online phones are counted from the paired-device endpoint. An unavailable source shows —, not zero."}</small>
   </section>}
   <section className="ds-panel">
    <h2>{bn?"যাচাই ও সেটআপ":"Verification and setup"}</h2>
