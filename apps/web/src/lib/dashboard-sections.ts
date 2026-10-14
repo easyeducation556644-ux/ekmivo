@@ -34,7 +34,7 @@ export const sections={
  invoices:{en:"Invoices",bn:"ইনভয়েস",detail:{en:"Customer invoices, receipts and statements.",bn:"ইনভয়েস, রসিদ ও হিসাবের বিবরণ।"},group:"commerce"},
  gateways:{en:"Payment methods",bn:"পেমেন্ট মাধ্যম",detail:{en:"Configure eligible payment adapters and merchant accounts.",bn:"অনুমোদিত payment adapter ও merchant account সংযুক্ত করুন।"},group:"commerce"},
  devices:{en:"SMS devices",bn:"SMS ডিভাইস",detail:{en:"Android bridge pairing and receipt source health.",bn:"Android bridge সংযোগ ও SMS receipt source health।"},group:"commerce"},
- reconciliation:{en:"Reconciliation",bn:"হিসাব মিলানো",detail:{en:"Unique receipt matching, exceptions and audit trails.",bn:"লেনদেনের একক মিল, সমস্যা ও অডিট হিস্ট্রি।"},group:"commerce"},
+ reconciliation:{en:"Statements & settlement",bn:"স্টেটমেন্ট ও সেটেলমেন্ট",detail:{en:"Import merchant statements and associate existing verified payments; SMS receipt exceptions are in Incoming Receipts.",bn:"স্টেটমেন্ট import এবং যাচাইকৃত পেমেন্টের সঙ্গে মিল করুন; SMS receipt-এর সমস্যা Incoming Receipts-এ।"},group:"commerce"},
  shipping:{en:"Delivery & courier",bn:"ডেলিভারি ও কুরিয়ার",detail:{en:"Courier booking and delivery status.",bn:"কুরিয়ার বুকিং ও ডেলিভারি স্ট্যাটাস।"},group:"commerce"},
  developers:{en:"Developers",bn:"ডেভেলপার",detail:{en:"API keys, signed webhooks and integration docs.",bn:"API key, signed webhook ও integration docs।"},group:"commerce"},
  reports:{en:"Reports",bn:"রিপোর্ট",detail:{en:"Operations analytics and exports once activity begins.",bn:"কার্যক্রম চালু হলে রিপোর্ট ও export এখানে থাকবে।"},group:"common"},

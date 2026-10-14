@@ -11,9 +11,10 @@ type Phone={
 type Props={locale:Locale;workspaceId:string;environment:PaymentEnvironment;canManage:boolean;detailId?:string};
 function status(p:Phone,bn:boolean){
  if(!p.claimed_at)return bn?"পেয়ারিংয়ের অপেক্ষা":"Waiting for pairing";
- if(!p.permission_ok)return bn?"SMS অনুমতি প্রয়োজন":"SMS access required";
- if(!p.heartbeat_at||Date.now()-Date.parse(p.heartbeat_at)>20*60*1000)
+ if(!p.heartbeat_at)return bn?"প্রথম সার্ভার সিঙ্কের অপেক্ষায়":"Waiting for first server sync";
+ if(Date.now()-Date.parse(p.heartbeat_at)>20*60*1000)
   return bn?"সিঙ্ক বন্ধ / অফলাইন":"Sync delayed / offline";
+ if(!p.permission_ok)return bn?"SMS অনুমতি প্রয়োজন":"SMS access required";
  return bn?"সক্রিয়":"Online";
 }
 function pairingQr(token:string){
@@ -74,7 +75,12 @@ export function PaymentPhoneManagement({locale,workspaceId,environment,canManage
     method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)
    });
    const json=await response.json();
-   if(!response.ok)throw Error(json.error?.code||json.code||String(response.status));
+   if(!response.ok){
+    const code=json.error?.code||json.code||String(response.status);
+    if(code==="PHONE_PROJECTION_STALE")
+     throw Error(t("Server authorization sync is pending. Keep the existing phone; do not pair again.","সার্ভারের অনুমতি sync হয়নি। আগের ফোনটি রাখুন, আবার pair করবেন না।"));
+    throw Error(code);
+   }
    await refresh(true);
    return json;
   }catch(e){setError(t("Could not complete the action: ","কাজটি করা যায়নি: ")+String(e));return null}
