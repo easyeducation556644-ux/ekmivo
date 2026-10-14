@@ -25,6 +25,7 @@ export function PaymentRefunds({locale,workspaceId,environment,canManage,detailI
   finally{if(!signal.aborted)setLoading(false)}
  },[base,detailId,environment,status,cursor,bn]);
  useEffect(()=>{const c=new AbortController();void load(c.signal);return()=>c.abort()},[load,nonce]);
+ useEffect(()=>{if(!selected)return;const onEscape=(e:KeyboardEvent)=>{if(e.key==="Escape"&&!busy)setSelected(null)};window.addEventListener("keydown",onEscape);return()=>window.removeEventListener("keydown",onEscape)},[selected,busy]);
  const eligible=(row:Row)=>canManage&&!["rejected","cancelled","seller_reported_returned"].includes(row.status);
  const choose=(row:Row)=>{setSelected(row);setAction(row.status==="approved"?"report-returned":row.status==="reviewing"?"approve":"review");setNote("");setReference("");setConfirmed(false);setError("");};
  const operations=(row:Row):Action[]=>row.status==="approved"?["report-returned"]:row.status==="reviewing"?["approve","reject"]:["review","approve","reject","cancel"];
@@ -45,7 +46,7 @@ export function PaymentRefunds({locale,workspaceId,environment,canManage,detailI
   {error&&<div className="rf-error" role="alert">{error}<button type="button" onClick={()=>setNonce(n=>n+1)}>{t("Retry","আবার চেষ্টা")}</button></div>}
   {loading?<div className="rf-empty" role="status">{t("Loading refunds…","রিফান্ড লোড হচ্ছে…")}</div>:!error&&!items.length?<div className="rf-empty"><strong>{t("No refund requests","কোনো রিফান্ড অনুরোধ নেই")}</strong><p>{t("Requests appear here when received or when a late verified receipt needs seller review.","গ্রাহকের অনুরোধ বা দেরিতে পাওয়া রসিদের ক্ষেত্রে এখানে দেখাবে।")}</p></div>:<div className="rf-records">{items.map(row=><article className="rf-card" key={row.id}>
    <div className="rf-card-top"><div><strong>{money(row.amount_minor)}</strong><span className="rf-badge" data-status={row.status}>{name(row.status)}</span></div><time>{date(row.created_at)}</time></div>
-   <div className="rf-card-grid"><div><span>{t("Sender / customer","প্রেরক / গ্রাহক")}</span><strong>{row.customer?.phone||row.customer?.name||"—"}</strong>{row.customer?.email&&<small>{row.customer.email}</small>}</div>
+   <div className="rf-card-grid"><div><span>{t("Contact on refund request","রিফান্ড অনুরোধের যোগাযোগ")}</span><strong>{row.customer?.phone||row.customer?.name||"—"}</strong>{row.customer?.email&&<small>{row.customer.email}</small>}</div>
     <div><span>{t("Related payment","সংশ্লিষ্ট পেমেন্ট")}</span><strong>{row.payment_id?row.payment_id.slice(0,12):row.source_intent_id?row.source_intent_id.slice(0,12):"—"}</strong></div>
     <div><span>{t("Source","উৎস")}</span><strong>{row.source_observation_id?t("Late receipt","দেরিতে পাওয়া রসিদ"):t("Customer request","গ্রাহকের অনুরোধ")}</strong></div>
    </div>
@@ -53,7 +54,7 @@ export function PaymentRefunds({locale,workspaceId,environment,canManage,detailI
    {row.seller_reference&&<p className="rf-proof">{t("Seller return reference","ফেরতের রেফারেন্স")}: {row.seller_reference}</p>}
   </article>)}</div>}
   {!detailId&&<div className="rf-page-nav"><button type="button" disabled={!cursor||loading||busy} onClick={()=>setCursor("")}>{t("First page","প্রথম পাতা")}</button><button type="button" disabled={!next||loading||busy} onClick={()=>setCursor(next??"")}>{t("Next page","পরের পাতা")}</button></div>}
-  {selected&&<div className="rf-action-backdrop"><form className="rf-action-panel" onSubmit={submit} aria-label={t("Seller refund decision","বিক্রেতার রিফান্ড সিদ্ধান্ত")}>
+  {selected&&<div className="rf-action-backdrop"><form className="rf-action-panel" role="dialog" aria-modal="true" onSubmit={submit} aria-label={t("Seller refund decision","বিক্রেতার রিফান্ড সিদ্ধান্ত")}>
    <div className="rf-action-head"><div><h2>{t("Review refund","রিফান্ড পর্যালোচনা")}</h2><strong>{money(selected.amount_minor)}</strong></div><button type="button" disabled={busy} onClick={()=>setSelected(null)} aria-label={t("Close","বন্ধ করুন")}>✕</button></div>
    <label>{t("Decision","সিদ্ধান্ত")}<select value={action} onChange={e=>setAction(e.target.value as Action)}>{operations(selected).map(op=><option key={op} value={op}>{op==="report-returned"?t("Mark seller-reported returned","বিক্রেতার ফেরত রিপোর্ট করুন"):op==="review"?t("Review","পর্যালোচনা"):op==="approve"?t("Approve","অনুমোদন"):op==="reject"?t("Reject","প্রত্যাখ্যান"):t("Cancel","বাতিল")}</option>)}</select></label>
    <label>{t("Seller note","বিক্রেতার মন্তব্য")}<textarea required minLength={10} maxLength={2000} value={note} onChange={e=>setNote(e.target.value)} placeholder={t("Explain your decision","সিদ্ধান্তের কারণ লিখুন")}/></label>
