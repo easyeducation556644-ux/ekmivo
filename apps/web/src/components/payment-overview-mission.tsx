@@ -42,7 +42,7 @@ function isValidPayment(item:unknown):item is Payment{
 }
 async function read<T>(path:string,signal:AbortSignal):Promise<Read<T>>{
  try{
-  const response=await fetch(path,{cache:"no-store",credentials:"same-origin",signal});
+  const response=await fetch(path,{cache:"no-store",credentials:"same-origin",signal:AbortSignal.any([signal,AbortSignal.timeout(30000)])});
   if(!response.ok)throw Error(String(response.status));
   const data:unknown=await response.json();
   if(!object(data))throw Error("INVALID_DATA");
@@ -186,7 +186,7 @@ export function PaymentOverviewMission({locale,workspaceId,environment,canManage
    {showSteps&&<div className="em-completed-steps">{tasks.map(step=><Link key={step.id} href={go(step.target)}><span aria-hidden="true">{step.ok===true?"✓":step.ok===false?"○":"—"}</span>{t(step.en,step.bn)}</Link>)}</div>}
    {incompleteSource&&<p className="em-source-warning" role="status">{t("Some figures are unavailable. A dash means no verified source, not zero.","কিছু তথ্য পাওয়া যাচ্ছে না। ড্যাশ (—) মানে অজানা, শূন্য নয়।")}</p>}
    <div className="em-kpis">
-    <Link href={go("payments")} className="em-kpi"><span>{t("Verified volume","যাচাইকৃত মোট টাকা")}</span><strong>{moneyOrDash(overview?.verified_minor)}</strong><small>{t("Server-verified · not settlement","সার্ভারে যাচাইকৃত · settlement নয়")}</small></Link>
+    <Link href={go("payments")} className="em-kpi"><span>{t("Verified volume","যাচাইকৃত পেমেন্ট")}</span><strong>{moneyOrDash(overview?.verified_minor)}</strong><small>{t("Server-verified · not settlement","সার্ভারে যাচাইকৃত · settlement নয়")}</small></Link>
     <Link href={go("payments")} className="em-kpi"><span>{t("Recent verified","সাম্প্রতিক যাচাইকৃত")}</span><strong>{verified===null?"—":verified.length+(payments.value?.next_cursor?"+":"")}</strong><small>{t("Recent records, not lifetime total","সাম্প্রতিক রেকর্ড, মোট সংখ্যা নয়")}</small></Link>
     <Link href={go("requests")} className="em-kpi"><span>{t("Pending requests","অপেক্ষমাণ রিকোয়েস্ট")}</span><strong>{count(overview?.pending_requests)}</strong><small>{t("Awaiting payer or verification","গ্রাহক বা যাচাইয়ের অপেক্ষায়")}</small></Link>
     <Link href={go("incoming")} className="em-kpi"><span>{t("Receipt exceptions","Receipt সমস্যা")}</span><strong>{count(overview?.unmatched_receipts)}</strong><small>{t("Needs review","যাচাই করা প্রয়োজন")}</small></Link>
