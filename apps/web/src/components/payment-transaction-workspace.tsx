@@ -3,8 +3,8 @@ import Link from "next/link";
 import {useCallback,useEffect,useMemo,useState} from "react";
 import type {Locale,PaymentEnvironment} from "../lib/dashboard-navigation";
 type Item={id:string;merchant_reference?:string;verified_amount_minor?:number;amount_minor?:number;method?:string;payer_suffix?:string;status?:string;reason?:string;parse_reason?:string;device_source?:string;original_transaction_at?:string;verified_at?:string;received_at?:string;webhook_status?:string;source_kind?:string;payment_id?:string};
-type Filters={q:string;status:string;method:string;from:string;to:string};
-const initial:Filters={q:"",status:"",method:"",from:"",to:""};
+type Filters={q:string;status:string;method:string;account:string;from:string;to:string};
+const initial:Filters={q:"",status:"",method:"",account:"",from:"",to:""};
 const statusLabels:Record<string,[string,string]>={verified:["Verified","যাচাইকৃত"],matched:["Matched","মিলেছে"],pending:["Pending","অপেক্ষমাণ"],unmatched:["Unmatched","মেলেনি"],ambiguous:["Ambiguous","একাধিক match"],invalid:["Invalid","অবৈধ"],duplicate:["Duplicate","ডুপ্লিকেট"],cancelled:["Cancelled","বাতিল"]};
 const dt=(v:string|undefined,locale:Locale)=>v&&!Number.isNaN(Date.parse(v))?new Intl.DateTimeFormat(locale==="bn"?"bn-BD":"en-BD",{timeZone:"Asia/Dhaka",dateStyle:"short",timeStyle:"short"}).format(new Date(v)):"—";
 const money=(v:number|undefined,locale:Locale)=>typeof v==="number"&&Number.isFinite(v)?new Intl.NumberFormat(locale==="bn"?"bn-BD":"en-BD",{style:"currency",currency:"BDT"}).format(v/100):"—";
@@ -18,12 +18,23 @@ export function PaymentTransactionWorkspace({locale,workspaceId,environment,reso
  const [loading,setLoading]=useState(true),[busy,setBusy]=useState<string|null>(null);
  const [error,setError]=useState(""),[notice,setNotice]=useState(""),[nonce,setNonce]=useState(0);
  const [filterError,setFilterError]=useState("");
+ const [accounts,setAccounts]=useState<{id:string;method?:string;display_suffix?:string}[]>([]);
+ const [accountError,setAccountError]=useState(false);
  const [online,setOnline]=useState(true);
  useEffect(()=>{const fn=()=>setOnline(navigator.onLine);fn();window.addEventListener("online",fn);window.addEventListener("offline",fn);return()=>{window.removeEventListener("online",fn);window.removeEventListener("offline",fn)}},[]);
+ useEffect(()=>{
+  const controller=new AbortController();
+  void fetch(base+"gateways?environment="+encodeURIComponent(environment),{cache:"no-store",credentials:"same-origin",signal:controller.signal})
+   .then(async response=>{if(!response.ok)throw Error(String(response.status));return response.json()})
+   .then(data=>{if(controller.signal.aborted)return;if(!Array.isArray(data.items))throw Error("INVALID_ACCOUNT_SOURCE");setAccounts(data.items.filter((a:unknown)=>!!a&&typeof a==="object"&&"id" in a&&typeof a.id==="string"));setAccountError(false)})
+   .catch(()=>{if(!controller.signal.aborted)setAccountError(true)});
+  return()=>controller.abort();
+ },[base,environment]);
  const url=useCallback((next?:string)=>{
   const q=new URLSearchParams({environment});
   for(const key of ["status","method"] as const)if(filters[key])q.set(key,filters[key]);
   if(filters.q.trim())q.set("q",filters.q.trim());
+  if(filters.account)q.set("account",filters.account);
   if(filters.from)q.set("from",dhakaUTC(filters.from));
   if(filters.to)q.set("to",dhakaUTC(filters.to));
   if(next)q.set("cursor",next);
@@ -58,7 +69,7 @@ export function PaymentTransactionWorkspace({locale,workspaceId,environment,reso
   }catch{setError(t("Recheck could not be confirmed.","পুনরায় যাচাই নিশ্চিত হয়নি।"))}finally{setBusy(null)}
  };
  const amountTotal=useMemo(()=>rows.reduce((sum,r)=>sum+(r.verified_amount_minor??r.amount_minor??0),0),[rows]);
- const hasFilter=Boolean(filters.q||filters.status||filters.method||filters.from||filters.to);
+ const hasFilter=Boolean(filters.q||filters.status||filters.method||filters.account||filters.from||filters.to);
  const apply=(e:React.FormEvent<HTMLFormElement>)=>{
   e.preventDefault();
   const from=dhakaUTC(draft.from),to=dhakaUTC(draft.to);
@@ -78,6 +89,7 @@ export function PaymentTransactionWorkspace({locale,workspaceId,environment,reso
    <label className="opw-search"><span>{t("Search","খুঁজুন")}</span><input value={draft.q} maxLength={96} onChange={e=>setDraft(v=>({...v,q:e.target.value}))} placeholder={incoming?t("Source or reason","উৎস বা কারণ"):t("Payment reference or payer suffix","রেফারেন্স বা নম্বরের শেষ অংশ")}/></label>
    <label><span>{t("Status","অবস্থা")}</span><select value={draft.status} onChange={e=>setDraft(v=>({...v,status:e.target.value}))}><option value="">{t("All statuses","সব অবস্থা")}</option>{statuses.map(x=><option key={x} value={x}>{statusName(x,bn)}</option>)}</select></label>
    <label><span>{t("Method","মাধ্যম")}</span><select value={draft.method} onChange={e=>setDraft(v=>({...v,method:e.target.value}))}><option value="">{t("All methods","সব মাধ্যম")}</option>{["bkash","nagad","rocket"].map(x=><option key={x} value={x}>{x==="bkash"?"bKash":x==="nagad"?"Nagad":"Rocket"}</option>)}</select></label>
+   <label><span>{t("Receiving account","অ্যাকাউন্ট")}</span><select value={draft.account} disabled={accountError} onChange={e=>setDraft(v=>({...v,account:e.target.value}))}><option value="">{t("All accounts","সব অ্যাকাউন্ট")}</option>{accounts.map(a=><option key={a.id} value={a.id}>{a.method||t("Account","অ্যাকাউন্ট")} · ••••{a.display_suffix||""}</option>)}</select></label>
    <div className="opw-filter-actions"><button type="submit" disabled={loading}>{t("Apply","প্রয়োগ")}</button><button type="button" onClick={()=>{setDraft(initial);setFilters(initial);setFilterError("");setNonce(n=>n+1)}}>{t("Reset","রিসেট")}</button></div>
    <details className="opw-dates"><summary>{t("Date range","তারিখ অনুযায়ী")}</summary><div><label><span>{t("From","শুরু")}</span><input type="datetime-local" value={draft.from} onChange={e=>setDraft(v=>({...v,from:e.target.value}))}/></label><label><span>{t("Until","শেষ")}</span><input type="datetime-local" value={draft.to} onChange={e=>setDraft(v=>({...v,to:e.target.value}))}/></label></div></details>
   </form>
