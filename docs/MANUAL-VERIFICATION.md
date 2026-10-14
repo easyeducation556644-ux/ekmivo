@@ -1,3 +1,16 @@
+## Nagad compact payer entry & bKash BD number normalization — 2026-10-14 (manual / build pending)
+
+- [ ] Open actual checkout with Nagad selected, EN/BN, 320/375/390/desktop and small landscape viewport. Merchant, invoice, amount, 11 number boxes, consent and controls should fit the screen without duplicate white invoice header. Tiny viewport / keyboard may scroll inside the compact card.
+- [ ] Nagad digit boxes support typing and paste (local `01...`, `8801...`, `+8801...`, Bengali digits), show 11 local digits, and submit one canonical full `+8801...` number. Close must navigate away without cancelling/marking payment.
+- [ ] bKash input focus: no extra blue/black border or nested box shadow, visible keyboard focus via label. Incorrect operator/prefix/length or empty input shows immediate inline field error; valid local or international format succeeds.
+- [ ] Server POST /api/checkout/:token/lock refuses invalid BD number with HTTP 422 INVALID_PAYER_OR_METHOD; verified SMS payer HMAC matches canonical full number. Never accept OTP/TrxID as identity.
+- [ ] Check live/sandbox transaction verification, amount/window, expiry, double-send protection, safe cancellation, original phone-Forwarder behavior, and existing Rocket flow unchanged.
+- [ ] Go unit regression test in backend/internal/checkout/payer_number_format_test.go is committed but **not executed**. Standalone TypeScript helper compile and 14 cases passed. Vercel preview on reconciled SHA fb71ebd9 READY: Next build and TypeScript passed (dpl_C9z8rxr52d5CpoLXBpY2YvndGMo4); earlier manual 402 quota and JSX syntax error resolved for this preview. PR #54 remains DRAFT, main untouched.
+
+Evidence: docs/evidence/CHECKOUT-NAGAD-COMPACT-PAYER-NORMALIZATION-20261014.md
+
+---
+
 ## SMS Devices / QR / standalone checkout — 2026-10-14
 
 - [ ] On a consented Android phone, create one real pairing QR in SMS Devices, scan it using Ekmivo and finish app permission prompts. Verify the correct workspace/realm, recent heartbeat, and code disappearing after claim.
