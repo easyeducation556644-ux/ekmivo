@@ -22,7 +22,7 @@ type Report={
 type AccountOption={id:string;method:string;display_suffix:string};
 type Filters={from:string;to:string;account:string};
 type Preset="7"|"30"|"90"|"custom";
-type Section="methods"|"accounts"|"customers"|"refunds"|"statements"|"daily";
+type Section="payers"|"methods"|"accounts"|"customers"|"refunds"|"statements"|"daily";
 type ViewState={report:Report;filters:Filters};
 type CompareSnapshot={key:string;report:Report;from:string;to:string};
 function previousPeriod(filters:Filters):Filters|null{
@@ -37,7 +37,7 @@ function changePercent(current:number,previous:number):string|null{
  return (change>0?"+":"")+change.toFixed(1)+"%";
 }
 
-const sections:Section[]=["methods","accounts","customers","refunds","statements","daily"];
+const sections:Section[]=["payers","methods","accounts","customers","refunds","statements","daily"];
 const millis=86400000;
 function dhakaToday(){return new Date(Date.now()+6*3600000).toISOString().slice(0,10)}
 function startDate(end:string,days:number){return new Date(Date.parse(end+"T00:00:00Z")-(days-1)*millis).toISOString().slice(0,10)}
@@ -93,7 +93,7 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
  const [draft,setDraft]=useState<Filters>(defaults);
  const [applied,setApplied]=useState<Filters>(defaults);
  const [preset,setPreset]=useState<Preset>("30");
- const [section,setSection]=useState<Section>("methods");
+ const [section,setSection]=useState<Section>(canReveal?"payers":"methods");
  const [compare,setCompare]=useState(false);
  const [previous,setPrevious]=useState<CompareSnapshot|null>(null);
  const [compareLoading,setCompareLoading]=useState(false);
@@ -104,7 +104,7 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
  const root="/w/"+workspaceId+"/payments/";
  const applies=draft.from===applied.from&&draft.to===applied.to&&draft.account===applied.account;
  const pending=useMemo(()=>dateRange(draft),[draft]);
- const labels:Record<Section,string>={methods:t("Methods","মাধ্যম"),accounts:t("Accounts","অ্যাকাউন্ট"),customers:t("Customers","গ্রাহক"),refunds:t("Refunds","রিফান্ড"),statements:t("Statements","স্টেটমেন্ট"),daily:t("Daily","দৈনিক")};
+ const labels:Record<Section,string>={payers:t("Payers","প্রেরক"),methods:t("Methods","মাধ্যম"),accounts:t("Receiving accounts","গ্রহণকারী অ্যাকাউন্ট"),customers:t("Invoice customers","ইনভয়েসের গ্রাহক"),refunds:t("Refunds","রিফান্ড"),statements:t("Statements","স্টেটমেন্ট"),daily:t("Daily","দৈনিক")};
  const refundLabels:Record<string,string>={requested:t("Requested","অনুরোধ"),reviewing:t("In review","পর্যালোচনায়"),approved:t("Approved","অনুমোদিত"),rejected:t("Rejected","প্রত্যাখ্যাত"),seller_reported_returned:t("Seller reported returned","বিক্রেতার ফেরত রিপোর্ট"),cancelled:t("Cancelled","বাতিল")};
 
  useEffect(()=>{
@@ -206,8 +206,6 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
   {error&&<div className="er-error" role="alert"><span>{error}</span><button type="button" onClick={()=>setRefresh(n=>n+1)}>{t("Retry","আবার চেষ্টা")}</button></div>}
   {stale&&displayed&&<p className="er-inline-notice er-stale">{t("Displaying the previous successful report until new data loads.","নতুন তথ্য আসা পর্যন্ত আগের সফল রিপোর্ট দেখানো হচ্ছে।")}</p>}
   {!displayed&&!loading&&!error&&<section className="er-empty">{t("No report available yet.","এখনো রিপোর্ট পাওয়া যায়নি।")}</section>}
-  <PaymentReportLedger key={JSON.stringify([workspaceId,environment,applied.from,applied.to,applied.account,canReveal])}
-   locale={locale} workspaceId={workspaceId} environment={environment} period={applied} canReveal={canReveal}/>
   {displayed&&<div className="er-results" aria-busy={loading}>
    <div className="er-result-period"><span>{active.from} — {active.to}{active.account?" · "+t("Selected account","নির্বাচিত অ্যাকাউন্ট"):""}</span>{generated&&<span>{t("Updated","আপডেট")}: {generated}</span>}</div>
    <section className="er-period-analysis" aria-label={t("Period analysis","সময়সীমার বিশ্লেষণ")}>
@@ -236,19 +234,23 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
      <div><span>{t("Statement linked","স্টেটমেন্টে সংযুক্ত")}</span><strong>{cash(displayed.statement_links.amount_minor,locale)}</strong></div>
     </div>
    </section>
-   <section className="er-card er-details">
+  </div>}
+  <section className="er-card er-details">
     <div className="er-details-heading"><h2>{t("Detailed breakdown","বিস্তারিত হিসাব")}</h2><span>{t("BDT · verified amounts","BDT · যাচাইকৃত পরিমাণ")}</span></div>
     <div className="er-tabs" role="group" aria-label={t("Report breakdown","রিপোর্টের বিভাগ")}>
-     {sections.map(id=><button type="button" key={id} aria-pressed={section===id} onClick={()=>setSection(id)}>{labels[id]}</button>)}
+     {sections.filter(id=>id!=="payers"||canReveal).map(id=><button type="button" key={id} aria-pressed={section===id} onClick={()=>setSection(id)}>{labels[id]}</button>)}
     </div>
-    {section==="methods"&&<BreakdownTable locale={locale} headings={[t("Method","মাধ্যম"),t("Transactions","লেনদেন"),t("Verified amount","যাচাইকৃত টাকা")]} rows={displayed.methods.map(r=>[r.method,numeric(r.payment_count,locale),cash(r.amount_minor,locale)])} empty={t("No verified method transactions.","এই সময়ে মাধ্যমভিত্তিক লেনদেন নেই।")}/>}
-    {section==="accounts"&&<BreakdownTable locale={locale} headings={[t("Receiving account","গ্রহণকারী অ্যাকাউন্ট"),t("Transactions","লেনদেন"),t("Verified amount","যাচাইকৃত টাকা")]} rows={displayed.accounts.map(r=>[r.method+" ••••"+r.display_suffix,numeric(r.payment_count,locale),cash(r.amount_minor,locale)])} empty={t("No receiving-account payments.","গ্রহণকারী অ্যাকাউন্টে পেমেন্ট নেই।")}/>}
-    {section==="customers"&&<><BreakdownTable locale={locale} headings={[t("Invoice-linked customer","ইনভয়েস-সংযুক্ত গ্রাহক"),t("Payments","পেমেন্ট"),t("Allocated","বরাদ্দ")]} rows={displayed.customers.map(r=>[r.name||r.reference,numeric(r.payment_count,locale),cash(r.amount_minor,locale)])} empty={t("No invoice-linked customer payments.","ইনভয়েস-সংযুক্ত গ্রাহকের পেমেন্ট নেই।")}/><p className="er-fineprint">{t("Top 100 invoice-linked contacts; not necessarily the actual payer.","ইনভয়েস-সংযুক্ত সর্বোচ্চ ১০০ জন; তাঁরা প্রকৃত প্রেরক নাও হতে পারেন।")}</p></>}
-    {section==="refunds"&&<><BreakdownTable locale={locale} headings={[t("Status","অবস্থা"),t("Requests","অনুরোধ"),t("Amount","পরিমাণ")]} rows={displayed.refunds.map(r=>[refundLabels[r.status]||r.status,numeric(r.request_count,locale),cash(r.amount_minor,locale)])} empty={t("No refund requests in this period.","এই সময়ে রিফান্ড অনুরোধ নেই।")}/><p className="er-fineprint">{t("Refunds are managed by the seller. Reported returns are not provider-confirmed.","রিফান্ড বিক্রেতা পরিচালনা করেন। ফেরতের রিপোর্ট provider-যাচাইকৃত নয়।")}</p><Link className="er-detail-link" href={root+"refunds"}>{t("Manage refunds","রিফান্ড পরিচালনা করুন")} ↗</Link></>}
-    {section==="statements"&&<div className="er-statement-box"><span>{t("Merchant-imported statement links","বিক্রেতার স্টেটমেন্ট সংযোগ")}</span><strong>{cash(displayed.statement_links.amount_minor,locale)}</strong><small>{numeric(displayed.statement_links.count,locale)} {t("linked records","সংযুক্ত রেকর্ড")}</small><p>{t("Statement matches do not confirm provider settlement.","স্টেটমেন্টে মিল পাওয়া মানেই provider settlement নিশ্চিত নয়।")}</p><Link href={root+"reconciliation"}>{t("Open reconciliation","Reconciliation খুলুন")} ↗</Link></div>}
-    {section==="daily"&&<BreakdownTable locale={locale} headings={[t("Day (UTC)","দিন (UTC)"),t("Verified amount","যাচাইকৃত টাকা")]} rows={displayed.daily.map(r=>[r.day,cash(r.amount_minor,locale)])} empty={t("No verified payments during this period.","এই সময়ে যাচাইকৃত পেমেন্ট নেই।")}/>}
+    {section==="payers"&&canReveal&&<PaymentReportLedger
+      key={JSON.stringify([workspaceId,environment,applied.from,applied.to,applied.account])}
+      locale={locale} workspaceId={workspaceId} environment={environment} period={applied} canReveal={canReveal}/>}
+    {!displayed&&section!=="payers"&&<p className="er-card-empty" role="status">{error||t("Loading breakdown…","বিস্তারিত হিসাব লোড হচ্ছে…")}</p>}
+    {displayed&&section==="methods"&&<BreakdownTable locale={locale} headings={[t("Method","মাধ্যম"),t("Transactions","লেনদেন"),t("Verified amount","যাচাইকৃত টাকা")]} rows={displayed.methods.map(r=>[r.method,numeric(r.payment_count,locale),cash(r.amount_minor,locale)])} empty={t("No verified method transactions.","এই সময়ে মাধ্যমভিত্তিক লেনদেন নেই।")}/>}
+    {displayed&&section==="accounts"&&<BreakdownTable locale={locale} headings={[t("Receiving account","গ্রহণকারী অ্যাকাউন্ট"),t("Transactions","লেনদেন"),t("Verified amount","যাচাইকৃত টাকা")]} rows={displayed.accounts.map(r=>[r.method+" ••••"+r.display_suffix,numeric(r.payment_count,locale),cash(r.amount_minor,locale)])} empty={t("No receiving-account payments.","গ্রহণকারী অ্যাকাউন্টে পেমেন্ট নেই।")}/>}
+    {displayed&&section==="customers"&&<><BreakdownTable locale={locale} headings={[t("Invoice-linked customer","ইনভয়েস-সংযুক্ত গ্রাহক"),t("Payments","পেমেন্ট"),t("Allocated","বরাদ্দ")]} rows={displayed.customers.map(r=>[r.name||r.reference,numeric(r.payment_count,locale),cash(r.amount_minor,locale)])} empty={t("No invoice-linked customer payments.","ইনভয়েস-সংযুক্ত গ্রাহকের পেমেন্ট নেই।")}/><p className="er-fineprint">{t("Top 100 invoice-linked contacts; not necessarily the actual payer.","ইনভয়েস-সংযুক্ত সর্বোচ্চ ১০০ জন; তাঁরা প্রকৃত প্রেরক নাও হতে পারেন।")}</p></>}
+    {displayed&&section==="refunds"&&<><BreakdownTable locale={locale} headings={[t("Status","অবস্থা"),t("Requests","অনুরোধ"),t("Amount","পরিমাণ")]} rows={displayed.refunds.map(r=>[refundLabels[r.status]||r.status,numeric(r.request_count,locale),cash(r.amount_minor,locale)])} empty={t("No refund requests in this period.","এই সময়ে রিফান্ড অনুরোধ নেই।")}/><p className="er-fineprint">{t("Refunds are managed by the seller. Reported returns are not provider-confirmed.","রিফান্ড বিক্রেতা পরিচালনা করেন। ফেরতের রিপোর্ট provider-যাচাইকৃত নয়।")}</p><Link className="er-detail-link" href={root+"refunds"}>{t("Manage refunds","রিফান্ড পরিচালনা করুন")} ↗</Link></>}
+    {displayed&&section==="statements"&&<div className="er-statement-box"><span>{t("Merchant-imported statement links","বিক্রেতার স্টেটমেন্ট সংযোগ")}</span><strong>{cash(displayed.statement_links.amount_minor,locale)}</strong><small>{numeric(displayed.statement_links.count,locale)} {t("linked records","সংযুক্ত রেকর্ড")}</small><p>{t("Statement matches do not confirm provider settlement.","স্টেটমেন্টে মিল পাওয়া মানেই provider settlement নিশ্চিত নয়।")}</p><Link href={root+"reconciliation"}>{t("Open reconciliation","Reconciliation খুলুন")} ↗</Link></div>}
+    {displayed&&section==="daily"&&<BreakdownTable locale={locale} headings={[t("Day (UTC)","দিন (UTC)"),t("Verified amount","যাচাইকৃত টাকা")]} rows={displayed.daily.map(r=>[r.day,cash(r.amount_minor,locale)])} empty={t("No verified payments during this period.","এই সময়ে যাচাইকৃত পেমেন্ট নেই।")}/>}
    </section>
-  </div>}
  </div>;
 }
 function BreakdownTable({headings,rows,empty,locale}:{locale:Locale;headings:string[];rows:string[][];empty:string}){

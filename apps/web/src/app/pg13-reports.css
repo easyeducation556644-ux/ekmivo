@@ -232,3 +232,13 @@
 .er-ledger-workbench :is(button,a,.er-payer-table-wrap):focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
 @media(max-width:760px){.er-ledger-head{padding:12px}.er-ledger-actions{margin-inline-start:0}.er-ledger-actions button,.er-ledger-pagination button,.er-ledger-error button{min-height:44px}.er-payer-table td{padding:12px}}
 @media print{.er-ledger-actions,.er-ledger-pagination{display:none!important}.er-payer-table-wrap{overflow:visible}.er-payer-table{min-width:0;font-size:10px}.er-payer-table th,.er-payer-table td{padding:7px 5px}}
+
+
+/* Full actual payer numbers belong to Reports > Detailed breakdown > Payers,
+   not the receiving-account summary (which only contains masked suffixes). */
+.er-details>.er-ledger-workbench{border:0;border-top:1px solid var(--color-border);border-radius:0;box-shadow:none;margin:0}
+.er-details>.er-ledger-workbench .er-ledger-head{padding:12px 15px}
+.er-details>.er-ledger-workbench .er-ledger-head h2{font-size:13px}
+.er-details>.er-ledger-workbench .er-ledger-head p{font-size:11px}
+.er-details>.er-ledger-workbench .er-payer-phone{font-size:13px;font-weight:700;letter-spacing:.01em;user-select:text;white-space:nowrap}
+@media(max-width:600px){.er-details>.er-ledger-workbench .er-ledger-head{padding:12px}}
