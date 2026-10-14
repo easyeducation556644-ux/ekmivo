@@ -240,3 +240,20 @@
  .em-overview{--em-content-inset:8px}
 }
 @media(max-width:420px){.em-overview{gap:10px}.em-actions button{min-height:40px}}
+
+
+/* Hard-anchor Refresh to the right-hand edge of the actual Overview area.
+   The header was still shrinking around the label on some viewport widths.
+   Absolute positioning uses .em-overview, not the shrinking heading, as anchor. */
+.em-overview{position:relative;width:100%;grid-template-columns:minmax(0,1fr)}
+.em-overview>.em-heading{box-sizing:border-box;width:100%;min-height:40px;padding-inline-end:calc(var(--em-content-inset) + 92px)}
+.em-overview>.em-heading .em-actions{
+ position:absolute;
+ top:0;
+ inset-inline-end:var(--em-content-inset);
+ margin:0;
+ z-index:1;
+}
+@media(max-width:420px){
+ .em-overview>.em-heading{padding-inline-end:calc(var(--em-content-inset) + 82px)}
+}
