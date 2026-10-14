@@ -228,7 +228,15 @@
 @media(max-width:420px){.em-heading{align-items:center;flex-wrap:nowrap}.em-actions{width:auto;justify-content:flex-end;margin-left:auto}.em-heading h1{font-size:21px}.em-heading p{font-size:11px;line-height:1.3}.em-realm{padding:3px 5px}.em-launch{grid-template-columns:minmax(0,1fr) 75px;padding:11px}.em-progress svg{width:72px;height:72px}.em-task{padding:11px;min-height:105px}.em-kpi{padding:11px}.em-kpi strong{font-size:18px}.em-transaction{grid-template-columns:minmax(0,1fr) auto;gap:5px}.em-transaction time{grid-column:1/-1}}
 @media(prefers-reduced-motion:reduce){.em-task,.em-shimmer{animation:none!important;transition:none!important}}
 
-/* Overview-only outer spacing: retain other dashboard pages unchanged. */
-.ds-content:has(> .em-overview){padding-top:10px;padding-bottom:22px}
-@media(max-width:800px){.ds-content:has(> .em-overview){padding-top:8px;padding-bottom:18px}}
+/* Overview-only full-bleed header: the refresh control reaches the right
+   edge of the dashboard viewport, while data cards retain their old max width. */
+.ds-content:has(> .em-overview){max-width:none;width:100%;padding:10px 8px 22px;margin:0}
+.em-overview{--em-content-inset:24px}
+.em-overview>.em-heading{width:100%;padding-inline-start:max(var(--em-content-inset),calc((100% - 1416px)/2))}
+.em-overview>.em-heading .em-actions{margin-inline-start:auto;margin-inline-end:0}
+.em-overview>:not(.em-heading){width:min(calc(100% - var(--em-content-inset) - var(--em-content-inset)),1416px);margin-inline:auto}
+@media(max-width:800px){
+ .ds-content:has(> .em-overview){padding:8px 8px 18px}
+ .em-overview{--em-content-inset:8px}
+}
 @media(max-width:420px){.em-overview{gap:10px}.em-actions button{min-height:40px}}
