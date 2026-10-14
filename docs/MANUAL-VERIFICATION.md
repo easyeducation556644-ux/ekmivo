@@ -10,6 +10,20 @@
 Evidence: docs/evidence/CHECKOUT-NAGAD-COMPACT-PAYER-NORMALIZATION-20261014.md
 
 ---
+## Integrations & events — 2026-10-14
+
+Local source/build/browser and sandbox rollback SQL evidence: docs/evidence/INTEGRATIONS-EVENTS-20261014/README.md. Existing manual items below are preserved; no real receiver/production acceptance is inferred.
+
+- [ ] Apply 0058 through the existing financial migration coordinator to Sandbox, verify restricted role/function grants, then Live. Permanent migrations have not been applied by this work; rollback SQL passed and cleanup was confirmed.
+- [ ] Deploy matching web/API/worker source when quota allows. Verify each of Developers, Webhooks, Events & logs, Integrations and their detail links retains dashboard header/sidebar. Verify native tabs, EN/BN, Light/Dark/System, mobile and offline/retry states against real data.
+- [ ] Dedicated owner/admin, editor and viewer accounts: owner creates/rotates/revokes a scoped Sandbox key with password; Live/Sandbox credentials cannot cross. Viewer/editor must be denied endpoint/key/audit/export changes or reads as specified; removed membership, expired session and wrong-workspace URLs must reveal no data. Do not record tokens/passwords.
+- [ ] Controlled HTTPS receiver: validate raw-body HMAC, timestamp, key/event/delivery IDs. Create one endpoint and record a real sandbox event, HTTP response, each retry timestamp, and event→payment→delivery links. Return 503 once then 2xx; verify replay uses the same event with a new delivery ID and never repeats fulfilment or a payment.
+- [ ] Rotation: prepare a new key, install it on the receiver, activate, accept old/new during overlap, then revoke old. Disable/enable, duplicate replay while pending, private/loopback URL rejection and customer data minimization must behave correctly.
+- [ ] Configure a real website/custom bot/WooCommerce store (plugin installed separately); edit conflict and webhook picker diagnostics must reflect actual deliveries. Shopify uses only supported external-payment store capabilities; dashboard configuration alone is not installation.
+- [ ] With an authorized server key, call payment-intent/document endpoints. Confirm API route/status/duration/correlation metadata and no body/query/contact/secret fields. Audit is immutable and free-text minimized; API capture is best effort, not guaranteed financial audit.
+- [ ] Create a private document export and verify actor-only download, expiry and owner/admin role recheck. Mark a real personal notification read and verify scoped deep links. Verify event/export inspectors contain no SMS body, credentials or full payer contact.
+- [ ] Configure GO_SANDBOX_API_URL to the isolated service. Run simulator scenarios and archive/reset; Live data is untouched and prior financial history retained. No simulator fallback to Live.
+
 
 ## SMS Devices / QR / standalone checkout — 2026-10-14
 

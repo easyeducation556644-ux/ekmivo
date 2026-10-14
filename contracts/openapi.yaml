@@ -86,6 +86,12 @@ paths:
     $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1integrations~1{integrationID}~1disable'
   /v1/workspaces/{workspaceID}/integrations/{integrationID}/edit:
     $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1integrations~1{integrationID}~1edit'
+  /v1/workspaces/{workspaceID}/activity/audit:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1activity~1audit'
+  /v1/workspaces/{workspaceID}/activity/api:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1activity~1api'
+  /v1/workspaces/{workspaceID}/activity/exports:
+    $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1activity~1exports'
   /v1/workspaces/{workspaceID}/reports:
     $ref: './payment-extensions.yaml#/paths/~1v1~1workspaces~1{workspaceID}~1reports'
   /v1/workspaces/{workspaceID}/notifications:

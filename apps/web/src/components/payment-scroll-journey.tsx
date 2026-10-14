@@ -34,14 +34,14 @@ export function PaymentScrollJourney({steps,locale}:{steps:FlowStep[];locale:"bn
    });
    setActive(value=>value===next?value:next);
   };
-  setMotion(true);
+  const enableMotion=window.requestAnimationFrame(()=>setMotion(true));
   cards.forEach(card=>{if(card.getBoundingClientRect().top<window.innerHeight*.9)card.classList.add("is-revealed")});
   let frame=0;
   const onScroll=()=>{if(frame)return;frame=window.requestAnimationFrame(()=>{frame=0;update()})};
   onScroll();
   window.addEventListener("scroll",onScroll,{passive:true});
   window.addEventListener("resize",onScroll);
-  return ()=>{visible=false;observer.disconnect();window.removeEventListener("scroll",onScroll);window.removeEventListener("resize",onScroll);if(frame)window.cancelAnimationFrame(frame)};
+  return ()=>{visible=false;observer.disconnect();window.removeEventListener("scroll",onScroll);window.removeEventListener("resize",onScroll);window.cancelAnimationFrame(enableMotion);if(frame)window.cancelAnimationFrame(frame)};
  },[steps.length]);
  return <div className="ek-journey" ref={wrap} data-motion={motion?"enabled":"off"}>
   <div className="ek-journey-rail">

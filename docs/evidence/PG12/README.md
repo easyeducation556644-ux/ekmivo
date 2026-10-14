@@ -7,3 +7,7 @@ Continuation source includes website/custom-bot server checkout, WooCommerce plu
 ## Local source continuation — 2026-10-12
 
 Integration setup now has versioned edit, retry-safe identical create, linked webhook delivery diagnostics and a functional web edit form. The SQL migration 0021 is unapplied and not executed in an isolated database. A dedicated Sandbox HTTP quickstart harness checks tenant boundaries, idempotency and public checkout, but it has only passed syntax checks; no HTTP run or clean-account provider verification is claimed.
+
+## Integration section UI — 2026-10-14
+
+See [combined implementation/evidence](../INTEGRATIONS-EVENTS-20261014/README.md) for the redesigned developer/webhook/event/connection screens, local checks and rollback-only sandbox SQL. This does not close this PG's production acceptance. Permanent 0058 migration, deployment and real runtime/receiver tests remain in the consolidated manual ledger.

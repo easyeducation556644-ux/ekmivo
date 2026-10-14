@@ -107,3 +107,7 @@ Owner reported **All pass** for the supplied PG01/PG02/PG03 combined checklist. 
 
 ### Local production performance-regression checkpoint
 Exact source de68839: local Next production build against real Neon and deployed Go passes 37/37 assertions, including cleanup; see [results](local-performance-control-plane.json). Web deployment is blocked by the Vercel daily deployment limit. This is local source regression evidence, not a new deployed web/browser acceptance. Owner reported supplied functional checklist All pass; admin UI expansion deferred.
+
+## Integration section UI — 2026-10-14
+
+See [combined implementation/evidence](../INTEGRATIONS-EVENTS-20261014/README.md) for the redesigned developer/webhook/event/connection screens, local checks and rollback-only sandbox SQL. This does not close this PG's production acceptance. Permanent 0058 migration, deployment and real runtime/receiver tests remain in the consolidated manual ledger.

@@ -3,6 +3,8 @@ import Link from "next/link";
 import {ReceiptNoticeHistory} from "./receipt-notice-history";
 import {PaymentPhoneManagement} from "./payment-phone-management";
 import {PaymentMethodManagement} from "./payment-method-management";
+import {PaymentWebhooks} from "./payment-webhooks";
+import {PaymentEvents} from "./payment-events";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {registerDraft} from "../lib/client/draft-navigation";
 import type {Locale,PaymentEnvironment} from "../lib/dashboard-navigation";
@@ -28,6 +30,8 @@ function show(value:unknown,key:string,locale:Locale):string{
 const blank={name:"",account_id:"",source:"",binding:"",parser_id:"",url:"",method:"bkash",account_number:""};
 type PaymentOperationsProps={locale:Locale;workspaceId:string;userId:string;environment:PaymentEnvironment;resource:Resource;canManage:boolean;detailId?:string};
 export function PaymentOperations(props:PaymentOperationsProps){
+ if(props.resource==="webhooks")return <PaymentWebhooks {...props}/>;
+ if(props.resource==="events")return <PaymentEvents {...props}/>;
  if(props.resource==="devices")return <PaymentPhoneManagement locale={props.locale} workspaceId={props.workspaceId} environment={props.environment} canManage={props.canManage} detailId={props.detailId}/>;
  if(props.resource==="gateways")return <PaymentMethodManagement locale={props.locale} workspaceId={props.workspaceId} environment={props.environment} canManage={props.canManage}/>;
  return <PaymentOperationsScoped key={[props.userId,props.workspaceId,props.environment,props.resource,props.detailId||""].join(":")} {...props}/>;
