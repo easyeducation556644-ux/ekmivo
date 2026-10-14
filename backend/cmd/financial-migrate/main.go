@@ -457,4 +457,7 @@ func main() {
   }
  }
 
+ if os.Getenv("PG60_PUBLIC_RECEIVER_ALLOW_MIGRATION") == "true" {
+  if err:=migratePublicSandboxReceiver(ctx,sa,os.Getenv("PG60_PUBLIC_RECEIVER_MIGRATION_FILE"),os.Getenv("PG14_PUBLIC_SANDBOX_WORKSPACE"));err!=nil{log.Fatal("0060 public receiver migration blocked: ",err)}
+ }
 }

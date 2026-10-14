@@ -25,6 +25,8 @@ type PipelineWorker struct {
 	EncryptionKey []byte
 	NoticeSMTP    *receiptnotice.SMTPConfig
 	TrackHealth   bool
+	// An inline public-test drain must never operate on other tenants or Live.
+	OnlyWorkspace string
 }
 
 func (w *PipelineWorker) Timeout(*river.Job[PipelineArgs]) time.Duration { return 20 * time.Second }
@@ -35,7 +37,7 @@ type pendingOperation struct {
 }
 
 func (w *PipelineWorker) authorized(ctx context.Context, p pendingOperation) bool {
-	if p.Realm != w.Realm {
+	if p.Realm != w.Realm || (w.OnlyWorkspace != "" && (w.Realm != "sandbox" || p.Workspace != w.OnlyWorkspace)) {
 		return false
 	}
 	var active bool
@@ -56,7 +58,9 @@ func (w *PipelineWorker) pending(ctx context.Context, function string) ([]pendin
 		if e = rows.Scan(&p.ID, &p.Workspace, &p.Realm, &p.Version); e != nil {
 			return nil, e
 		}
-		items = append(items, p)
+		if w.OnlyWorkspace == "" || (w.Realm == "sandbox" && p.Workspace == w.OnlyWorkspace && p.Realm == "sandbox") {
+			items = append(items, p)
+		}
 	}
 	return items, rows.Err()
 }
@@ -93,7 +97,7 @@ func (w *PipelineWorker) Work(ctx context.Context, job *river.Job[PipelineArgs])
 		if e = w.Pool.QueryRow(ctx, "SELECT pg08_claim($1::uuid,$2)", p.ID, p.Version).Scan(&raw); e != nil {
 			return errors.New("delivery claim unavailable")
 		}
-		if len(raw) == 0 {
+		if len(raw) == 0 || string(raw) == "null" {
 			return nil
 		}
 		var d struct {

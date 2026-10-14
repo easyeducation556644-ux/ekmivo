@@ -28,7 +28,7 @@ export async function configurePublicSandbox(form:FormData){
    const endpoint=new URL(`/v1/workspaces/${c.workspace_id}/sandbox/scenarios?environment=sandbox`,String(c.api_origin));
    const response=await fetch(endpoint,{headers:{Authorization:`Bearer ${c.published_test_key}`},redirect:"error",cache:"no-store",signal:AbortSignal.timeout(10000)});
    const probe=await response.json();
-   if(!response.ok||probe.simulation!==true||probe.provider_sandbox!==false||!Array.isArray(probe.items)||!probe.items.includes("exact-unique"))throw new Error("SANDBOX_PREFLIGHT_FAILED");
+   if(!response.ok||probe.simulation!==true||probe.provider_sandbox!==false||probe.worker_ready!==true||!Array.isArray(probe.items)||!probe.items.includes("exact-unique"))throw new Error("SANDBOX_PREFLIGHT_FAILED");
    await tx`UPDATE public_sandbox_config SET enabled=true,updated_by=${admin.user.id}::uuid,updated_at=now() WHERE singleton`;
   }else{
    // Provisioning a URL does not assert readiness. Enabling follows end-to-end verification.

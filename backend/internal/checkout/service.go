@@ -41,6 +41,8 @@ type Service struct {
 	limits       limiter
 	Auth         *authz.Repository
 	Sandbox      *pgxpool.Pool
+	PublicSandboxWorker *pgxpool.Pool
+	PublicSandboxCancel context.CancelFunc
 	TokenKey     []byte
 	PayerKey     []byte
 }
@@ -95,6 +97,8 @@ func (s *Service) ready() bool {
 	return s != nil && s.Sandbox != nil && s.Auth != nil && s.Auth.DB != nil && len(s.TokenKey) >= 32 && len(s.PayerKey) >= 32
 }
 func (s *Service) Close() {
+	if s != nil && s.PublicSandboxCancel != nil { s.PublicSandboxCancel() }
+	if s != nil && s.PublicSandboxWorker != nil { s.PublicSandboxWorker.Close() }
 	if s != nil && s.Pipeline != nil && s.Pipeline.Live != nil {
 		s.Pipeline.Live.Close()
 	}

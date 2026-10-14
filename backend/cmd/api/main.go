@@ -60,6 +60,7 @@ func newHandlerWithRepository(repo *authz.Repository) http.Handler {
 }
 func newHandlerWithCheckout(repo *authz.Repository, pay *checkout.Service) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("POST /v1/public-sandbox/receiver/{receiverID}",pay.HandlePublicSandboxReceiver)
 	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/activity/{activityKind}", pay.HandleActivity)
 	mux.HandleFunc("POST /v1/public/checkout/{token}/notices/{noticeAction}", pay.HandleNotice)
 	mux.HandleFunc("POST /v1/public/checkout/{token}/refunds", pay.HandlePublicRefund)
@@ -312,6 +313,11 @@ func main() {
 		}
 	}
 	port := os.Getenv("PORT")
+	if dsn := os.Getenv("PG14_PUBLIC_SANDBOX_WORKER_DATABASE_URL"); dsn != "" && pg05 != nil {
+		ctx,cancel:=context.WithTimeout(context.Background(),8*time.Second)
+		err:=pg05.ConfigurePublicSandboxWorker(ctx,dsn,os.Getenv("PG14_PUBLIC_SANDBOX_WORKSPACE"));cancel()
+		if err!=nil{log.Print("public sandbox disabled: restricted worker preflight did not pass")}
+	}
 	if port == "" {
 		port = "8080"
 	}

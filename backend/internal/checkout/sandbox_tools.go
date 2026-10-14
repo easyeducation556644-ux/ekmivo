@@ -13,11 +13,14 @@ import (
 var sandboxScenarios = []string{"exact-unique", "wrong-payer", "under-amount", "over-amount", "before-window", "after-window", "missing-time", "outgoing", "missing-payer", "missing-amount", "unknown-direction", "wrong-account", "wrong-method"}
 
 func (s *Service) HandleSandboxTools(w http.ResponseWriter, r *http.Request) {
-	if !s.pipelineReady() || s.Pipeline.Live != nil || os.Getenv("PG14_SANDBOX_TOOLS_ENABLED") != "true" || explicitRealm(r) != "sandbox" {
+	ws, action := r.PathValue("workspaceID"), r.PathValue("sandboxAction")
+	publicCandidate := ws == os.Getenv("PG14_PUBLIC_SANDBOX_WORKSPACE") && uuidPattern.MatchString(ws) && r.Header.Get("Authorization") != ""
+	// A shared API may expose only the fixed public TEST workspace. Every SQL
+	// call below binds Sandbox; pg14_run independently checks financial_realm.
+	if !s.pipelineReady() || (s.Pipeline.Live != nil && !publicCandidate) || os.Getenv("PG14_SANDBOX_TOOLS_ENABLED") != "true" || explicitRealm(r) != "sandbox" {
 		fail(w, 404, "NOT_FOUND")
 		return
 	}
-	ws, action := r.PathValue("workspaceID"), r.PathValue("sandboxAction")
 	if !uuidPattern.MatchString(ws) {
 		fail(w, 404, "NOT_FOUND")
 		return
@@ -44,6 +47,10 @@ func (s *Service) HandleSandboxTools(w http.ResponseWriter, r *http.Request) {
 		}
 		// Fixture audit records the credential ID, never impersonates an admin.
 		actor = credential.KeyID
+		if s.PublicSandboxWorker == nil {
+			fail(w, 503, "PUBLIC_SANDBOX_WORKER_UNAVAILABLE")
+			return
+		}
 	}
 	if !publicKey && (actor == "" || (role != "owner" && role != "admin")) {
 		fail(w, 403, "SANDBOX_DEVELOPER_SESSION_REQUIRED")
@@ -68,12 +75,26 @@ func (s *Service) HandleSandboxTools(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if action == "scenarios" && r.Method == "GET" {
-		write(w, 200, map[string]any{"simulation": true, "items": sandboxScenarios, "provider_sandbox": false, "real_device_verified": false})
+		write(w, 200, map[string]any{"simulation": true, "items": sandboxScenarios, "provider_sandbox": false, "real_device_verified": false, "worker_ready": s.PublicSandboxWorker != nil})
 		return
 	}
 	var raw []byte
 	if r.Method == "GET" {
-		e = s.pipelineScoped(r.Context(), ws, "sandbox", func(tx pgx.Tx) error { return tx.QueryRow(r.Context(), "SELECT pg14_runs($1::uuid)", ws).Scan(&raw) })
+		if action == "receiver" && publicKey {
+			id := r.URL.Query().Get("receiver_id")
+			if !uuidPattern.MatchString(id) {
+				fail(w, 422, "INVALID_RECEIVER_ID")
+				return
+			}
+			e = s.pipelineScoped(r.Context(), ws, "sandbox", func(tx pgx.Tx) error {
+				return tx.QueryRow(r.Context(), "SELECT pg60_receiver_read($1::uuid,$2::uuid)", ws, id).Scan(&raw)
+			})
+		} else if action == "runs" {
+			e = s.pipelineScoped(r.Context(), ws, "sandbox", func(tx pgx.Tx) error { return tx.QueryRow(r.Context(), "SELECT pg14_runs($1::uuid)", ws).Scan(&raw) })
+		} else {
+			fail(w, 404, "NOT_FOUND")
+			return
+		}
 	} else {
 		if !originAllowed(r) {
 			fail(w, 403, "ORIGIN_DENIED")
@@ -111,6 +132,13 @@ func (s *Service) HandleSandboxTools(w http.ResponseWriter, r *http.Request) {
 				return tx.QueryRow(r.Context(), "SELECT pg14_reset($1::uuid,$2::uuid)", ws, actor).Scan(&n)
 			})
 			raw, _ = json.Marshal(map[string]any{"archived": n, "financial_history_retained": true, "simulation": true})
+		} else if action == "dispatch" && publicKey {
+			err := s.drainPublicSandbox(r.Context(), ws)
+			if err != nil {
+				fail(w, 503, "PUBLIC_SANDBOX_DELIVERY_UNRESOLVED")
+				return
+			}
+			raw, _ = json.Marshal(map[string]any{"simulation": true, "delivery_sweep_completed": true})
 		} else if action == "runs" {
 			key := r.Header.Get("Idempotency-Key")
 			if !keyPattern.MatchString(key) {
@@ -137,6 +165,12 @@ func (s *Service) HandleSandboxTools(w http.ResponseWriter, r *http.Request) {
 			e = s.pipelineScoped(r.Context(), ws, "sandbox", func(tx pgx.Tx) error {
 				return tx.QueryRow(r.Context(), "SELECT pg14_run($1::uuid,$2::uuid,$3,$4,$5,$6)", ws, actor, b.Scenario, key, payer, cipher).Scan(&raw)
 			})
+			if e == nil && publicKey {
+				if err := s.drainPublicSandbox(r.Context(), ws); err != nil {
+					fail(w, 503, "PUBLIC_SANDBOX_RESULT_UNRESOLVED")
+					return
+				}
+			}
 		} else {
 			fail(w, 404, "NOT_FOUND")
 			return

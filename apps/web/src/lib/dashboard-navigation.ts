@@ -18,7 +18,7 @@ export const navigation: Record<Service, NavigationGroup[]> = {
     { label: { en: "Payments", bn: "পেমেন্ট" }, items: ["transactions", "requests", "incoming", "payment-links", "invoices", "customers", "refunds"] },
     { label: { en: "Receiving & verification", bn: "টাকা গ্রহণ ও যাচাই" }, items: ["gateways", "devices", "reconciliation"] },
     { label: { en: "Commerce", bn: "পণ্য ও অর্ডার" }, items: ["orders", "products", "inventory", "coupons", "shipping", "returns"] },
-    { label: { en: "Integrations & events", bn: "ইন্টিগ্রেশন ও ইভেন্ট" }, items: ["developers", "webhooks", "events", "integrations"] },
+    { label: { en: "Developers", bn: "ডেভেলপার" }, items: ["developers", "api-docs", "webhooks", "apps"] },
     { label: { en: "Workspace", bn: "ওয়ার্কস্পেস" }, items: ["team", "billing", "settings", "help"] },
   ],
 };
@@ -26,6 +26,7 @@ export function serviceEnabled(service: Service, mode: "ai" | "commerce" | "both
   return mode === "both" || (service === "ai" ? mode === "ai" : mode === "commerce");
 }
 export function sectionInService(service: Service, section: string): section is SectionKey {
+  if(service==="payments"&&["events","integrations"].includes(section))return true;
   return navigation[service].some(group => group.items.includes(section as SectionKey));
 }
 export function defaultService(mode: "ai" | "commerce" | "both" | "off"): Service { return mode === "ai" ? "ai" : "payments"; }
