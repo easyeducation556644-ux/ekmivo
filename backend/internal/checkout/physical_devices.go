@@ -59,6 +59,21 @@ func (s *Service) HandlePhones(w http.ResponseWriter,r *http.Request) {
   write(w,200,map[string]any{"items":json.RawMessage(raw),"accounts":accounts});return
  }
  if r.Method!="POST"{fail(w,405,"METHOD_NOT_ALLOWED");return}
+ if id==""&&action=="" {
+  var authoritative int64
+  var active bool
+  if err:=s.Pipeline.Control.QueryRow(r.Context(),
+   "SELECT source_version,active FROM resolve_financial_projection($1::uuid,$2)",
+   ws,realm).Scan(&authoritative,&active);err!=nil||!active{
+   fail(w,403,"PHONE_AUTHORIZATION_REJECTED");return
+  }
+  var projected int64
+  if err:=s.pipelinePool(realm).QueryRow(r.Context(),
+   "SELECT entitlement_version FROM financial_workspace_registry WHERE workspace_id=$1::uuid AND environment=$2",
+   ws,realm).Scan(&projected);err!=nil||projected!=authoritative{
+   fail(w,503,"PHONE_PROJECTION_STALE");return
+  }
+ }
  var body struct{
   Name string `json:"name"`
   AccountID string `json:"account_id"`
