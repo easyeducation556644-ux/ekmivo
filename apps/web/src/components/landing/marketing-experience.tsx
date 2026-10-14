@@ -185,7 +185,7 @@ export function MarketingExperience({locale}:{locale:Locale}){
     <span className="em-hero-eyebrow"><span className="em-dot"/> {t.eyebrow}</span>
     <h1 id="em-title"><span>{t.heroLine1}</span><span className="em-brush em-hero-highlight">{t.heroLine2}</span></h1>
     <p className="em-hero-lead">{t.heroLead}</p>
-    <div className="em-actions"><Link href="/payment-gateway" className="em-button em-button-primary">{t.explore}<span aria-hidden="true">↗</span></Link><Link href="/ai-bot" className="em-button em-button-secondary">{t.aiAction}<span aria-hidden="true">↗</span></Link></div>
+    <div className="em-actions"><Link href={`/${locale}/payment-gateway`} className="em-button em-button-primary">{t.explore}<span aria-hidden="true">↗</span></Link><Link href={`/${locale}/ai-bot`} className="em-button em-button-secondary">{t.aiAction}<span aria-hidden="true">↗</span></Link></div>
    </div>
    <a href="#services" className="em-scroll-link"><span>{t.scroll}</span><span className="em-scroll-down" aria-hidden="true">↓</span></a>
   </section>
@@ -199,7 +199,7 @@ export function MarketingExperience({locale}:{locale:Locale}){
       <div className="em-service-mark em-symbol-wallet" aria-hidden="true"><LineIcon name="link"/><span>৳</span></div>
       <h3>{t.payName}</h3><p>{t.payBody}</p>
       <ul>{t.payBullets.map(item=><li key={item}><span aria-hidden="true">↗</span>{item}</li>)}</ul>
-      <Link className="em-card-link" href="/payment-gateway">{t.payExplore}<span aria-hidden="true">↗</span></Link>
+      <Link className="em-card-link" href={`/${locale}/payment-gateway`}>{t.payExplore}<span aria-hidden="true">↗</span></Link>
       <Doodle type="arrow" className="em-card-doodle"/>
      </article>
      <article className="em-service-card em-service-ai" id="ai">
@@ -207,7 +207,7 @@ export function MarketingExperience({locale}:{locale:Locale}){
       <div className="em-service-mark em-symbol-ai" aria-hidden="true"><LineIcon name="spark"/><span>AI</span></div>
       <h3>{t.aiName}</h3><p>{t.aiBody}</p>
       <ul>{t.aiBullets.map(item=><li key={item}><span aria-hidden="true">↗</span>{item}</li>)}</ul>
-      <Link className="em-card-link" href="/ai-bot">{t.aiExplore}<span aria-hidden="true">↗</span></Link>
+      <Link className="em-card-link" href={`/${locale}/ai-bot`}>{t.aiExplore}<span aria-hidden="true">↗</span></Link>
       <Doodle type="loop" className="em-card-doodle"/>
      </article>
     </div>
@@ -247,7 +247,7 @@ export function MarketingExperience({locale}:{locale:Locale}){
   <section className="em-section em-product em-product-payment" id="payments">
    <div className="em-container em-product-grid">
     <div className="em-product-copy"><SectionHead eyebrow={t.payStoryEyebrow} title={t.payStoryTitle} marked={t.payStoryMarked}/>
-     <p>{t.payStoryBody}</p><Link href="/register" className="em-button em-button-primary">{t.payStoryButton}<span aria-hidden="true">↗</span></Link>
+     <p>{t.payStoryBody}</p><Link href={`/${locale}/register`} className="em-button em-button-primary">{t.payStoryButton}<span aria-hidden="true">↗</span></Link>
      <Doodle type="arrow" className="em-product-arrow"/>
     </div>
     <div className="em-product-visual em-pay-visual">
@@ -276,7 +276,7 @@ export function MarketingExperience({locale}:{locale:Locale}){
      <Doodle type="spark" className="em-chat-doodle"/>
     </div>
     <div className="em-product-copy"><SectionHead eyebrow={t.aiStoryEyebrow} title={t.aiStoryTitle} marked={t.aiStoryMarked}/>
-     <p>{t.aiStoryBody}</p><Link className="em-button em-button-secondary" href="/ai-bot">{t.aiStoryButton}<span aria-hidden="true">↗</span></Link>
+     <p>{t.aiStoryBody}</p><Link className="em-button em-button-secondary" href={`/${locale}/ai-bot`}>{t.aiStoryButton}<span aria-hidden="true">↗</span></Link>
     </div>
    </div>
   </section>
@@ -302,6 +302,6 @@ export function MarketingExperience({locale}:{locale:Locale}){
    {t.faqs.map(([question,answer])=><details key={question}><summary><strong>{question}</strong><span className="em-faq-plus" aria-hidden="true">+</span></summary><p>{answer}</p></details>)}
   </div></div></section>
 
-  <section className="em-ending" id="contact"><div className="em-ending-ink" aria-hidden="true"/><Doodle type="loop" className="em-ending-doodle"/><div className="em-container em-ending-content"><span className="em-kicker">{t.finalEyebrow}</span><h2>{t.finalTitle} <span className="em-brush">{t.finalMarked}</span></h2><p>{t.finalBody}</p><div className="em-actions"><Link href="/register" className="em-button em-button-primary">{t.finalButton}<span aria-hidden="true">↗</span></Link></div></div></section>
+  <section className="em-ending" id="contact"><div className="em-ending-ink" aria-hidden="true"/><Doodle type="loop" className="em-ending-doodle"/><div className="em-container em-ending-content"><span className="em-kicker">{t.finalEyebrow}</span><h2>{t.finalTitle} <span className="em-brush">{t.finalMarked}</span></h2><p>{t.finalBody}</p><div className="em-actions"><Link href={`/${locale}/register`} className="em-button em-button-primary">{t.finalButton}<span aria-hidden="true">↗</span></Link></div></div></section>
  </main>;
 }
