@@ -206,6 +206,8 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
   {error&&<div className="er-error" role="alert"><span>{error}</span><button type="button" onClick={()=>setRefresh(n=>n+1)}>{t("Retry","আবার চেষ্টা")}</button></div>}
   {stale&&displayed&&<p className="er-inline-notice er-stale">{t("Displaying the previous successful report until new data loads.","নতুন তথ্য আসা পর্যন্ত আগের সফল রিপোর্ট দেখানো হচ্ছে।")}</p>}
   {!displayed&&!loading&&!error&&<section className="er-empty">{t("No report available yet.","এখনো রিপোর্ট পাওয়া যায়নি।")}</section>}
+  <PaymentReportLedger key={JSON.stringify([workspaceId,environment,applied.from,applied.to,applied.account,canReveal])}
+   locale={locale} workspaceId={workspaceId} environment={environment} period={applied} canReveal={canReveal}/>
   {displayed&&<div className="er-results" aria-busy={loading}>
    <div className="er-result-period"><span>{active.from} — {active.to}{active.account?" · "+t("Selected account","নির্বাচিত অ্যাকাউন্ট"):""}</span>{generated&&<span>{t("Updated","আপডেট")}: {generated}</span>}</div>
    <section className="er-period-analysis" aria-label={t("Period analysis","সময়সীমার বিশ্লেষণ")}>
@@ -225,8 +227,6 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
      </>:t("Previous period will appear here.","আগের সময়ের হিসাব এখানে আসবে।")}
     </div>}
    </section>
-   <PaymentReportLedger key={JSON.stringify([workspaceId,environment,active.from,active.to,active.account,canReveal])}
-     locale={locale} workspaceId={workspaceId} environment={environment} period={active} canReveal={canReveal}/>
    <section className="er-allocation-analysis">
     <div className="er-allocation-head"><div><h2>{t("Allocation & reconciliation","বরাদ্দ ও হিসাব মিল")}</h2><span>{t("Verified payment allocation, not bank settlement","যাচাইকৃত পেমেন্টের বরাদ্দ, ব্যাংক settlement নয়")}</span></div><Link href={root+"reconciliation"}>{t("Reconciliation","হিসাব মিল")} ↗</Link></div>
     
