@@ -17,3 +17,8 @@ Uploaded Nagad screenshot: a single compact red card/page with merchant name, in
 - Go regression file added but GitHub CI quota is unavailable and Go package tests were **not executed**. Existing backend `HandlePublic` verifies number using `NormalizePayer` and returns 422 if invalid; this is an inspected code path, not a live POST test.
 - Manual pending: local/full international paste and type, valid +88 prefix, invalid inline and server-side 422, mismatched SMS HMAC, real checkout success/expiry/cancel, mobile virtual keyboard, Nagad at 320/375/390 and short viewport, EN/BN, browser focus, dark/light, brand logo and full visual comparison against uploaded screenshot.
 - Branch kept separate until preview build and customer flow tests can be completed. Never assert an official Nagad API transaction from this visual design.
+
+## Follow-up release evidence
+- Resolved conflict from concurrent main checkout change by retaining both `data-customer-checkout="true"` attributes and the QR/standalone checkout verification ledger. The PR now merges cleanly against current main.
+- **Vercel preview `dpl_C9z8rxr52d5CpoLXBpY2YvndGMo4`, merged-source SHA `fb71ebd9d1b542f9f851ce6358e611d05b33252f`: READY.** Next.js optimized production compilation succeeded (1.753s), TypeScript passed (6.7s), build output completed (13s). This supersedes the earlier quota-related failed manual deployment attempt and the earlier JSX parse failure.
+- Still manual-pending: signed-in real checkout route, mobile keyboard, visual match to uploaded screenshot, provider SMS receipt match and server HTTP 422 end-to-end. The Go table tests have not been run.
