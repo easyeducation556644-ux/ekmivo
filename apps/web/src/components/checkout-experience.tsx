@@ -7,6 +7,7 @@ import type {MerchantBrandInfo} from "./merchant-brand";
 import {ProviderMark,isPayMethod,payMethods,payNames,type PayMethod} from "./provider-mark";
 import Image from "next/image";
 import {useRouter} from "next/navigation";
+import {normalizeBangladeshPayer,payerLocalDigits} from "../lib/bd-payer-number";
 type Locale="en"|"bn";
 type Checkout={
  id:string; merchant_name:string;brand?:MerchantBrandInfo;source_reference?:string;items?:{title:string;quantity:number;unit_amount_minor:number}[]; merchant_reference:string;amount_minor:number;currency:string;
@@ -53,6 +54,7 @@ export function CheckoutExperience({locale,token,initialMethod}:{locale:Locale;t
  const [status,setStatus]=useState<"loading"|"ready"|"missing"|"offline"|"error">("loading");
  const [code,setCode]=useState("");
  const [payer,setPayer]=useState("");
+ const [payerTouched,setPayerTouched]=useState(false);
  const [method,setMethod]=useState<PayMethod>(initialMethod||"bkash");
  const [step,setStep]=useState<"methods"|"payer">(initialMethod?"payer":"methods");
  const [destinationCopied,setDestinationCopied]=useState(false);
@@ -108,18 +110,21 @@ export function CheckoutExperience({locale,token,initialMethod}:{locale:Locale;t
   e.preventDefault();
   if(locking||!info)return;
   if(!info.methods?.includes(method))return; // URL preferences never bypass availability.
+  const canonical=normalizeBangladeshPayer(payer);
+  setPayerTouched(true);
+  if(!canonical){setCode("INVALID_PAYER_OR_METHOD");return}
   sequence.current++;
   setLocking(true);setCode("");
   try{
    const response=await fetch(route,{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({payer_number:payer,method}),credentials:"same-origin"});
+    body:JSON.stringify({payer_number:canonical,method}),credentials:"same-origin"});
    const json=await response.json();
    if(!response.ok)throw {code:json.error?.code||json.code,status:response.status};
    const timestamp=Date.parse((json as Checkout).server_time);
    if(!Number.isFinite(timestamp))throw {code:"INVALID_FINANCIAL_RESULT"};
    const monotonic=performance.now();setClock(monotonic);setServerAnchor({time:timestamp,monotonic});
    latest.current=json as Checkout;sequence.current++;
-   setInfo(json as Checkout);setStatus("ready");setUpdated(timestamp);setPayer("");
+   setInfo(json as Checkout);setStatus("ready");setUpdated(timestamp);setPayer("");setPayerTouched(false);
   }catch(err){
    const e=err as {code?:string};
    setCode(!navigator.onLine?"OFFLINE":e.code||"CHECKOUT_SERVICE_UNAVAILABLE");
@@ -132,8 +137,10 @@ export function CheckoutExperience({locale,token,initialMethod}:{locale:Locale;t
  const title=statusLabels[state]?.[bn?1:0]||(bn?"পেমেন্ট":"Payment");
  const canLock=state==="requires_payer"&&(info?.environment==="sandbox"||info?.environment==="live"&&info.verification_available);
  const selectedMethod=(info?.method&&isPayMethod(info.method)?info.method:method);
+ const payerInvalid=(payerTouched||payer.length>=11)&&payer.trim().length>0&&!normalizeBangladeshPayer(payer);
  const availableSelected=info?.methods?.includes(method)===true;
  const showPayer=state==="requires_payer"&&step==="payer"&&canLock&&availableSelected;
+ const isNagadEntry=showPayer&&selectedMethod==="nagad";
  const isFlow=showPayer||state!=="requires_payer";
  const logoUrl=(()=>{try{if(!info?.brand?.logo_url)return "";const u=new URL(info.brand.logo_url);return u.protocol==="https:"&&!u.username&&!u.password?u.href:""}catch{return ""}})();
  const contactUrl=(()=>{try{if(!info?.brand?.support_url)return "";const u=new URL(info.brand.support_url);return u.protocol==="https:"&&!u.username&&!u.password?u.href:""}catch{return ""}})();
@@ -225,13 +232,17 @@ export function CheckoutExperience({locale,token,initialMethod}:{locale:Locale;t
       {showPayer&&selectedMethod!=="nagad"&&<div className="provider-payer-step">
        <form onSubmit={lock} className="provider-payer-form pg05-form">
         <label htmlFor="provider-customer-number">{bn?"আপনার ":"Your "}{methods[method]} {bn?"অ্যাকাউন্ট নম্বর":"Account Number"}</label>
-        <input id="provider-customer-number" autoFocus type="tel" inputMode="tel" autoComplete="tel"
-         required maxLength={20} minLength={11} disabled={locking} placeholder="e.g 01XXXXXXXXX" value={payer} onChange={e=>setPayer(e.target.value)}/>
+        <input id="provider-customer-number" autoFocus type="tel" inputMode="tel" autoComplete="tel-national"
+         required maxLength={20} minLength={11} disabled={locking} placeholder="01XXXXXXXXX / +8801XXXXXXXXX"
+         aria-invalid={payerInvalid} aria-describedby="provider-payer-help" value={payer}
+         onBlur={()=>setPayerTouched(true)} onChange={e=>{setPayer(e.target.value);setCode("")}}/>
+        {payerInvalid?<p className="provider-payer-error" role="alert" id="provider-payer-help">{bn?"সঠিক BD নম্বর দিন: 01XXXXXXXXX বা +8801XXXXXXXXX":"Enter a valid BD number: 01XXXXXXXXX or +8801XXXXXXXXX"}</p>
+        :<p className="provider-payer-format" id="provider-payer-help">{bn?"01XXXXXXXXX অথবা +8801XXXXXXXXX":"01XXXXXXXXX or +8801XXXXXXXXX"}</p>
         <p>{bn?"নম্বরটি নিশ্চিত করলে পরে বদলানো যাবে না।":"Confirming locks your sending number to this payment."}</p>
         <div className="provider-payer-consent">{bn?"এগিয়ে গেলে আপনি শর্তাবলীতে সম্মতি দিচ্ছেন।":"By proceeding you agree to the payment terms."}</div>
         <div className="provider-flow-controls">
          <button type="button" onClick={()=>void cancelPayment()} disabled={locking||cancelling}>{bn?"বাতিল":"Cancel"}</button>
-         <button type="submit" disabled={locking||payer.trim().length<11}>{locking?(bn?"অপেক্ষা…":"Confirming…"):(bn?"নিশ্চিত করুন":"Confirm")}</button>
+         <button type="submit" disabled={locking}>{locking?(bn?"অপেক্ষা…":"Confirming…"):(bn?"নিশ্চিত করুন":"Confirm")}</button>
         </div>
        </form>
       </div>}
