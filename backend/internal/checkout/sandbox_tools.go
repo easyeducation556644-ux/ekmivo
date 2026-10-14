@@ -1,13 +1,17 @@
 package checkout
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/masharzy/ekmivo/backend/internal/authz"
 	"github.com/masharzy/ekmivo/backend/internal/deviceevidence"
+	"github.com/masharzy/ekmivo/backend/internal/merchantwebhook"
 	"net/http"
 	"os"
+	"strings"
 )
 
 var sandboxScenarios = []string{"exact-unique", "wrong-payer", "under-amount", "over-amount", "before-window", "after-window", "missing-time", "outgoing", "missing-payer", "missing-amount", "unknown-direction", "wrong-account", "wrong-method"}
@@ -102,6 +106,7 @@ func (s *Service) HandleSandboxTools(w http.ResponseWriter, r *http.Request) {
 		}
 		var b struct {
 			Scenario string `json:"scenario"`
+			URL      string `json:"url"`
 			Password string `json:"current_password"`
 			Confirm  bool   `json:"confirm_archive_reset"`
 		}
@@ -132,6 +137,91 @@ func (s *Service) HandleSandboxTools(w http.ResponseWriter, r *http.Request) {
 				return tx.QueryRow(r.Context(), "SELECT pg14_reset($1::uuid,$2::uuid)", ws, actor).Scan(&n)
 			})
 			raw, _ = json.Marshal(map[string]any{"archived": n, "financial_history_retained": true, "simulation": true})
+		} else if action == "webhooks" && publicKey {
+			if err := s.merchant(r, ws, "sandbox", "webhooks:manage"); err != nil {
+				authError(w, err)
+				return
+			}
+			base := strings.TrimRight(os.Getenv("PG14_PUBLIC_SANDBOX_API_ORIGIN"), "/") + "/v1/public-sandbox/receiver/"
+			if !strings.HasPrefix(b.URL, base) || len(b.URL) > 512 {
+				fail(w, 422, "CONTROLLED_SANDBOX_RECEIVER_REQUIRED")
+				return
+			}
+			if _, err := merchantwebhook.ValidateURL(b.URL); err != nil {
+				fail(w, 422, "INVALID_RECEIVER_URL")
+				return
+			}
+			secret, err := randomCapability()
+			if err != nil {
+				fail(w, 503, "SIMULATION_UNAVAILABLE")
+				return
+			}
+			cipher, err := deviceevidence.Encrypt(s.Pipeline.Key, []byte(secret), ws+"|sandbox")
+			if err != nil {
+				fail(w, 503, "SIMULATION_UNAVAILABLE")
+				return
+			}
+			payload, _ := json.Marshal(map[string]string{"url": b.URL})
+			limitHit := false
+			e = s.pipelineScoped(r.Context(), ws, "sandbox", func(tx pgx.Tx) error {
+				if _, err := tx.Exec(r.Context(), "SELECT pg_advisory_xact_lock(hashtextextended('public-endpoints:'||$1,0))", ws); err != nil {
+					return err
+				}
+				var listed []byte
+				if err := tx.QueryRow(r.Context(), "SELECT pg09_read($1::uuid,'sandbox','webhooks',NULL,NULL)", ws).Scan(&listed); err != nil {
+					return err
+				}
+				var endpoints struct {
+					Items []struct {
+						ID  string `json:"id"`
+						URL string `json:"url"`
+					} `json:"items"`
+				}
+				if err := json.Unmarshal(listed, &endpoints); err != nil {
+					return err
+				}
+				for _, endpoint := range endpoints.Items {
+					if endpoint.URL != b.URL {
+						continue
+					}
+					var credential []byte
+					if err := tx.QueryRow(r.Context(), "SELECT pg60_receiver_credentials($1::uuid,$2)", ws, b.URL).Scan(&credential); err != nil {
+						return err
+					}
+					var saved struct {
+						Active []byte `json:"active"`
+					}
+					if err := json.Unmarshal(credential, &saved); err != nil {
+						return err
+					}
+					plain, err := merchantwebhook.Decrypt(s.Pipeline.Key, saved.Active, ws+"|sandbox")
+					if err != nil {
+						return err
+					}
+					secret = string(plain)
+					raw, _ = json.Marshal(map[string]string{"id": endpoint.ID})
+					return nil
+				}
+				if len(endpoints.Items) >= 10 {
+					limitHit = true
+					return errors.New("public endpoint limit")
+				}
+				return tx.QueryRow(r.Context(), "SELECT pg09_action($1::uuid,'sandbox','webhooks',NULL,'create',$2::jsonb,$3)", ws, string(payload), cipher).Scan(&raw)
+			})
+			if limitHit {
+				fail(w, 429, "PUBLIC_SANDBOX_ENDPOINT_LIMIT")
+				return
+			}
+			if e == nil {
+				var result map[string]any
+				if json.Unmarshal(raw, &result) != nil {
+					fail(w, 503, "SIMULATION_UNAVAILABLE")
+					return
+				}
+				id := sha256.Sum256([]byte(secret))
+				result["signing_secret"], result["signing_key_id"], result["simulation"] = secret, hex.EncodeToString(id[:8]), true
+				raw, _ = json.Marshal(result)
+			}
 		} else if action == "dispatch" && publicKey {
 			err := s.drainPublicSandbox(r.Context(), ws)
 			if err != nil {
