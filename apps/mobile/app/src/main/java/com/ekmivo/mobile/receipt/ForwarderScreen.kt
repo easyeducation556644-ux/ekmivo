@@ -60,6 +60,7 @@ fun ForwarderScreen(bn:Boolean){
  var message by remember{mutableStateOf("")}
  var permissionGranted by remember{mutableStateOf(ContextCompat.checkSelfPermission(context,Manifest.permission.RECEIVE_SMS)==PackageManager.PERMISSION_GRANTED)}
  var serverCheck by remember{mutableStateOf("checking")}
+ var refreshNonce by remember{mutableIntStateOf(0)}
  var pendingReceipts by remember{mutableStateOf<List<JSONObject>>(emptyList())}
  var pendingCount by remember{mutableIntStateOf(0)}
  var displayLimit by remember{mutableIntStateOf(30)}
@@ -86,11 +87,11 @@ fun ForwarderScreen(bn:Boolean){
   permissionGranted=ContextCompat.checkSelfPermission(context,Manifest.permission.RECEIVE_SMS)==PackageManager.PERMISSION_GRANTED
  }
  DisposableEffect(lifecycleOwner){
-  val observer=LifecycleEventObserver{_,event->if(event==Lifecycle.Event.ON_RESUME){updateLocal();if(phone!=null)ReceiptSyncWorker.scheduleNow(context)}}
+  val observer=LifecycleEventObserver{_,event->if(event==Lifecycle.Event.ON_RESUME){updateLocal();if(phone!=null){refreshNonce++;ReceiptSyncWorker.scheduleNow(context)}}}
   lifecycleOwner.lifecycle.addObserver(observer)
   onDispose{lifecycleOwner.lifecycle.removeObserver(observer)}
  }
- LaunchedEffect(phone?.optString("id")){
+ LaunchedEffect(phone?.optString("id"),refreshNonce){
   val active=phone?:return@LaunchedEffect
   serverCheck="checking"
   val response=withContext(Dispatchers.IO){runCatching{
@@ -102,7 +103,15 @@ fun ForwarderScreen(bn:Boolean){
    ReceiptStore(context).use{it.savePhoneConfiguration(JSONObject(response.second))}
    serverCheck="connected"
    ReceiptSyncWorker.scheduleNow(context)
-  }else serverCheck=if(response?.first==403)"revoked" else "offline"
+  }else {
+   val code=runCatching{JSONObject(response?.second?:"").optJSONObject("error")?.optString("code")?:""}.getOrDefault("")
+   serverCheck=when{
+    response?.first==403 && code=="PHONE_REVOKED"->"revoked"
+    response?.first==403->"authorization"
+    response?.first==503 && code=="PHONE_PROJECTION_STALE"->"authorization"
+    else->"offline"
+   }
+  }
  }
  Column(
   Modifier.fillMaxSize().verticalScroll(rememberScrollState())
@@ -124,7 +133,8 @@ fun ForwarderScreen(bn:Boolean){
      }
      Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){
       Text(when{
-       serverCheck=="revoked"->if(bn)"ফোনের সংযোগ বাতিল" else "Phone disconnected"
+       serverCheck=="revoked"->if(bn)"ফোনের সংযোগ বাতিল" else "Phone revoked"
+       serverCheck=="authorization"->if(bn)"সার্ভারের অনুমতি মিলছে না" else "Server authorization mismatch"
        !permissionGranted->if(bn)"SMS অনুমতি প্রয়োজন" else "SMS access required"
        serverCheck=="checking"->if(bn)"সংযোগ যাচাই হচ্ছে" else "Checking connection"
        serverCheck=="offline"->if(bn)"সার্ভার সংযোগ নেই" else "Server unavailable"
@@ -195,6 +205,14 @@ fun ForwarderScreen(bn:Boolean){
       modifier=Modifier.fillMaxWidth()){
       Text(if(bn)"আরও দেখুন" else "Show more")
      }
+    }
+   }
+   if(serverCheck=="authorization"){
+    Text(if(bn)"এই ফোনের pairing সংরক্ষিত আছে, কিন্তু server authorization মেলেনি। নতুন code দিয়ে pair না করে server sync ঠিক করুন।"
+      else "This phone is still paired locally, but its server authorization is out of sync. Do not pair again; repair the server projection.",
+      color=MaterialTheme.colorScheme.error)
+    OutlinedButton(onClick={refreshNonce++},modifier=Modifier.fillMaxWidth()){
+     Text(if(bn)"আবার সংযোগ যাচাই" else "Check connection again")
     }
    }
    if(serverCheck=="revoked"){
