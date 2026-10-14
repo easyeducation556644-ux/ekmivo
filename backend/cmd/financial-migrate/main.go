@@ -434,4 +434,13 @@ func main() {
   }
  }
 
+ if os.Getenv("PG57_REPORT_PAYER_ALLOW_MIGRATION") == "true" {
+  file:=os.Getenv("PG57_REPORT_PAYER_MIGRATION_FILE")
+  for _,target:=range []realmDSN{{"sandbox",sa},{"live",lv}} {
+   if err:=migrateReportPayerLedger(ctx,target.environment,target.raw,file);err!=nil {
+    log.Fatalf("0057 report payer migration blocked in %s: %v",target.environment,err)
+   }
+  }
+ }
+
 }

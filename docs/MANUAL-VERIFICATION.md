@@ -14,6 +14,18 @@
 Evidence: docs/evidence/PAYMENT-OPERATIONS-UX-REBUILD-20261014.md
 
 ---
+
+## Actual payer-number Reports ledger — 2026-10-14 (deployment and browser PENDING)
+
+- [ ] On signed-in owner/admin Live workspace, open Reports and confirm all verified receipt-backed payments show actual FULL buyer/payer phone (+880...) rather than masked suffix, merchant receiving number or invoice contact.
+- [ ] 25-row keyset pagination, from/to Dhaka date, account filters, PII CSV loaded rows and deep links; ensure old/absent encrypted contact shows unavailable rather than a guessed number.
+- [ ] Viewer/editor, cross-workspace user and merchant API key cannot read /reports/ledger; invalid cursor/account/time, session expiry, no-cache headers, 15s proxy timeout and failure/retry.
+- [ ] No duplicate Overview chart on Reports; remaining numeric breakdowns and summary/export aligned.
+- [ ] Read-only SQL 0057 in both financial realms DONE; production web/API build and authenticated display NOT DONE. Vercel deployment status: `rate limited — retry in 24 hours`, so do NOT call this change live.
+Evidence: docs/evidence/REPORT-PAYER-LEDGER-20261014.md.
+
+---
+
 ## Reports vs Overview separation — 2026-10-14 (MANUAL PENDING)
 
 - [ ] Confirm Reports now opens as an analytical workspace, not a duplicate operational KPI dashboard; Overview remains compact alerts, heartbeat and recent activity.

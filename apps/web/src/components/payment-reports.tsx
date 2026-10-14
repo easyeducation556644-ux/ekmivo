@@ -4,6 +4,7 @@ import {useEffect,useMemo,useState} from "react";
 import type {FormEvent} from "react";
 import Link from "next/link";
 import {DashboardIcon} from "./dashboard-icon";
+import {PaymentReportLedger} from "./payment-report-ledger";
 
 type Locale="en"|"bn";
 type MoneyRow={amount_minor:number;payment_count:number};
@@ -23,7 +24,6 @@ type Filters={from:string;to:string;account:string};
 type Preset="7"|"30"|"90"|"custom";
 type Section="methods"|"accounts"|"customers"|"refunds"|"statements"|"daily";
 type ViewState={report:Report;filters:Filters};
-type Grain="day"|"week";
 type CompareSnapshot={key:string;report:Report;from:string;to:string};
 function previousPeriod(filters:Filters):Filters|null{
  const from=Date.parse(filters.from+"T00:00:00Z"),to=Date.parse(filters.to+"T00:00:00Z");
@@ -36,32 +36,7 @@ function changePercent(current:number,previous:number):string|null{
  const change=(current-previous)/Math.abs(previous)*100;
  return (change>0?"+":"")+change.toFixed(1)+"%";
 }
-function summarizedDays(daily:DayRow[],grain:Grain,period:Filters):{key:string;label:string;amount_minor:number}[]{
- const amounts=new Map<string,number>();
- for(const row of daily){
-  if(typeof row.day!=="string"||!Number.isFinite(row.amount_minor)||!Number.isFinite(Date.parse(row.day+"T00:00:00Z")))continue;
-  amounts.set(row.day,(amounts.get(row.day)??0)+row.amount_minor);
- }
- const first=Date.parse(period.from+"T00:00:00Z")-millis;
- const last=Date.parse(period.to+"T00:00:00Z");
- if(!Number.isFinite(first)||!Number.isFinite(last)||last<first||last-first>367*millis)return [];
- const result:{key:string;label:string;amount_minor:number}[]=[];
- if(grain==="day"){
-  for(let current=first;current<=last;current+=millis){
-   const day=new Date(current).toISOString().slice(0,10);
-   result.push({key:day,label:day.slice(5),amount_minor:amounts.get(day)??0});
-  }
-  return result;
- }
- for(let current=first;current<=last;current+=7*millis){
-  const until=Math.min(last,current+6*millis);
-  let total=0;
-  for(let d=current;d<=until;d+=millis)total+=amounts.get(new Date(d).toISOString().slice(0,10))??0;
-  const a=new Date(current).toISOString().slice(5,10),b=new Date(until).toISOString().slice(5,10);
-  result.push({key:new Date(current).toISOString().slice(0,10),label:a+"–"+b,amount_minor:total});
- }
- return result;
-}
+
 const sections:Section[]=["methods","accounts","customers","refunds","statements","daily"];
 const millis=86400000;
 function dhakaToday(){return new Date(Date.now()+6*3600000).toISOString().slice(0,10)}
@@ -113,13 +88,12 @@ function exportReport(report:Report,period:Filters){
  const a=document.createElement("a");a.href=uri;a.download="ekmivo-report-"+period.from+"-"+period.to+".csv";document.body.append(a);a.click();a.remove();
  window.setTimeout(()=>URL.revokeObjectURL(uri),2000);
 }
-export function PaymentReports({locale,workspaceId,environment}:{locale:Locale;workspaceId:string;environment:string}){
+export function PaymentReports({locale,workspaceId,environment,canReveal}:{locale:Locale;workspaceId:string;environment:string;canReveal:boolean}){
  const bn=locale==="bn",t=(en:string,bengali:string)=>bn?bengali:en;
  const [draft,setDraft]=useState<Filters>(defaults);
  const [applied,setApplied]=useState<Filters>(defaults);
  const [preset,setPreset]=useState<Preset>("30");
  const [section,setSection]=useState<Section>("methods");
- const [grain,setGrain]=useState<Grain>("week");
  const [compare,setCompare]=useState(false);
  const [previous,setPrevious]=useState<CompareSnapshot|null>(null);
  const [compareLoading,setCompareLoading]=useState(false);
@@ -197,23 +171,18 @@ export function PaymentReports({locale,workspaceId,environment}:{locale:Locale;w
  const displayed=response?.report??null;
  const active=response?.filters??applied;
  const stale=Boolean(response&&(loading||error||!applies||active.from!==applied.from||active.to!==applied.to||active.account!==applied.account));
- const chartRows=useMemo(()=>summarizedDays(displayed?.daily??[],grain,active),[displayed,grain,active]);
- const max=Math.max(1,...chartRows.map(x=>Math.max(0,x.amount_minor)));
- const methods=displayed?.methods??[];
- const total=methods.reduce((a,b)=>a+b.amount_minor,0);
  const generated=displayed&&!Number.isNaN(Date.parse(displayed.generated_at))?new Intl.DateTimeFormat(bn?"bn-BD":"en-BD",{timeZone:"Asia/Dhaka",dateStyle:"medium",timeStyle:"short"}).format(new Date(displayed.generated_at)):"";
  const compareKey=response?JSON.stringify([workspaceId,environment,response.filters.from,response.filters.to,response.filters.account,response.report.generated_at]):"";
  const matchedCompare=compare&&previous?.key===compareKey&&!stale?previous:null;
  const avg=displayed&&displayed.payment_count>0?Math.round(displayed.verified_gross_minor/displayed.payment_count):null;
  const delta=matchedCompare&&displayed?changePercent(displayed.verified_gross_minor,matchedCompare.report.verified_gross_minor):null;
  const countDelta=matchedCompare&&displayed?changePercent(displayed.payment_count,matchedCompare.report.payment_count):null;
- const allocatedPercent=displayed&&displayed.verified_gross_minor>0?Math.min(100,Math.max(0,displayed.allocated_minor/displayed.verified_gross_minor*100)):0;
  return <div className="er-reports">
   <header className="er-heading">
-   <div><h1>{t("Reports","রিপোর্ট")}</h1><p>{t("Explore trends, compare periods and break down payments.","সময়সীমা তুলনা, পেমেন্টের প্রবণতা ও বিস্তারিত হিসাব বিশ্লেষণ।")}</p></div>
+   <div><h1>{t("Reports","রিপোর্ট")}</h1><p>{t("Review actual payer transactions, reconcile amounts and export records.","প্রেরকের নম্বরসহ প্রকৃত লেনদেন, হিসাব মিল ও রিপোর্ট।")}</p></div>
    <div className="er-heading-actions">
     <button type="button" onClick={()=>setRefresh(n=>n+1)} disabled={loading} aria-label={t("Refresh report","রিপোর্ট রিফ্রেশ")}><DashboardIcon name="arrow" width={16} height={16}/> {t("Refresh","রিফ্রেশ")}</button>
-    <button type="button" disabled={!displayed||stale} onClick={()=>displayed&&exportReport(displayed,active)}><DashboardIcon name="reports" width={16} height={16}/> {t("Export CSV","CSV ডাউনলোড")}</button>
+    <button type="button" disabled={!displayed||stale} onClick={()=>displayed&&exportReport(displayed,active)}><DashboardIcon name="reports" width={16} height={16}/> {t("Export summary","সারাংশ ডাউনলোড")}</button>
     <button type="button" disabled={!displayed||stale} onClick={()=>window.print()}>{t("Print","প্রিন্ট")}</button>
    </div>
   </header>
@@ -237,6 +206,8 @@ export function PaymentReports({locale,workspaceId,environment}:{locale:Locale;w
   {error&&<div className="er-error" role="alert"><span>{error}</span><button type="button" onClick={()=>setRefresh(n=>n+1)}>{t("Retry","আবার চেষ্টা")}</button></div>}
   {stale&&displayed&&<p className="er-inline-notice er-stale">{t("Displaying the previous successful report until new data loads.","নতুন তথ্য আসা পর্যন্ত আগের সফল রিপোর্ট দেখানো হচ্ছে।")}</p>}
   {!displayed&&!loading&&!error&&<section className="er-empty">{t("No report available yet.","এখনো রিপোর্ট পাওয়া যায়নি।")}</section>}
+  <PaymentReportLedger key={JSON.stringify([workspaceId,environment,applied.from,applied.to,applied.account,canReveal])}
+   locale={locale} workspaceId={workspaceId} environment={environment} period={applied} canReveal={canReveal}/>
   {displayed&&<div className="er-results" aria-busy={loading}>
    <div className="er-result-period"><span>{active.from} — {active.to}{active.account?" · "+t("Selected account","নির্বাচিত অ্যাকাউন্ট"):""}</span>{generated&&<span>{t("Updated","আপডেট")}: {generated}</span>}</div>
    <section className="er-period-analysis" aria-label={t("Period analysis","সময়সীমার বিশ্লেষণ")}>
@@ -256,38 +227,9 @@ export function PaymentReports({locale,workspaceId,environment}:{locale:Locale;w
      </>:t("Previous period will appear here.","আগের সময়ের হিসাব এখানে আসবে।")}
     </div>}
    </section>
-   <div className="er-analysis-grid">
-    <section className="er-card er-trend">
-     <div className="er-card-heading">
-      <div><h2>{t("Collection over time","সময়ের সঙ্গে সংগ্রহ")}</h2><span>{t("Verified payments · UTC dates","যাচাইকৃত পেমেন্ট · UTC দিন")}</span></div>
-      <div className="er-grain-toggle" role="group" aria-label={t("Chart grouping","গ্রাফের সময়ের ভাগ")}>
-       <button type="button" aria-pressed={grain==="day"} onClick={()=>setGrain("day")}>{t("Day","দিন")}</button>
-       <button type="button" aria-pressed={grain==="week"} onClick={()=>setGrain("week")}>{t("7-day","৭ দিন")}</button>
-      </div>
-     </div>
-     {displayed.daily.length===0?<div className="er-chart-empty">{t("No verified payments in this period.","এই সময়ে যাচাইকৃত পেমেন্ট নেই।")}</div>:
-      <div className="er-chart-scroll"><div className="er-trend-bars" role="img" aria-label={chartRows.map(row=>row.label+": "+cash(row.amount_minor,locale)).join("; ")}>
-       {chartRows.map(row=><div className="er-trend-day" key={row.key} title={row.label+" · "+cash(row.amount_minor,locale)}>
-        <div className="er-trend-track"><i style={{height:Math.max(2,row.amount_minor/max*100)+"%"}}/></div>
-        <span>{row.label}</span>
-       </div>)}
-      </div></div>}
-     <div className="er-trend-footer"><span>{grain==="week"?t("Grouped into 7-day intervals","৭ দিনের ব্যবধানে হিসাব"):t("Daily totals","প্রতিদিনের হিসাব")}</span><button type="button" onClick={()=>setSection("daily")}>{t("View daily table","দৈনিক টেবিল দেখুন")} ↗</button></div>
-    </section>
-    <section className="er-card er-methods">
-     <div className="er-card-heading"><div><h2>{t("Method contribution","মাধ্যম অনুযায়ী অংশ")}</h2><span>{t("Share of verified volume","যাচাইকৃত টাকার অনুপাত")}</span></div></div>
-     {methods.length===0?<p className="er-card-empty">{t("No method data for this period.","এই সময়ে মাধ্যমের তথ্য নেই।")}</p>:<div className="er-method-bars">
-      {[...methods].sort((a,b)=>b.amount_minor-a.amount_minor).slice(0,6).map(row=><div key={row.method} className="er-method-line">
-       <div><span>{row.method}</span><strong>{total>0?(row.amount_minor/total*100).toFixed(1)+"%":"0%"}</strong></div>
-       <div className="er-meter"><i style={{width:(total>0?Math.max(0,Math.min(100,row.amount_minor/total*100)):0)+"%"}}/></div>
-       <small>{cash(row.amount_minor,locale)} · {numeric(row.payment_count,locale)} {t("payments","পেমেন্ট")}</small>
-      </div>)}
-     </div>}
-    </section>
-   </div>
    <section className="er-allocation-analysis">
     <div className="er-allocation-head"><div><h2>{t("Allocation & reconciliation","বরাদ্দ ও হিসাব মিল")}</h2><span>{t("Verified payment allocation, not bank settlement","যাচাইকৃত পেমেন্টের বরাদ্দ, ব্যাংক settlement নয়")}</span></div><Link href={root+"reconciliation"}>{t("Reconciliation","হিসাব মিল")} ↗</Link></div>
-    <div className="er-allocation-bar" role="img" aria-label={t("Allocated share","বরাদ্দের অংশ")+": "+allocatedPercent.toFixed(1)+"%"}><i style={{width:allocatedPercent+"%"}}/></div>
+    
     <div className="er-allocation-values">
      <div><span>{t("Allocated","বরাদ্দ")}</span><strong>{cash(displayed.allocated_minor,locale)}</strong></div>
      <div><span>{t("Unallocated","অবরাদ্দ")}</span><strong>{cash(displayed.unallocated_minor,locale)}</strong></div>
