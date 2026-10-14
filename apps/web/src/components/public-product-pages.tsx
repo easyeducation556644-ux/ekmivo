@@ -60,19 +60,18 @@ function EmSectionTitle({eyebrow,title,marked}:{eyebrow:string;title:string;mark
 }
 export function PaymentGatewayPage({locale}:{locale:Locale}){
  const t=paymentCopy[locale],bn=locale==="bn";
- return <PublicMotion><main className="ek-product-page ek-pg-detail pg-editorial" lang={locale}>
+ return <PublicMotion><main className="ek-product-page ek-pg-detail pg-editorial pg-compact-product" lang={locale}>
   <div className="ek-pg-mast"><div className="ek-public-wrap">
-   <div className="pg-hero-kicker"><span aria-hidden="true">↗</span> {bn?"আপনার ব্যবসার Payment Gateway":"The payment gateway for your business"}</div>
+   <div className="pg-hero-kicker"><span aria-hidden="true">↗</span> Payment Gateway</div>
    <div className="ek-pg-mast-grid">
     <div className="ek-pg-intro">
-     <h1>{bn?"পেমেন্ট নেওয়া সহজ হোক।":"Good business."}<br/><span className="pg-hero-brush">{bn?"ব্যবসায় মন দিন।":"Simpler payments."}</span><svg className="pg-title-spark" viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="m32 3 6 20 19-10-10 19 18 5-20 5 10 18-18-10-5 19-5-20-20 10 10-19-20-5 20-5-10-18 19 10Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/></svg></h1>
+     <h1>{bn?"ব্যবসার পেমেন্ট এক জায়গায়":"Your business payments, in one place."}</h1>
      <p>{t.intro}</p>
      <div className="ek-pg-mast-actions">
       <Link href={`/${locale}/register`} className="ek-public-action">{t.primary}<span aria-hidden="true">↗</span></Link>
       <a href="#payment-workflow" className="ek-pg-text-link">{t.secondary} <span aria-hidden="true">↓</span></a>
      </div>
     </div>
-    <PaymentEditorialArt locale={locale}/>
    </div>
   </div></div>
   <nav className="ek-pg-section-nav" aria-label={bn?"এই পেজে":"On this page"}><div className="ek-public-wrap">
@@ -84,6 +83,7 @@ export function PaymentGatewayPage({locale}:{locale:Locale}){
   </div></nav>
   <section id="payment-workflow" className="ek-public-section ek-flow-section"><div className="ek-public-wrap">
    <EmSectionTitle eyebrow={t.sectionLabel} title={t.flowTitle} marked={t.flowMarked}/><p className="ek-product-section-lead">{t.flowDesc}</p>
+   <PaymentEditorialArt locale={locale}/>
    <PaymentScrollJourney locale={locale} steps={flow.map(step=>({title:step.title[locale],body:step.body[locale]}))}/>
   </div></section>
   <section id="payment-receipts" className="ek-public-section ek-evidence-section"><div className="ek-public-wrap ek-evidence-layout">

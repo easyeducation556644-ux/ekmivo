@@ -5,3 +5,5 @@ Replaced the compact hero/path list with a centered editorial hero, brushed head
 Uses existing public tokens, Hind Siliguri, EN/BN and grayscale dark-mode surfaces. Illustrated cards are explicitly labelled examples, not a payment or interactive checkout. No financial API/provider/auth changes, invented statistics or new integration claims.
 
 TypeScript and targeted lint passed. Browser/design approval remains for the owner. No new browser tests, CI dispatch or deployment executed.
+
+Latest owner correction: removed centered marketing hero. Compact left-aligned product header and actions; payment illustration moved into workflow. Homepage palette/cards/motion retained. TypeScript passed after correction.
