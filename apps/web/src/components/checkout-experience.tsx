@@ -137,7 +137,7 @@ export function CheckoutExperience({locale,token,initialMethod}:{locale:Locale;t
  const title=statusLabels[state]?.[bn?1:0]||(bn?"পেমেন্ট":"Payment");
  const canLock=state==="requires_payer"&&(info?.environment==="sandbox"||info?.environment==="live"&&info.verification_available);
  const selectedMethod=(info?.method&&isPayMethod(info.method)?info.method:method);
- const payerInvalid=(payerTouched||payer.length>=11)&&payer.trim().length>0&&!normalizeBangladeshPayer(payer);
+ const payerInvalid=(payerTouched||payer.length>=11)&&!normalizeBangladeshPayer(payer);
  const availableSelected=info?.methods?.includes(method)===true;
  const showPayer=state==="requires_payer"&&step==="payer"&&canLock&&availableSelected;
  const isNagadEntry=showPayer&&selectedMethod==="nagad";
@@ -227,7 +227,7 @@ export function CheckoutExperience({locale,token,initialMethod}:{locale:Locale;t
          </div>
          <input id="ek-nagad-number" className="ek-nagad-number-input" type="tel" inputMode="tel" autoComplete="tel-national"
           aria-label={bn?"নগদ নম্বর লিখুন (01 বা +8801)":"Enter Nagad number starting with 01 or +8801"}
-          aria-invalid={payerInvalid} aria-describedby="ek-nagad-number-help" autoFocus
+          aria-invalid={payerInvalid} aria-describedby="ek-nagad-number-help"
           maxLength={20} required disabled={locking} value={payer}
           onBlur={()=>setPayerTouched(true)} onChange={e=>{setPayer(e.target.value);setCode("")}}/>
         </div>
@@ -242,7 +242,7 @@ export function CheckoutExperience({locale,token,initialMethod}:{locale:Locale;t
        <div className="ek-nagad-footer-brand"><ProviderMark method="nagad" bn={bn}/></div>
       </div>}
       {showPayer&&selectedMethod!=="nagad"&&<div className="provider-payer-step">
-       <form onSubmit={lock} className="provider-payer-form pg05-form">
+       <form onSubmit={lock} className="provider-payer-form pg05-form" noValidate>
         <label htmlFor="provider-customer-number">{bn?"আপনার ":"Your "}{methods[method]} {bn?"অ্যাকাউন্ট নম্বর":"Account Number"}</label>
         <input id="provider-customer-number" autoFocus type="tel" inputMode="tel" autoComplete="tel-national"
          required maxLength={20} minLength={11} disabled={locking} placeholder="01XXXXXXXXX / +8801XXXXXXXXX"
