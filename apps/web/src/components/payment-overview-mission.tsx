@@ -149,9 +149,11 @@ export function PaymentOverviewMission({locale,workspaceId,environment,canManage
  const incompleteSource=unknown||!overview||verified===null||refundItems===null;
  return <div className="em-overview" aria-busy={loading}>
   <header className="em-heading">
-   <div><p className="em-kicker">PAYMENT GATEWAY / WORKSPACE</p><h1>{t("Overview","সারসংক্ষেপ")}</h1>
-    <p>{operational?t("Your payment operations, without the clutter.","পেমেন্টের গুরুত্বপূর্ণ সব তথ্য এক জায়গায়।"):t("Your payment workspace starts here.","এখান থেকেই পেমেন্ট গ্রহণের প্রস্তুতি শুরু।")}</p></div>
-   <div className="em-actions"><span className="em-realm">{environment==="live"?"LIVE":"SANDBOX"}</span><button type="button" onClick={update} disabled={loading}>{t("Refresh","আপডেট")}</button></div>
+   <div className="em-heading-copy">
+    <div className="em-heading-title"><h1>{t("Overview","সারসংক্ষেপ")}</h1><span className="em-realm">{environment==="live"?"LIVE":"SANDBOX"}</span></div>
+    <p>{operational?t("Your payment operations, without the clutter.","পেমেন্টের গুরুত্বপূর্ণ সব তথ্য এক জায়গায়।"):t("Your payment workspace starts here.","এখান থেকেই পেমেন্ট গ্রহণের প্রস্তুতি শুরু।")}</p>
+   </div>
+   <div className="em-actions"><button type="button" onClick={update} disabled={loading}>{t("Refresh","আপডেট")}</button></div>
   </header>
   {loading&&!snapshot?<section className="em-panel em-loading" role="status"><span className="em-shimmer"/><span className="em-shimmer"/><span className="em-shimmer"/>{t("Checking setup and payments…","সেটআপ ও পেমেন্ট যাচাই হচ্ছে…")}</section>:null}
   {snapshot&&!operational&&<div className="em-activation">
