@@ -5,7 +5,7 @@
 - [ ] bKash input focus: no extra blue/black border or nested box shadow, visible keyboard focus via label. Incorrect operator/prefix/length or empty input shows immediate inline field error; valid local or international format succeeds.
 - [ ] Server POST /api/checkout/:token/lock refuses invalid BD number with HTTP 422 INVALID_PAYER_OR_METHOD; verified SMS payer HMAC matches canonical full number. Never accept OTP/TrxID as identity.
 - [ ] Check live/sandbox transaction verification, amount/window, expiry, double-send protection, safe cancellation, original phone-Forwarder behavior, and existing Rocket flow unchanged.
-- [ ] Go unit regression test in backend/internal/checkout/payer_number_format_test.go is committed but **not executed**. Standalone TypeScript helper compile and 14 cases passed. Vercel fresh deployment blocked by Hobby 402 api-deployments-free-per-day; earlier preview JSX parse error fixed but latest Next build not confirmed. PR #54 remains DRAFT, main untouched.
+- [ ] Go unit regression test in backend/internal/checkout/payer_number_format_test.go is committed but **not executed**. Standalone TypeScript helper compile and 14 cases passed. Vercel preview on reconciled SHA fb71ebd9 READY: Next build and TypeScript passed (dpl_C9z8rxr52d5CpoLXBpY2YvndGMo4); earlier manual 402 quota and JSX syntax error resolved for this preview. PR #54 remains DRAFT, main untouched.
 
 Evidence: docs/evidence/CHECKOUT-NAGAD-COMPACT-PAYER-NORMALIZATION-20261014.md
 
