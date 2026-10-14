@@ -13,7 +13,7 @@ Status: **SOURCE FIXES IN DRAFT PR; NOT PRODUCTION ACCEPTED.** Preserve all fina
 ## Executed verification
 
 - **PASS:** Additive SQL 0056 created in a preexisting **disposable Neon branch**, `br-gentle-hat-b35500zw`, for the independent Live test database using 8 transaction statements, with no customer-ledger mutation.
-- **PASS (disposable SQL):** `pg56_incoming_read` returned 4 physical-phone receipt entries, with status shape and no unmasked receipt body. `pg56_refund_summary` returned 1 `requested` case, open amount 1000 minor and seller-reported returned 0.
+- **PASS (disposable SQL):** `pg56_incoming_read` returned 4 physical-phone receipt entries, with status shape and no unmasked receipt body. Follow-up filtered reads: matched **3**, cancelled **1**, bKash **4**, future date window **0**. `pg56_refund_summary` returned 1 `requested` case, open amount 1000 minor and seller-reported returned 0.
 - **PASS (live metadata only):** refreshed the authenticated control projection source and advanced a single stale Live financial registry row **monotonically from 1 to 3**. Postflight: active phone still claimed, not revoked, no heartbeat yet.
 - **NOT RUN:** Go tests, Next.js compile/lint, Android Gradle, signed device HTTP test, automated build and release. GitHub Actions workflow at PR creation showed four failure conclusions but no job steps/log blobs; this is an execution blocker, **not a source test pass or established failure**.
 - **NOT APPLIED TO PRIMARY FINANCIAL SCHEMA:** migration 0056 was tested in a disposable realm only. An attempted production schema-tool call was stopped by safety checks. Do not deploy Go report/receipt changes before 0056 exists in both production Sandbox and Live realms.
