@@ -40,7 +40,7 @@ export function PaymentRecordSearch({locale,workspaceId,environment,query,open,o
       ?new Intl.NumberFormat(locale==="bn"?"bn-BD":"en-BD",{style:"currency",currency:"BDT"}).format(amount/100)
       :typeof item.status==="string"?item.status.slice(0,30):"";
      return [{id:item.id,section,title,detail,
-      href:`/w/${workspaceId}/payments/${section}/${item.id}`}];
+      href:`/w/${workspaceId}/payments/${section==="payments"?"transactions":section}/${item.id}`}];
     });
    }));
    if(controller.signal.aborted)return;

@@ -1,3 +1,20 @@
+## Payment Operations UX rebuild — 2026-10-14 (MANUAL / BUILD PENDING)
+
+- [ ] Transactions canonical route `/w/{workspace}/payments/transactions` and detail; bookmarked legacy `/payments/payments` redirects. Test global search opens Transactions.
+- [ ] Owner/admin/editor/viewer: verified list and incoming receipt permission; reprocess only after authorized actor confirmation; business/environment and cross-tenant isolation.
+- [ ] Filters, Dhaka timestamps, pagination, empty/offline/403/503/timeout, failed request retry. No fake zeros or payer/contact inference.
+- [ ] Payment Requests create/cancel, source invoice selector, standalone amount and expires-in, advanced source form, unsaved-draft safety.
+- [ ] Refund request status, source, decrypted contact for authorized roles only, versioned review/approve/reject/cancel/mark returned; no automatic refund claim.
+- [ ] Invoice explicit draft/issue/send and linked verified paid/partial states. Customer create/search/import, invoice association, no automatic customer from SMS payer.
+- [ ] Payment Links creation/publish/archive/copy/public preview, light/dark/system, English/Bengali, responsive 320/375/768/1024/1440, keyboard and mobile scroll.
+- [ ] Build and test source, including React TS JSX, Go, Android, Docker, migrations; record exact SHA. GitHub Actions run 38546270136 and re-run 38541468224 failed all jobs in ~4s before any steps; this is NOT a passed or diagnosed test.
+- [ ] Vercel preview build blocked by 402 api-deployments-free-per-day (>100; retry after 24h). No production rollout until compile and authenticated browser evidence.
+- [ ] Keep PR #50 payer-number Go/PG57 changes isolated; that security-sensitive backend is not part of this UI-only PR.
+
+Evidence: docs/evidence/PAYMENT-OPERATIONS-UX-REBUILD-20261014.md
+
+---
+
 ## Actual payer-number Reports ledger — 2026-10-14 (deployment and browser PENDING)
 
 - [ ] On signed-in owner/admin Live workspace, open Reports and confirm all verified receipt-backed payments show actual FULL buyer/payer phone (+880...) rather than masked suffix, merchant receiving number or invoice contact.

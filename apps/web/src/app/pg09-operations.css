@@ -257,3 +257,82 @@
 @media(max-width:420px){
  .em-overview>.em-heading{padding-inline-end:calc(var(--em-content-inset) + 82px)}
 }
+
+
+/* Payment workbench: transactions/incoming only; other operation screens untouched */
+.opw-workbench{display:grid;gap:12px;min-width:0;color:var(--color-text)}
+.opw-header{display:flex;justify-content:space-between;align-items:center;gap:15px}
+.opw-header h1{margin:0;font-size:clamp(22px,2vw,27px);letter-spacing:-.03em;font-weight:650}
+.opw-header p{margin:3px 0 0;color:var(--color-text-secondary);font-size:12px}
+.opw-workbench button,.opw-workbench :is(input,select){font:inherit}
+.opw-workbench button{min-height:36px;cursor:pointer;border:1px solid var(--color-control-border);border-radius:var(--radius-control);padding:7px 12px;background:var(--color-surface);color:var(--color-text);font-size:12px;font-weight:600}
+.opw-workbench button:disabled{opacity:.55;cursor:not-allowed}
+.opw-workbench button:hover:not(:disabled){background:var(--color-hover)}
+.opw-workbench :is(a,button,input,select,.opw-scroll):focus-visible{outline:2px solid var(--color-focus);outline-offset:3px}
+.opw-refresh{margin-inline-start:auto}
+.opw-filters{display:grid;grid-template-columns:minmax(170px,1.5fr) minmax(115px,.8fr) minmax(115px,.8fr) minmax(120px,.9fr) auto;gap:8px;align-items:end;padding:12px 14px;border:1px solid var(--color-border);border-radius:var(--radius-panel);background:var(--color-surface)}
+.opw-filters label{display:grid;gap:5px;min-width:0}
+.opw-filters label span{font-size:11px;color:var(--color-text-secondary);font-weight:600}
+.opw-filters input,.opw-filters select{width:100%;min-width:0;min-height:40px;padding:8px 10px;border:1px solid var(--color-control-border);border-radius:var(--radius-control);background:var(--color-surface);color:var(--color-text);font-size:12px}
+.opw-filter-actions{display:flex;gap:6px;white-space:nowrap}
+.opw-filter-actions button:first-child{background:var(--color-primary);color:var(--color-on-primary);border-color:var(--color-primary)}
+.opw-dates{grid-column:1/-1;font-size:12px;color:var(--color-text-secondary)}
+.opw-dates summary{cursor:pointer;padding:3px 0;font-weight:600}
+.opw-dates>div{display:flex;gap:8px;margin-top:7px}
+.opw-dates label{width:min(220px,100%)}
+.opw-notice,.opw-error{margin:0;border:1px solid var(--color-border);background:var(--color-surface-subtle);border-radius:7px;padding:10px 12px;font-size:12px}
+.opw-error{color:var(--color-danger);border-color:var(--color-danger);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.opw-list-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3px 2px;flex-wrap:wrap;font-size:12px}
+.opw-list-head>div{display:flex;align-items:center;gap:10px}
+.opw-list-head strong{font-size:13px;font-weight:650}
+.opw-list-head span{color:var(--color-text-secondary);font-size:11px}
+.opw-list-head>span strong{font-size:12px;color:var(--color-text)}
+.opw-scroll{border:1px solid var(--color-border);border-radius:var(--radius-panel);background:var(--color-surface);min-width:0;overflow-x:auto}
+.opw-scroll table{width:100%;min-width:860px;border-collapse:collapse;text-align:start;font-size:12px}
+.opw-scroll th{padding:11px 13px;background:var(--color-surface-subtle);color:var(--color-text-secondary);font-weight:600;font-size:11px;border-bottom:1px solid var(--color-border);text-align:start;white-space:nowrap}
+.opw-scroll td{padding:12px 13px;border-bottom:1px solid var(--color-border);white-space:nowrap;vertical-align:middle;font-variant-numeric:tabular-nums}
+.opw-scroll tr:last-child td{border-bottom:0}
+.opw-scroll tbody tr:hover{background:var(--color-surface-subtle)}
+.opw-reference{display:inline-block;font-weight:650;max-width:190px;overflow:hidden;text-overflow:ellipsis;text-decoration:none;vertical-align:middle}
+.opw-reference:hover{text-decoration:underline}
+.opw-scroll td:first-child small{display:block;max-width:190px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;color:var(--color-text-secondary);font-size:10px;margin-top:4px}
+.opw-num{text-align:end;font-weight:650}
+.opw-status{font-size:11px;font-weight:600;background:var(--color-surface-subtle);border:1px solid var(--color-border);border-radius:5px;display:inline-block;padding:4px 7px}
+.opw-status[data-status=verified],.opw-status[data-status=matched]{color:var(--color-success)}
+.opw-status[data-status=unmatched],.opw-status[data-status=ambiguous],.opw-status[data-status=invalid]{color:var(--color-warning)}
+.opw-scroll td:last-child a{font-size:12px;font-weight:600;text-decoration:none}
+.opw-empty{padding:42px 18px;border:1px dashed var(--color-border);border-radius:var(--radius-panel);text-align:center;background:var(--color-surface)}
+.opw-empty strong{font-size:15px}
+.opw-empty p{font-size:12px;color:var(--color-text-secondary)}
+.opw-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--color-text-secondary);font-size:12px}
+@media(max-width:970px){.opw-filters{grid-template-columns:minmax(0,1fr) minmax(130px,.6fr)}.opw-filter-actions{grid-column:1/-1}}
+@media(max-width:600px){.opw-filters{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px}.opw-search{grid-column:1/-1}.opw-filter-actions button,.opw-refresh{min-height:44px}.opw-dates>div{flex-direction:column}.opw-dates label{width:100%}.opw-header p{font-size:11px}}
+
+
+/* Detail views retain original evidence, notification/reprocess actions and
+   historical records but remove the redundant generic table. */
+.opw-detail,.opw-other-detail{display:grid;gap:12px;min-width:0}
+.opw-detail-heading h1{margin:0;font-size:clamp(22px,2vw,27px);line-height:1.3;letter-spacing:-.03em;font-weight:650}
+.opw-detail>.pg-operations{padding:15px;display:grid;gap:12px;min-width:0}
+.opw-detail>.pg-operations>.pg-operation-table{display:none}
+.opw-detail .pg-operations>.ds-panel-heading{margin:0;display:flex;align-items:center;justify-content:flex-end;min-height:36px}
+.opw-detail .pg-operations>.ds-panel-heading>p{margin-inline-end:auto;font-size:11px;color:var(--color-text-secondary)}
+.opw-detail .pg-operation-record-summary{padding:12px 15px;border:1px solid var(--color-border);background:var(--color-surface-subtle);border-radius:var(--radius-panel);display:grid;gap:7px;font-size:12px}
+.opw-detail .pg-operation-record-summary p{margin:0;line-height:1.6;color:var(--color-text-secondary)}
+.opw-detail .pg-operation-record-summary strong{color:var(--color-text)}
+.opw-detail .pg-operation-detail{margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.opw-detail .pg-operation-detail>div{min-width:0;display:grid;gap:5px;align-content:start;padding:11px 12px;border:1px solid var(--color-border);border-radius:7px;background:var(--color-surface)}
+.opw-detail .pg-operation-detail dt{font-size:10px;letter-spacing:.005em;color:var(--color-text-secondary);overflow-wrap:anywhere}
+.opw-detail .pg-operation-detail dd{margin:0;font-size:12px;font-weight:650;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.opw-detail .pg09-detail-history{border:1px solid var(--color-border);border-radius:var(--radius-panel);padding:13px 15px;background:var(--color-surface)}
+.opw-detail .pg09-detail-history h2{font-size:14px;font-weight:650;margin:0 0 10px}
+.opw-detail .pg09-detail-history ul{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.opw-detail .pg09-detail-history li{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px;background:var(--color-surface-subtle);padding:10px;border-radius:6px;font-size:11px}
+.opw-detail .pg09-detail-history li strong{font-variant-numeric:tabular-nums}
+.opw-detail .pg-operations>section h2{font-size:14px;letter-spacing:-.01em}
+.opw-detail .pg-operations>section>.pg-operation-table{max-width:100%;overflow-x:auto}
+@media(max-width:900px){.opw-detail .pg-operation-detail{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:500px){.opw-detail .pg-operation-detail{grid-template-columns:1fr}.opw-detail>.pg-operations{padding:11px}.opw-detail .pg-operation-record-summary{padding:10px}.opw-detail .pg-operation-detail dd{font-size:13px}}
+
+@media(max-width:1200px){.opw-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.opw-filter-actions{grid-column:1/-1}}
+@media(max-width:600px){.opw-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
