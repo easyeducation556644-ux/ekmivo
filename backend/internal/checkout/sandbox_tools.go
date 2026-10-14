@@ -27,11 +27,29 @@ func (s *Service) HandleSandboxTools(w http.ResponseWriter, r *http.Request) {
 		authError(w, e)
 		return
 	}
-	if actor == "" || (role != "owner" && role != "admin") {
+	publicKey := role == "merchant_key" && ws == os.Getenv("PG14_PUBLIC_SANDBOX_WORKSPACE") && uuidPattern.MatchString(ws)
+	if publicKey {
+		if action == "reset" {
+			fail(w, 403, "PUBLIC_SANDBOX_RESET_FORBIDDEN")
+			return
+		}
+		scope := "payments:read"
+		if r.Method != "GET" {
+			scope = "payments:write"
+		}
+		credential, err := s.Auth.AuthenticateMerchant(r.Context(), r.Header.Get("Authorization"), authz.Environment("sandbox"), scope)
+		if err != nil {
+			authError(w, err)
+			return
+		}
+		// Fixture audit records the credential ID, never impersonates an admin.
+		actor = credential.KeyID
+	}
+	if !publicKey && (actor == "" || (role != "owner" && role != "admin")) {
 		fail(w, 403, "SANDBOX_DEVELOPER_SESSION_REQUIRED")
 		return
 	}
-	if r.Method != "GET" {
+	if r.Method != "GET" && !publicKey {
 		cookie, err := r.Cookie("ekmivo-session")
 		if err != nil {
 			authError(w, authz.ErrUnauthorized)

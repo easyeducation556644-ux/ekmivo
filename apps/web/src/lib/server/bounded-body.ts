@@ -1,6 +1,6 @@
 import "server-only";
 // Stop consuming before an oversized upload reaches the Go proxy or JSON parser.
-export async function boundedBody(request:Request,limit:number):Promise<string|null>{
+export async function boundedBody(request:Pick<Request,"headers"|"body">,limit:number):Promise<string|null>{
  const declared=Number(request.headers.get("content-length"));
  if(Number.isFinite(declared)&&declared>limit)return null;
  if(!request.body)return "";

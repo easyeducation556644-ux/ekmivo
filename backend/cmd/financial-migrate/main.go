@@ -318,6 +318,11 @@ func main() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
+	if os.Getenv("PG59_PUBLIC_SANDBOX_ALLOW_MIGRATION") == "true" {
+		if err := migratePublicSandboxControl(ctx, control, os.Getenv("PG59_PUBLIC_SANDBOX_MIGRATION_FILE")); err != nil {
+			log.Fatal("0059 public sandbox control migration blocked: ", err)
+		}
+	}
 	if err := migrateControl(ctx, control, controlFile); err != nil {
 		log.Fatal(err)
 	}

@@ -7,6 +7,7 @@ import { mailReady } from "../../../lib/server/email";
 import { database } from "../../../lib/server/db";
 import { VerificationSettings, RoleControls } from "../../../components/admin-controls";
 import { logoutAction } from "../../../actions/account";
+import {AdminPublicSandbox} from "../../../components/admin-public-sandbox";
 export const dynamic="force-dynamic";
 
 const adminFeatures={
@@ -50,6 +51,7 @@ export default async function PlatformAdmin({params}:{params:Promise<{locale:str
    {isSuper&&<section className="ek-admin-management">
     <p className="ek-page-kicker">AUTHORIZATION / SECURITY</p>
     <h2>{locale==="bn"?"ব্যবস্থাপনা ও নিরাপত্তা":"Administration & security"}</h2>
+    <AdminPublicSandbox locale={locale}/>
     <VerificationSettings locale={locale} enabled={settings.emailVerification} providerReady={mailReady()}/>
     <RoleControls locale={locale} users={roleUsers}/>
     <div className="ek-panel ek-settings-panel">
