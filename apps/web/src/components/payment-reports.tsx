@@ -36,18 +36,31 @@ function changePercent(current:number,previous:number):string|null{
  const change=(current-previous)/Math.abs(previous)*100;
  return (change>0?"+":"")+change.toFixed(1)+"%";
 }
-function summarizedDays(daily:DayRow[],grain:Grain):{key:string;label:string;amount_minor:number}[]{
- const ordered=[...daily].filter(row=>typeof row.day==="string"&&Number.isFinite(row.amount_minor)&&Number.isFinite(Date.parse(row.day+"T00:00:00Z"))).sort((a,b)=>a.day.localeCompare(b.day));
- if(grain==="day")return ordered.map(row=>({key:row.day,label:row.day.slice(5),amount_minor:row.amount_minor}));
- const anchor=ordered.length?Date.parse(ordered[0].day+"T00:00:00Z"):0;
- const groups=new Map<number,{first:string;last:string;total:number}>();
- for(const row of ordered){
-  const bucket=Math.floor((Date.parse(row.day+"T00:00:00Z")-anchor)/(7*millis));
-  const group=groups.get(bucket);
-  if(group){group.last=row.day;group.total+=row.amount_minor}
-  else groups.set(bucket,{first:row.day,last:row.day,total:row.amount_minor});
+function summarizedDays(daily:DayRow[],grain:Grain,period:Filters):{key:string;label:string;amount_minor:number}[]{
+ const amounts=new Map<string,number>();
+ for(const row of daily){
+  if(typeof row.day!=="string"||!Number.isFinite(row.amount_minor)||!Number.isFinite(Date.parse(row.day+"T00:00:00Z")))continue;
+  amounts.set(row.day,(amounts.get(row.day)??0)+row.amount_minor);
  }
- return [...groups].map(([bucket,group])=>({key:String(bucket),label:group.first.slice(5)+"–"+group.last.slice(5),amount_minor:group.total}));
+ const first=Date.parse(period.from+"T00:00:00Z")-millis;
+ const last=Date.parse(period.to+"T00:00:00Z");
+ if(!Number.isFinite(first)||!Number.isFinite(last)||last<first||last-first>367*millis)return [];
+ const result:{key:string;label:string;amount_minor:number}[]=[];
+ if(grain==="day"){
+  for(let current=first;current<=last;current+=millis){
+   const day=new Date(current).toISOString().slice(0,10);
+   result.push({key:day,label:day.slice(5),amount_minor:amounts.get(day)??0});
+  }
+  return result;
+ }
+ for(let current=first;current<=last;current+=7*millis){
+  const until=Math.min(last,current+6*millis);
+  let total=0;
+  for(let d=current;d<=until;d+=millis)total+=amounts.get(new Date(d).toISOString().slice(0,10))??0;
+  const a=new Date(current).toISOString().slice(5,10),b=new Date(until).toISOString().slice(5,10);
+  result.push({key:new Date(current).toISOString().slice(0,10),label:a+"–"+b,amount_minor:total});
+ }
+ return result;
 }
 const sections:Section[]=["methods","accounts","customers","refunds","statements","daily"];
 const millis=86400000;
@@ -184,7 +197,7 @@ export function PaymentReports({locale,workspaceId,environment}:{locale:Locale;w
  const displayed=response?.report??null;
  const active=response?.filters??applied;
  const stale=Boolean(response&&(loading||error||!applies||active.from!==applied.from||active.to!==applied.to||active.account!==applied.account));
- const chartRows=useMemo(()=>summarizedDays(displayed?.daily??[],grain),[displayed,grain]);
+ const chartRows=useMemo(()=>summarizedDays(displayed?.daily??[],grain,active),[displayed,grain,active]);
  const max=Math.max(1,...chartRows.map(x=>Math.max(0,x.amount_minor)));
  const methods=displayed?.methods??[];
  const total=methods.reduce((a,b)=>a+b.amount_minor,0);
@@ -252,7 +265,7 @@ export function PaymentReports({locale,workspaceId,environment}:{locale:Locale;w
        <button type="button" aria-pressed={grain==="week"} onClick={()=>setGrain("week")}>{t("7-day","৭ দিন")}</button>
       </div>
      </div>
-     {chartRows.length===0?<div className="er-chart-empty">{t("No verified payments in this period.","এই সময়ে যাচাইকৃত পেমেন্ট নেই।")}</div>:
+     {displayed.daily.length===0?<div className="er-chart-empty">{t("No verified payments in this period.","এই সময়ে যাচাইকৃত পেমেন্ট নেই।")}</div>:
       <div className="er-chart-scroll"><div className="er-trend-bars" role="img" aria-label={chartRows.map(row=>row.label+": "+cash(row.amount_minor,locale)).join("; ")}>
        {chartRows.map(row=><div className="er-trend-day" key={row.key} title={row.label+" · "+cash(row.amount_minor,locale)}>
         <div className="er-trend-track"><i style={{height:Math.max(2,row.amount_minor/max*100)+"%"}}/></div>
