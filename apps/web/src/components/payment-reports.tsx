@@ -1,16 +1,218 @@
 "use client";
-import {useEffect,useState} from "react";
-type Report={verified_gross_minor:number;allocated_minor:number;unallocated_minor:number;payment_count:number;seller_reported_returned_minor:number;open_requested_refund_minor:number;refund_request_count:number;generated_at:string;methods:{method:string;amount_minor:number;payment_count:number}[];accounts:{account_id:string;method:string;display_suffix:string;amount_minor:number;payment_count:number}[];customers:{customer_id:string;reference:string;name:string;amount_minor:number;payment_count:number}[];refunds:{status:string;amount_minor:number;request_count:number}[];statement_links:{amount_minor:number;count:number};daily:{day:string;amount_minor:number}[]};
-export function PaymentReports({locale,workspaceId,environment}:{locale:"en"|"bn";workspaceId:string;environment:string}){
- const t=(en:string,bn:string)=>locale==="bn"?bn:en;
- const [from,setFrom]=useState(()=>new Date(Date.now()-30*86400000).toISOString().slice(0,10)),[to,setTo]=useState(()=>new Date().toISOString().slice(0,10)),[account,setAccount]=useState(""),[report,setReport]=useState<Report|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(""),[tab,setTab]=useState("overview");
- const [accounts,setAccounts]=useState<{id:string;method:string;display_suffix:string}[]>([]),[accountsError,setAccountsError]=useState(false),[period,setPeriod]=useState<{from:string;to:string}|null>(null);
- useEffect(()=>{const c=new AbortController();void fetch(`/api/go/workspaces/${workspaceId}/integrations?environment=${environment}`,{cache:"no-store",signal:c.signal}).then(async r=>{if(!r.ok)throw Error();return r.json()}).then(d=>{if(!c.signal.aborted){setAccounts(d.receiving?.items??[]);setAccountsError(false)}}).catch(()=>{if(!c.signal.aborted)setAccountsError(true)});return()=>c.abort()},[workspaceId,environment]);
- const refundLabels:Record<string,string>={requested:t("Requested","অনুরোধ এসেছে"),reviewing:t("Under review","পর্যালোচনা চলছে"),approved:t("Approved for seller return","বিক্রেতার ফেরতের অনুমোদন"),rejected:t("Rejected","প্রত্যাখ্যাত"),seller_reported_returned:t("Seller reported returned","বিক্রেতার ফেরতের রিপোর্ট"),cancelled:t("Cancelled","বাতিল")};
- async function load(e:React.FormEvent){e.preventDefault();setError("");
- if(!from||!to||from>to||new Date(to+"T00:00:00+06:00").getTime()-new Date(from+"T00:00:00+06:00").getTime()>365*86400000){
-  setReport(null);setError(t("Choose a valid period of at most 366 days.","সর্বোচ্চ ৩৬৬ দিনের একটি সঠিক সময়সীমা বেছে নিন।"));return;
+
+import {useEffect,useMemo,useState} from "react";
+import type {FormEvent} from "react";
+import Link from "next/link";
+import {DashboardIcon} from "./dashboard-icon";
+
+type Locale="en"|"bn";
+type MoneyRow={amount_minor:number;payment_count:number};
+type MethodRow=MoneyRow&{method:string};
+type AccountRow=MoneyRow&{account_id:string;method:string;display_suffix:string};
+type CustomerRow=MoneyRow&{customer_id:string;reference:string;name:string};
+type RefundRow={status:string;amount_minor:number;request_count:number};
+type DayRow={day:string;amount_minor:number};
+type Report={
+ verified_gross_minor:number;allocated_minor:number;unallocated_minor:number;payment_count:number;
+ seller_reported_returned_minor:number;open_requested_refund_minor:number;refund_request_count:number;
+ generated_at:string;methods:MethodRow[];accounts:AccountRow[];customers:CustomerRow[];
+ refunds:RefundRow[];statement_links:{amount_minor:number;count:number};daily:DayRow[]
+};
+type AccountOption={id:string;method:string;display_suffix:string};
+type Filters={from:string;to:string;account:string};
+type Preset="7"|"30"|"90"|"custom";
+type Section="methods"|"accounts"|"customers"|"refunds"|"statements"|"daily";
+type ViewState={report:Report;filters:Filters};
+const sections:Section[]=["methods","accounts","customers","refunds","statements","daily"];
+const millis=86400000;
+function dhakaToday(){return new Date(Date.now()+6*3600000).toISOString().slice(0,10)}
+function startDate(end:string,days:number){return new Date(Date.parse(end+"T00:00:00Z")-(days-1)*millis).toISOString().slice(0,10)}
+function defaults():Filters{const end=dhakaToday();return {from:startDate(end,30),to:end,account:""}}
+function dateRange(filters:Filters){
+ const {from,to}=filters;
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^\d{4}-\d{2}-\d{2}$/.test(to))return null;
+ const start=Date.parse(from+"T00:00:00Z"),end=Date.parse(to+"T00:00:00Z");
+ if(!Number.isFinite(start)||!Number.isFinite(end)||new Date(start).toISOString().slice(0,10)!==from||new Date(end).toISOString().slice(0,10)!==to||end<start||end-start>365*millis)return null;
+ return {start:new Date(from+"T00:00:00+06:00").toISOString(),end:new Date(Date.parse(to+"T00:00:00+06:00")+millis).toISOString()};
+}
+function isRow(value:unknown):value is Record<string,unknown>{return !!value&&typeof value==="object"&&!Array.isArray(value)}
+function isNumber(value:unknown){return typeof value==="number"&&Number.isFinite(value)}
+function validateReport(value:unknown):value is Report{
+ if(!isRow(value))return false;
+ const numeric=["verified_gross_minor","allocated_minor","unallocated_minor","payment_count","seller_reported_returned_minor","open_requested_refund_minor","refund_request_count"];
+ if(!numeric.every(key=>isNumber(value[key])))return false;
+ if(typeof value.generated_at!=="string"||!isRow(value.statement_links)||!isNumber(value.statement_links.amount_minor)||!isNumber(value.statement_links.count))return false;
+ for(const key of ["methods","accounts","customers","refunds","daily"]){
+  if(!Array.isArray(value[key]))return false;
+  if(!(value[key] as unknown[]).every(item=>isRow(item)&&isNumber(item.amount_minor)))return false;
  }
- setBusy(true);try{const q=new URLSearchParams({environment,from:new Date(from+"T00:00:00+06:00").toISOString(),to:new Date(new Date(to+"T00:00:00+06:00").getTime()+86400000).toISOString()});if(account)q.set("account",account);const r=await fetch(`/api/go/workspaces/${workspaceId}/reports?${q}`,{cache:"no-store"});if(!r.ok)throw Error(String(r.status));setReport(await r.json());setPeriod({from,to})}catch(e){setReport(null);setError(String(e))}finally{setBusy(false)}}
- return <div className="pg10-workspace"><p>{t("Filter by Bangladesh calendar days (00:00–23:59 Asia/Dhaka). Daily buckets below remain UTC. Seller-reported refunds are not provider settlement or SaaS revenue.","বাংলাদেশ সময়ের দিন অনুযায়ী পেমেন্ট ফিল্টার হয়; নিচের দৈনিক হিসাব আপাতত UTC। বিক্রেতার রিপোর্ট করা ফেরত provider settlement বা SaaS আয় নয়।")}</p><form className="pg10-toolbar" onSubmit={load}><label>{t("From","শুরু")}<input type="date" required value={from} onChange={e=>setFrom(e.target.value)}/></label><label>{t("Through","শেষ")}<input type="date" required value={to} onChange={e=>setTo(e.target.value)}/></label><label>{t("Receiving account","গ্রহণকারী account")}<select value={account} onChange={e=>setAccount(e.target.value)} disabled={busy||accountsError}><option value="">{t("All accounts","সব account")}</option>{accounts.map(a=><option key={a.id} value={a.id}>{a.method} · ••••{a.display_suffix}</option>)}</select></label><button disabled={busy}>{t("Run report","রিপোর্ট দেখুন")}</button></form>{accountsError&&<p role="alert">{t("Account filter unavailable. Reports for all accounts remain available.","Account filter পাওয়া যাচ্ছে না। সব account-এর রিপোর্ট দেখা যাবে।")}</p>}{busy&&<p role="status">{t("Calculating…","হিসাব হচ্ছে…")}</p>}{error&&<p role="alert">{t("Report unavailable","রিপোর্ট পাওয়া যাচ্ছে না")} {error}</p>}{report&&<><div className="pg10-toolbar"><button onClick={()=>window.print()}>{t("Print report / save PDF","রিপোর্ট print / PDF")}</button><button onClick={()=>{const quote=(value:unknown)=>'"'+String(typeof value==="string"&&/^[=+@\-\t\r]/.test(value)?"'"+value:value??"").replaceAll('"','""')+'"';const csv=[["currency","from","through","verified_gross_minor","allocated_minor","unallocated_minor","seller_reported_returned_minor","open_requested_refund_minor","refund_request_count","payment_count"],["BDT",period?.from,period?.to,report.verified_gross_minor,report.allocated_minor,report.unallocated_minor,report.seller_reported_returned_minor,report.open_requested_refund_minor,report.refund_request_count,report.payment_count],[],["method","amount_minor","payment_count"],...report.methods.map(x=>[x.method,x.amount_minor,x.payment_count]),[],["day_utc","verified_amount_minor"],...report.daily.map(x=>[x.day,x.amount_minor]),[],["account_id","method","suffix","verified_amount_minor","payment_count"],...report.accounts.map(x=>[x.account_id,x.method,x.display_suffix,x.amount_minor,x.payment_count]),[],["customer_id","reference","name","allocated_minor","payment_count"],...report.customers.map(x=>[x.customer_id,x.reference,x.name,x.amount_minor,x.payment_count]),[],["refund_status","amount_minor","request_count"],...report.refunds.map(x=>[x.status,x.amount_minor,x.request_count])].map(row=>row.map(quote).join(",")).join("\r\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));const a=document.createElement("a");a.href=url;a.download="payment-report.csv";a.click();URL.revokeObjectURL(url)}}>{t("Download report CSV","রিপোর্ট CSV download")}</button></div><nav className="pg10-toolbar" aria-label={t("Report sections","রিপোর্টের বিভাগ")}>{[["overview",t("Overview","সারাংশ")],["methods",t("Methods","মাধ্যম")],["accounts",t("Accounts","Account")],["customers",t("Customers","ক্রেতা")],["refunds",t("Refund requests","ফেরতের অনুরোধ")],["settlement",t("Statement links","Statement সংযোগ")],["daily",t("Daily","দিনভিত্তিক")]].map(([id,label])=><button key={id} aria-pressed={tab===id} onClick={()=>setTab(id)}>{label}</button>)}</nav>{tab==="overview"&&<dl className="ds-panel">{[[t("Verified gross","যাচাইকৃত মোট"),report.verified_gross_minor],[t("Allocated","বরাদ্দ"),report.allocated_minor],[t("Unallocated","অবরাদ্দ"),report.unallocated_minor],[t("Open refund requests (seller action pending)","অপেক্ষমাণ রিফান্ড অনুরোধ"),report.open_requested_refund_minor],[t("Seller reported returned (not provider-confirmed)","বিক্রেতার রিপোর্ট করা ফেরত (provider যাচাইকৃত নয়)"),report.seller_reported_returned_minor]].map(([label,amount])=><div key={label}><dt>{label}</dt><dd>{(Number(amount)/100).toLocaleString(locale)} BDT</dd></div>)}<dt>{t("Payment count","পেমেন্ট সংখ্যা")}</dt><dd>{report.payment_count}</dd><dt>{t("Refund cases","রিফান্ড অনুরোধ সংখ্যা")}</dt><dd>{report.refund_request_count}</dd></dl>}{tab==="methods"&&<section className="ds-panel"><h2>{t("Methods","মাধ্যম")}</h2><table><thead><tr><th>{t("Method","মাধ্যম")}</th><th>BDT</th><th>{t("Count","সংখ্যা")}</th></tr></thead><tbody>{report.methods.map(x=><tr key={x.method}><td>{x.method}</td><td>{x.amount_minor/100}</td><td>{x.payment_count}</td></tr>)}</tbody></table></section>}{tab==="daily"&&<section className="ds-panel"><h2>{t("Daily volume","দিনভিত্তিক পেমেন্ট")}</h2><table><thead><tr><th>{t("Day (UTC)","দিন (UTC)")}</th><th>BDT</th></tr></thead><tbody>{report.daily.map(x=><tr key={x.day}><td>{x.day}</td><td>{x.amount_minor/100}</td></tr>)}</tbody></table></section>}{tab==="accounts"&&<section className="ds-panel"><h2>{t("Receiving accounts","গ্রহণকারী account")}</h2>{report.accounts.length===0?<p>{t("No verified receipts in this period.","এই সময়ে যাচাইকৃত পেমেন্ট নেই।")}</p>:report.accounts.map(a=><article key={a.account_id}><h3>{a.method} · ••••{a.display_suffix}</h3><p>{(a.amount_minor/100).toLocaleString(locale)} BDT · {a.payment_count} {t("payments","পেমেন্ট")}</p></article>)}</section>}{tab==="customers"&&<section className="ds-panel"><h2>{t("Invoice-linked customers","Invoice-এর সঙ্গে যুক্ত ক্রেতা")}</h2><p>{t("Top 100 by verified allocation. A contact is not automatically the payer.","যাচাইকৃত বরাদ্দ অনুযায়ী প্রথম ১০০ জন। Contact আর প্রকৃত payer এক বলে ধরে নেওয়া হয় না।")}</p>{report.customers.length===0?<p>{t("No linked customer payments.","ক্রেতার সঙ্গে যুক্ত পেমেন্ট নেই।")}</p>:report.customers.map(c=><article key={c.customer_id}><h3>{c.name} · {c.reference}</h3><p>{(c.amount_minor/100).toLocaleString(locale)} BDT · {c.payment_count} {t("payments","পেমেন্ট")}</p></article>)}</section>}{tab==="refunds"&&<section className="ds-panel"><h2>{t("Refund requests by state","অবস্থা অনুযায়ী ফেরতের অনুরোধ")}</h2><p>{t("Includes delayed SMS refund requests even when no verified payment exists. Requested is not returned.","যাচাইকৃত payment ছাড়াই তৈরি হওয়া late-SMS refund-ও এখানে থাকবে। অনুরোধ মানেই টাকা ফেরত নয়।")}</p>{report.refunds.length===0?<p>{t("No refund requests in this period.","এই সময়ে ফেরতের অনুরোধ নেই।")}</p>:report.refunds.map(r=><p key={r.status}>{refundLabels[r.status]??r.status} · {(r.amount_minor/100).toLocaleString(locale)} BDT · {r.request_count}</p>)}</section>}{tab==="settlement"&&<section className="ds-panel"><h2>{t("Merchant-imported statement links","বিক্রেতার import করা statement-এর সংযোগ")}</h2><p>{t("These links do not prove provider settlement. No independently verified net settlement total is available.","এই সংযোগ provider settlement-এর প্রমাণ নয়। স্বাধীনভাবে যাচাইকৃত net settlement total পাওয়া যায় না।")}</p><p>{(report.statement_links.amount_minor/100).toLocaleString(locale)} BDT · {report.statement_links.count}</p></section>}<p>{t("Generated","প্রস্তুত")}: {new Date(report.generated_at).toLocaleString(locale)}</p></>}</div>;
+ return true;
+}
+function cash(minor:number,locale:Locale){return new Intl.NumberFormat(locale==="bn"?"bn-BD":"en-BD",{style:"currency",currency:"BDT"}).format(minor/100)}
+function numeric(value:number,locale:Locale){return new Intl.NumberFormat(locale==="bn"?"bn-BD":"en-BD").format(value)}
+function escapeCSV(value:unknown){
+ const raw=String(value??"");
+ return '"'+( /^[\s]*[=+\-@\t\r]/.test(raw)?"'"+raw:raw ).replaceAll('"','""')+'"';
+}
+function exportReport(report:Report,period:Filters){
+ const rows:(string|number)[][]=[
+  ["section","reference","label","status","amount_minor","count","from","through","currency"],
+  ["summary","","verified","",""+report.verified_gross_minor,report.payment_count,period.from,period.to,"BDT"],
+  ["summary","","allocated","",report.allocated_minor,"","","","BDT"],
+  ["summary","","unallocated","",report.unallocated_minor,"","","","BDT"],
+  ["summary","","open_refund","",report.open_requested_refund_minor,report.refund_request_count,"","","BDT"],
+  ["summary","","seller_reported_returned","",report.seller_reported_returned_minor,"","","","BDT"],
+  ...report.methods.map(r=>["method",r.method,r.method,"",r.amount_minor,r.payment_count,"","","BDT"] as (string|number)[]),
+  ...report.accounts.map(r=>["account",r.account_id,r.method+" ••••"+r.display_suffix,"",r.amount_minor,r.payment_count,"","","BDT"] as (string|number)[]),
+  ...report.customers.map(r=>["customer",r.customer_id,r.name||r.reference,"",r.amount_minor,r.payment_count,"","","BDT"] as (string|number)[]),
+  ...report.refunds.map(r=>["refund","",r.status,r.status,r.amount_minor,r.request_count,"","","BDT"] as (string|number)[]),
+  ...report.daily.map(r=>["daily",r.day,r.day+" UTC","",r.amount_minor,"","","","BDT"] as (string|number)[]),
+  ["statement","merchant_import","","imported",report.statement_links.amount_minor,report.statement_links.count,"","","BDT"]
+ ];
+ const csv="\uFEFF"+rows.map(row=>row.map(escapeCSV).join(",")).join("\r\n")+"\r\n";
+ const uri=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+ const a=document.createElement("a");a.href=uri;a.download="ekmivo-report-"+period.from+"-"+period.to+".csv";document.body.append(a);a.click();a.remove();
+ window.setTimeout(()=>URL.revokeObjectURL(uri),2000);
+}
+export function PaymentReports({locale,workspaceId,environment}:{locale:Locale;workspaceId:string;environment:string}){
+ const bn=locale==="bn",t=(en:string,bengali:string)=>bn?bengali:en;
+ const [draft,setDraft]=useState<Filters>(defaults);
+ const [applied,setApplied]=useState<Filters>(defaults);
+ const [preset,setPreset]=useState<Preset>("30");
+ const [section,setSection]=useState<Section>("methods");
+ const [response,setResponse]=useState<ViewState|null>(null);
+ const [loading,setLoading]=useState(true),[error,setError]=useState(""),[refresh,setRefresh]=useState(0);
+ const [accounts,setAccounts]=useState<AccountOption[]>([]),[accountError,setAccountError]=useState(false);
+ const root="/w/"+workspaceId+"/payments/";
+ const applies=draft.from===applied.from&&draft.to===applied.to&&draft.account===applied.account;
+ const pending=useMemo(()=>dateRange(draft),[draft]);
+ const labels:Record<Section,string>={methods:t("Methods","মাধ্যম"),accounts:t("Accounts","অ্যাকাউন্ট"),customers:t("Customers","গ্রাহক"),refunds:t("Refunds","রিফান্ড"),statements:t("Statements","স্টেটমেন্ট"),daily:t("Daily","দৈনিক")};
+ const refundLabels:Record<string,string>={requested:t("Requested","অনুরোধ"),reviewing:t("In review","পর্যালোচনায়"),approved:t("Approved","অনুমোদিত"),rejected:t("Rejected","প্রত্যাখ্যাত"),seller_reported_returned:t("Seller reported returned","বিক্রেতার ফেরত রিপোর্ট"),cancelled:t("Cancelled","বাতিল")};
+
+ useEffect(()=>{
+  const controller=new AbortController();
+  void fetch("/api/go/workspaces/"+workspaceId+"/integrations?environment="+encodeURIComponent(environment),{cache:"no-store",signal:controller.signal,credentials:"same-origin"})
+   .then(async r=>{if(!r.ok)throw Error(String(r.status));return r.json()})
+   .then(data=>{if(controller.signal.aborted)return;const rows=data?.receiving?.items;if(!Array.isArray(rows))throw Error("INVALID_ACCOUNTS");setAccounts(rows.filter((x:unknown)=>isRow(x)&&typeof x.id==="string"&&typeof x.method==="string"&&typeof x.display_suffix==="string"));setAccountError(false)})
+   .catch(()=>{if(!controller.signal.aborted)setAccountError(true)});
+  return()=>controller.abort();
+ },[workspaceId,environment]);
+
+ useEffect(()=>{
+  const controller=new AbortController();
+  const range=dateRange(applied);
+  const run=async()=>{
+   setLoading(true);setError("");
+   if(!range){setError(t("Select a valid date range, up to 366 days.","সর্বোচ্চ ৩৬৬ দিনের সঠিক তারিখ দিন।"));setLoading(false);return}
+   const params=new URLSearchParams({environment,from:range.start,to:range.end});
+   if(applied.account)params.set("account",applied.account);
+   try{
+    const result=await fetch("/api/go/workspaces/"+workspaceId+"/reports?"+params,{cache:"no-store",credentials:"same-origin",signal:AbortSignal.any([controller.signal,AbortSignal.timeout(30000)])});
+    if(!result.ok)throw Error(result.status===401?"AUTH":result.status===403?"DENIED":result.status===422?"FILTER":result.status===503?"SOURCE":"HTTP "+result.status);
+    const body:unknown=await result.json();
+    if(!validateReport(body))throw Error("INVALID_DATA");
+    if(controller.signal.aborted)return;
+    setResponse({report:body,filters:applied});
+   }catch(cause){
+    if(controller.signal.aborted)return;
+    const code=cause instanceof Error?cause.message:"";
+    setError(code==="AUTH"?t("Session expired. Sign in again.","সেশন শেষ। আবার লগইন করুন।"):code==="DENIED"?t("You do not have access to this report.","এই রিপোর্টের অনুমতি নেই।"):code==="FILTER"?t("The selected filters are invalid.","নির্বাচিত ফিল্টার সঠিক নয়।"):t("Report could not be loaded. Try again.","রিপোর্ট লোড করা যায়নি। আবার চেষ্টা করুন।"));
+   }finally{if(!controller.signal.aborted)setLoading(false)}
+  };
+  void run();return()=>controller.abort();
+ },[workspaceId,environment,applied,refresh,locale]);
+
+ function apply(e:FormEvent<HTMLFormElement>){e.preventDefault();if(!pending){setError(t("Select a valid date range, up to 366 days.","সর্বোচ্চ ৩৬৬ দিনের সঠিক তারিখ দিন।"));return}setError("");setApplied({...draft});setRefresh(n=>n+1)}
+ function quick(days:7|30|90){const to=dhakaToday(),from=startDate(to,days);const next={...draft,from,to};setPreset(String(days) as Preset);setDraft(next);setApplied(next);setRefresh(n=>n+1)}
+ const displayed=response?.report??null;
+ const active=response?.filters??applied;
+ const stale=Boolean(response&&(loading||error||!applies||active.from!==applied.from||active.to!==applied.to||active.account!==applied.account));
+ const max=Math.max(1,...(displayed?.daily??[]).map(x=>Math.max(0,x.amount_minor)));
+ const methods=displayed?.methods??[];
+ const total=methods.reduce((a,b)=>a+b.amount_minor,0);
+ const generated=displayed&&!Number.isNaN(Date.parse(displayed.generated_at))?new Intl.DateTimeFormat(bn?"bn-BD":"en-BD",{timeZone:"Asia/Dhaka",dateStyle:"medium",timeStyle:"short"}).format(new Date(displayed.generated_at)):"";
+ return <div className="er-reports">
+  <header className="er-heading">
+   <div><h1>{t("Reports","রিপোর্ট")}</h1><p>{t("Payment performance and financial activity.","পেমেন্ট ও আর্থিক কার্যক্রমের সারসংক্ষেপ।")}</p></div>
+   <div className="er-heading-actions">
+    <button type="button" onClick={()=>setRefresh(n=>n+1)} disabled={loading} aria-label={t("Refresh report","রিপোর্ট রিফ্রেশ")}><DashboardIcon name="arrow" width={16} height={16}/> {t("Refresh","রিফ্রেশ")}</button>
+    <button type="button" disabled={!displayed||stale} onClick={()=>displayed&&exportReport(displayed,active)}><DashboardIcon name="reports" width={16} height={16}/> {t("Export CSV","CSV ডাউনলোড")}</button>
+    <button type="button" disabled={!displayed||stale} onClick={()=>window.print()}>{t("Print","প্রিন্ট")}</button>
+   </div>
+  </header>
+  <section className="er-filter-panel" aria-label={t("Report filters","রিপোর্টের ফিল্টার")}>
+   <div className="er-period-buttons" role="group" aria-label={t("Date presets","সময়সীমা")}>
+    {([7,30,90] as const).map(days=><button key={days} type="button" aria-pressed={preset===String(days)} onClick={()=>quick(days)}>{days} {t("days","দিন")}</button>)}
+    <button type="button" aria-pressed={preset==="custom"} onClick={()=>setPreset("custom")}>{t("Custom","নিজের মতো")}</button>
+   </div>
+   <form onSubmit={apply} className="er-filter-fields">
+    <label><span>{t("From","শুরু")}</span><input type="date" required value={draft.from} onChange={e=>{setPreset("custom");setDraft(v=>({...v,from:e.target.value}))}}/></label>
+    <label><span>{t("To","শেষ")}</span><input type="date" required value={draft.to} onChange={e=>{setPreset("custom");setDraft(v=>({...v,to:e.target.value}))}}/></label>
+    <label className="er-account-filter"><span>{t("Account","অ্যাকাউন্ট")}</span><select value={draft.account} disabled={accountError} onChange={e=>setDraft(v=>({...v,account:e.target.value}))}>
+      <option value="">{t("All accounts","সব অ্যাকাউন্ট")}</option>{accounts.map(a=><option key={a.id} value={a.id}>{a.method} · ••••{a.display_suffix}</option>)}
+     </select></label>
+    <button type="submit" className="er-apply" disabled={loading}>{t("Apply","প্রয়োগ করুন")}</button>
+   </form>
+   {accountError&&<p className="er-inline-notice" role="status">{t("Account filter unavailable. All-account reporting still works.","অ্যাকাউন্ট ফিল্টার পাওয়া যাচ্ছে না; সব অ্যাকাউন্টের রিপোর্ট দেখা যাবে।")}</p>}
+   {!applies&&!loading&&<p className="er-inline-notice" role="status">{t("Filters changed — apply to update the report.","ফিল্টার বদলেছে—রিপোর্ট আপডেট করতে প্রয়োগ করুন।")}</p>}
+  </section>
+  {loading&&<div className="er-status" role="status">{t("Updating report…","রিপোর্ট আপডেট হচ্ছে…")}</div>}
+  {error&&<div className="er-error" role="alert"><span>{error}</span><button type="button" onClick={()=>setRefresh(n=>n+1)}>{t("Retry","আবার চেষ্টা")}</button></div>}
+  {stale&&displayed&&<p className="er-inline-notice er-stale">{t("Displaying the previous successful report until new data loads.","নতুন তথ্য আসা পর্যন্ত আগের সফল রিপোর্ট দেখানো হচ্ছে।")}</p>}
+  {!displayed&&!loading&&!error&&<section className="er-empty">{t("No report available yet.","এখনো রিপোর্ট পাওয়া যায়নি।")}</section>}
+  {displayed&&<div className="er-results" aria-busy={loading}>
+   <div className="er-result-period"><span>{active.from} — {active.to}{active.account?" · "+t("Selected account","নির্বাচিত অ্যাকাউন্ট"):""}</span>{generated&&<span>{t("Updated","আপডেট")}: {generated}</span>}</div>
+   <div className="er-kpis">
+    <article><span>{t("Verified payments","যাচাইকৃত টাকা")}</span><strong>{cash(displayed.verified_gross_minor,locale)}</strong><small>{t("Verified volume","যাচাইকৃত পেমেন্ট")}</small></article>
+    <article><span>{t("Transactions","লেনদেন")}</span><strong>{numeric(displayed.payment_count,locale)}</strong><small>{t("Verified payments","যাচাইকৃত পেমেন্ট")}</small></article>
+    <Link href={root+"refunds"}><span>{t("Open refunds","অপেক্ষমাণ রিফান্ড")}</span><strong>{cash(displayed.open_requested_refund_minor,locale)}</strong><small>{numeric(displayed.refund_request_count,locale)} {t("requests total","মোট অনুরোধ")}</small></Link>
+    <article><span>{t("Reported returned","ফেরতের রিপোর্ট")}</span><strong>{cash(displayed.seller_reported_returned_minor,locale)}</strong><small>{t("Seller reported","বিক্রেতার রিপোর্ট")}</small></article>
+   </div>
+   <div className="er-analysis-grid">
+    <section className="er-card er-trend">
+     <div className="er-card-heading"><h2>{t("Payment trend","পেমেন্টের প্রবণতা")}</h2><span>{t("Daily · UTC","দৈনিক · UTC")}</span></div>
+     {displayed.daily.length===0?<div className="er-chart-empty">{t("No verified payments during this period.","এই সময়ে যাচাইকৃত পেমেন্ট নেই।")}</div>:
+      <div className="er-chart-scroll"><div className="er-trend-bars" role="img" aria-label={displayed.daily.map(row=>row.day+": "+cash(row.amount_minor,locale)).join("; ")}>
+       {displayed.daily.map(row=><div className="er-trend-day" key={row.day}>
+        <div className="er-trend-track"><i style={{height:Math.max(2,row.amount_minor/max*100)+"%"}}/></div>
+        <span>{row.day.slice(5)}</span>
+       </div>)}
+      </div></div>}
+    </section>
+    <section className="er-card er-methods">
+     <div className="er-card-heading"><h2>{t("By payment method","পেমেন্ট মাধ্যম")}</h2><button type="button" onClick={()=>setSection("methods")}>{t("Details","বিস্তারিত")} ↗</button></div>
+     {methods.length===0?<p className="er-card-empty">{t("No method data for this period.","এই সময়ে মাধ্যমের তথ্য নেই।")}</p>:<div className="er-method-bars">
+      {[...methods].sort((a,b)=>b.amount_minor-a.amount_minor).slice(0,5).map(row=><div key={row.method} className="er-method-line">
+       <div><span>{row.method}</span><strong>{cash(row.amount_minor,locale)}</strong></div>
+       <div className="er-meter"><i style={{width:(total>0?Math.max(0,Math.min(100,row.amount_minor/total*100)):0)+"%"}}/></div>
+      </div>)}
+     </div>}
+    </section>
+   </div>
+   <div className="er-ledger-strip">
+    <div><span>{t("Allocated","বরাদ্দ")}</span><strong>{cash(displayed.allocated_minor,locale)}</strong></div>
+    <div><span>{t("Unallocated","অবরাদ্দ")}</span><strong>{cash(displayed.unallocated_minor,locale)}</strong></div>
+    <div><span>{t("Statement linked","স্টেটমেন্ট সংযুক্ত")}</span><strong>{cash(displayed.statement_links.amount_minor,locale)}</strong></div>
+   </div>
+   <section className="er-card er-details">
+    <div className="er-details-heading"><h2>{t("Detailed breakdown","বিস্তারিত হিসাব")}</h2><span>{t("BDT · verified amounts","BDT · যাচাইকৃত পরিমাণ")}</span></div>
+    <div className="er-tabs" role="group" aria-label={t("Report breakdown","রিপোর্টের বিভাগ")}>
+     {sections.map(id=><button type="button" key={id} aria-pressed={section===id} onClick={()=>setSection(id)}>{labels[id]}</button>)}
+    </div>
+    {section==="methods"&&<BreakdownTable locale={locale} headings={[t("Method","মাধ্যম"),t("Transactions","লেনদেন"),t("Verified amount","যাচাইকৃত টাকা")]} rows={displayed.methods.map(r=>[r.method,numeric(r.payment_count,locale),cash(r.amount_minor,locale)])} empty={t("No verified method transactions.","এই সময়ে মাধ্যমভিত্তিক লেনদেন নেই।")}/>}
+    {section==="accounts"&&<BreakdownTable locale={locale} headings={[t("Receiving account","গ্রহণকারী অ্যাকাউন্ট"),t("Transactions","লেনদেন"),t("Verified amount","যাচাইকৃত টাকা")]} rows={displayed.accounts.map(r=>[r.method+" ••••"+r.display_suffix,numeric(r.payment_count,locale),cash(r.amount_minor,locale)])} empty={t("No receiving-account payments.","গ্রহণকারী অ্যাকাউন্টে পেমেন্ট নেই।")}/>}
+    {section==="customers"&&<><BreakdownTable locale={locale} headings={[t("Invoice-linked customer","ইনভয়েস-সংযুক্ত গ্রাহক"),t("Payments","পেমেন্ট"),t("Allocated","বরাদ্দ")]} rows={displayed.customers.map(r=>[r.name||r.reference,numeric(r.payment_count,locale),cash(r.amount_minor,locale)])} empty={t("No invoice-linked customer payments.","ইনভয়েস-সংযুক্ত গ্রাহকের পেমেন্ট নেই।")}/><p className="er-fineprint">{t("Top 100 invoice-linked contacts; not necessarily the actual payer.","ইনভয়েস-সংযুক্ত সর্বোচ্চ ১০০ জন; তাঁরা প্রকৃত প্রেরক নাও হতে পারেন।")}</p></>}
+    {section==="refunds"&&<><BreakdownTable locale={locale} headings={[t("Status","অবস্থা"),t("Requests","অনুরোধ"),t("Amount","পরিমাণ")]} rows={displayed.refunds.map(r=>[refundLabels[r.status]||r.status,numeric(r.request_count,locale),cash(r.amount_minor,locale)])} empty={t("No refund requests in this period.","এই সময়ে রিফান্ড অনুরোধ নেই।")}/><p className="er-fineprint">{t("Refunds are managed by the seller. Reported returns are not provider-confirmed.","রিফান্ড বিক্রেতা পরিচালনা করেন। ফেরতের রিপোর্ট provider-যাচাইকৃত নয়।")}</p><Link className="er-detail-link" href={root+"refunds"}>{t("Manage refunds","রিফান্ড পরিচালনা করুন")} ↗</Link></>}
+    {section==="statements"&&<div className="er-statement-box"><span>{t("Merchant-imported statement links","বিক্রেতার স্টেটমেন্ট সংযোগ")}</span><strong>{cash(displayed.statement_links.amount_minor,locale)}</strong><small>{numeric(displayed.statement_links.count,locale)} {t("linked records","সংযুক্ত রেকর্ড")}</small><p>{t("Statement matches do not confirm provider settlement.","স্টেটমেন্টে মিল পাওয়া মানেই provider settlement নিশ্চিত নয়।")}</p><Link href={root+"reconciliation"}>{t("Open reconciliation","Reconciliation খুলুন")} ↗</Link></div>}
+    {section==="daily"&&<BreakdownTable locale={locale} headings={[t("Day (UTC)","দিন (UTC)"),t("Verified amount","যাচাইকৃত টাকা")]} rows={displayed.daily.map(r=>[r.day,cash(r.amount_minor,locale)])} empty={t("No verified payments during this period.","এই সময়ে যাচাইকৃত পেমেন্ট নেই।")}/>}
+   </section>
+  </div>}
+ </div>;
+}
+function BreakdownTable({headings,rows,empty,locale}:{locale:Locale;headings:string[];rows:string[][];empty:string}){
+ if(rows.length===0)return <p className="er-card-empty">{empty}</p>;
+ return <div className="er-table-scroll" role="region" tabIndex={0} aria-label={locale==="bn"?"রিপোর্টের টেবিল":"Report breakdown table"}>
+  <table><thead><tr>{headings.map((x,i)=><th key={i} scope="col" className={i>0?"er-numeric":undefined}>{x}</th>)}</tr></thead>
+   <tbody>{rows.map((row,index)=><tr key={index}>{row.map((cell,i)=><td key={i} className={i>0?"er-numeric":undefined}>{cell||"—"}</td>)}</tr>)}</tbody></table>
+ </div>;
 }

@@ -1,3 +1,16 @@
+## PG13 Reports Redesign — 2026-10-14 (MANUAL PENDING)
+
+- [ ] Actual signed-in merchant: automatic 30-day initial load; 7/30/90 preset and custom inclusive Dhaka dates, filter apply/race/timeout/refresh, invalid >366-day range and valid empty data.
+- [ ] Receiving-account selection; denied/403 and 503/timeout/offline data must never appear as zero; stale report must not be exported.
+- [ ] Compare verified/allocated/unallocated/refund statuses with exact backend period and merchant transactions, including late-receipt seller refunds; seller-returned must NOT appear independently settled.
+- [ ] CSV UTF-8/BN/EN, comma/quote/formula injection, multi-section fields and print/PDF; document that CSV is loaded report snapshot rather than full async finance export.
+- [ ] 320/375/768/1024/1440, 200% zoom, keyboard, screen reader, Light/Dark/System, Hind Siliguri with no full-page horizontal overflow.
+- [ ] Record authenticated production merchant smoke with SHA. Preview Next build/Neon read-only checks are NOT substitutes.
+
+Evidence: docs/evidence/PAYMENT-REPORTS-REDESIGN-20261014.md
+
+---
+
 ## Payment Overview Mission Control — NEW (2026-10-14, MANUAL PENDING)
 
 - [ ] Owner/admin new workspace: no plan state leads to **Billing** without showing plan cards in Overview; verified active or grace subscription creates tick; cancelled invoice does not.
