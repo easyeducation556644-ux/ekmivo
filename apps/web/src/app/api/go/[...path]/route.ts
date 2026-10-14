@@ -36,7 +36,7 @@ async function forward(request: Request, context: { params: Promise<{ path: stri
   const value = incoming.searchParams.get(key);
   if (value) target.searchParams.set(key, value);
  }
- const body = read ? undefined : await boundedBody(request,documentPath.test(path)?1048576:path.endsWith("/linked-sources")?16384:4096);
+ const body = read ? undefined : await boundedBody(request,documentPath.test(path)?1048576:path.endsWith("/linked-sources")?16384:/\/workspace-tools\/settings$/i.test(path)?8192:4096);
  if (body === null)
   return Response.json({ code: "BODY_TOO_LARGE" }, { status: 413 });
  try {

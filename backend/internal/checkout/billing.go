@@ -2,7 +2,9 @@ package checkout
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"github.com/jackc/pgx/v5"
 	"net/http"
 	"os"
@@ -59,6 +61,37 @@ func (s *Service) HandleBilling(w http.ResponseWriter, r *http.Request) {
 	if !originAllowed(r) {
 		fail(w, 403, "ORIGIN_DENIED")
 		return
+	}
+	// GET is available to all current members. Creating an invoice and
+	// reconciling verified platform payments are manager-only mutations.
+	// Authorization must be performed before probing a platform receipt.
+	var role string
+	e = s.Auth.DB.QueryRowContext(r.Context(), `
+ SELECT m.role FROM workspace_members m
+ JOIN app_users u ON u.id=m.user_id
+ WHERE m.workspace_id=$1::uuid AND m.user_id=$2::uuid AND u.disabled_at IS NULL
+ LIMIT 1`, ws, actor.UserID).Scan(&role)
+	if errors.Is(e, sql.ErrNoRows) || e == nil && role != "owner" && role != "admin" {
+		fail(w, 403, "ACCESS_DENIED")
+		return
+	}
+	if e != nil {
+		fail(w, 503, "BILLING_UNAVAILABLE")
+		return
+	}
+	if s.Auth.GranularGrants {
+		var allowed sql.NullBool
+		e = s.Auth.DB.QueryRowContext(r.Context(),
+			"SELECT pg13_capability_override($1::uuid,$2::uuid,'workspace:settings')",
+			ws, actor.UserID).Scan(&allowed)
+		if e != nil {
+			fail(w, 503, "BILLING_UNAVAILABLE")
+			return
+		}
+		if allowed.Valid && !allowed.Bool {
+			fail(w, 403, "ACCESS_DENIED")
+			return
+		}
 	}
 	platform := os.Getenv("PLATFORM_BILLING_WORKSPACE_ID")
 	if !s.pipelineReady() || s.Pipeline.Live == nil || !uuidPattern.MatchString(platform) || platform == ws {

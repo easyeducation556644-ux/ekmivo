@@ -38,7 +38,6 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
  const environment:PaymentEnvironment=paymentContext?.environment??"live";
  const [mobileOpen,setMobileOpen]=useState(false);
  const [businessQuery,setBusinessQuery]=useState("");
- const [sidebarQuery,setSidebarQuery]=useState("");
  const [globalQuery,setGlobalQuery]=useState("");
  const [activeResult,setActiveResult]=useState(0);
  const [searchOpen,setSearchOpen]=useState(false);
@@ -56,7 +55,7 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
  const draftDialog=useRef<HTMLDialogElement>(null);
  const serviceMenu=useRef<HTMLDetailsElement>(null);
  const businessMenu=useRef<HTMLDetailsElement>(null);
- const groups=sidebarQuery?searchableNavigation(service,sidebarQuery):navigation[service];
+ const groups=navigation[service];
  const foundGroups=searchableNavigation(service,globalQuery);
  const foundKeys=foundGroups.flatMap(group=>group.items);
  const foundBusinesses=searchableBusinesses(spaces,globalQuery);
@@ -241,14 +240,12 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
     <Link href="/workspaces" onClick={()=>setMobileOpen(false)}><Icon name="plus"/>{bn?"ব্যবসা পরিচালনা / নতুন ব্যবসা":"Manage / create businesses"}</Link>
    </div>
   </details>
-  <label className="ds-nav-search"><Icon name="search"/><span className="sr-only">{bn?"মেনু খুঁজুন":"Find a page"}</span><input value={sidebarQuery} onChange={event=>setSidebarQuery(event.target.value)} placeholder={bn?"মেনু খুঁজুন…":"Find a page…"}/></label>
   <nav className="ds-navigation" aria-label={bn?`${serviceNames[service].bn} নেভিগেশন`:`${serviceNames[service].en} navigation`}>
    {groups.map(group=><section className="ds-nav-section" key={group.label.en}>
     {service==="payments"&&group.label.en==="Commerce"?<details className="ds-unreleased-nav"><summary>{group.label[locale]} <small>{bn?"নির্মাণাধীন":"In development"}</small></summary><p>{bn?"কমার্সের এই কাজগুলো Payment phase-এর পরে চালু হবে।":"Commerce operations will follow the verified payment phase."}</p></details>:<h2>{group.label[locale]}</h2>}
     {!(service==="payments"&&group.label.en==="Commerce")&&group.items.map(key=><Link key={key} href={contextHref(key)} className={section===key?"is-current":undefined} aria-current={section===key?"page":undefined} onClick={event=>{event.preventDefault();nav(key);}}>
      <Icon name={key}/><span>{sections[key][locale]}</span>{section===key&&<span className="ds-active-mark"/>}</Link>)}
    </section>)}
-   {!groups.length&&<p className="ds-search-empty" role="status">{bn?"কোনো মেনু পাওয়া যায়নি।":"No matching pages."}</p>}
   </nav>
   <div className="ds-sidebar-foot">
    {platformAdmin&&<Link href="/admin"><Icon name="shield"/>{bn?"প্ল্যাটফর্ম অ্যাডমিন":"Platform admin"}</Link>}
