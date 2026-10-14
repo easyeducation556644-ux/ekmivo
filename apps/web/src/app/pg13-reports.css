@@ -122,3 +122,9 @@
  .er-table-scroll{overflow:visible}
  .er-table-scroll table{font-size:10px}
 }
+
+
+/* The Reports workbench supplies its own heading; reduce generic dashboard
+   shell top whitespace only on this route. */
+.ds-content:has(> .er-reports){padding-top:11px;padding-bottom:24px}
+@media(max-width:800px){.ds-content:has(> .er-reports){padding-top:9px;padding-bottom:18px}}
