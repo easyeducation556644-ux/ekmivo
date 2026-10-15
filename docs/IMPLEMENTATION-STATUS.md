@@ -306,3 +306,7 @@ PG13 settings draft-navigation source was added after the passing full productio
 PG16 received a source-only actual-observation compiler with hash/path/day validation; syntax passed and no real evidence was run.
 
 PG17 release validation now rejects staging release, insecure deployment identity, invalid owner decision, simulated real gates and future cohort days; seven fictional validator tests pass. Production release remains OPEN.
+
+## 2026-10-15 — Single developer guide
+
+Owner requested /developers as the canonical API guide. /docs and /docs/payments now redirect there; dashboard API Docs links point directly there. The large generated endpoint-reference section was removed. Request details, responses and language examples remain within the relevant guide sections. Right code sidebar was removed: examples and Sandbox controls now use the reading column. Visual/navigation evidence: docs/evidence/UNIFIED-DEVELOPER-GUIDE-20261015.md. This does not change payment gates or prove real provider/device verification.

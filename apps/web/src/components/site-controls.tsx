@@ -38,7 +38,9 @@ export function SiteControls({locale,initialTheme}:{locale:"bn"|"en";initialThem
   document.cookie=`ekmivo-locale=${next}; Path=/; Max-Age=31536000; SameSite=Lax`;
   // A reload is intentional: the server chooses the new locale from the cookie
   // without changing the visible URL or retaining stale RSC route params.
-  window.location.assign(href);
+  // Assigning the same URL with an anchor can be a fragment-only navigation,
+  // which leaves the server-rendered guide in the previous language.
+  window.location.reload();
  }
  return <div className="ek-public-controls">
   <button type="button" className="ek-language-switch" onClick={toggleLocale} lang={locale==="bn"?"en":"bn"} aria-label={locale==="bn"?"Switch to English":"বাংলা ভাষায় দেখুন"}>
