@@ -33,3 +33,18 @@
 .pa-mfa-card{display:grid;gap:18px;width:min(400px,100%);padding:32px;border:1px solid #e9e9ed;border-radius:12px;background:#fff}
 :root[data-theme=dark] .pa-mfa-card{background:#131418;border-color:#24262d}
 .pa-mfa-logo{text-align:center;font-size:20px;font-weight:600;letter-spacing:-.04em}.pa-mfa-logo small{display:inline-block;vertical-align:middle;margin-left:8px;border:1px solid #e9e9ed;border-radius:4px;color:#74767f;letter-spacing:0;font-size:11px;padding:1px 5px;font-weight:400}.pa-mfa-card h1{text-align:center;font-size:22px;font-weight:600;letter-spacing:-.03em;margin:0}.pa-mfa-card p{margin:0;font-size:12.5px;color:#74767f}.pa-mfa-card form{display:grid;gap:14px}.pa-mfa-card label{display:grid;gap:7px;font-size:12px}.pa-mfa-card input{width:100%;min-height:42px;padding:10px 12px;border:1px solid #e9e9ed;border-radius:8px;background:transparent;color:inherit;font:inherit}.pa-mfa-card button[type=submit]{min-height:40px;border:0;border-radius:8px;background:#15161a;color:#fff;font-weight:500;font-size:13px}:root[data-theme=dark] .pa-mfa-card button[type=submit]{background:#ececf0;color:#131418}.pa-mfa-link{border:0;background:transparent;color:inherit;font-size:12px;text-align:center;cursor:pointer;padding:4px}.pa-mfa-errors{color:#dc2626!important}.pa-mfa-codes{font-family:"Geist Mono",monospace;font-size:12px;overflow-wrap:anywhere;border:1px solid #e9e9ed;border-radius:8px;padding:10px}
+
+
+.pa-security{padding:24px;display:grid;gap:12px;max-width:700px}
+.pa-security>p{font-size:12px;color:var(--muted)}
+.pa-security .ek-verify-card{display:grid;gap:20px;background:transparent!important;color:var(--fg);border:0!important;border-radius:0!important;padding:0!important;max-width:none!important;box-shadow:none!important}
+.pa-security .ek-verify-card h2{font-size:15px;margin:10px 0}
+.pa-security .ek-verify-card p{color:var(--muted);font-size:12px;margin:0 0 12px}
+.pa-security .ek-recovery-form{display:grid;gap:12px;margin-bottom:18px}
+.pa-security .ek-recovery-form label{display:grid;gap:6px;color:var(--muted);font-size:12px}
+.pa-security .ek-recovery-form input{max-width:370px;border:1px solid var(--border);border-radius:8px;min-height:38px;padding:9px;background:var(--card);color:var(--fg)}
+.pa-security .ek-recovery-form button{width:max-content;min-height:36px;padding:8px 12px;border:1px solid var(--border);background:var(--fg);color:var(--card);border-radius:8px;font-size:12px}
+.pa-security .ek-verify-card ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;list-style:none;padding:0}
+.pa-security .ek-verify-card li{font-family:"Geist Mono",monospace;border:1px solid var(--border);border-radius:7px;padding:8px;font-size:11px;overflow-wrap:anywhere}
+.pa-security .ek-form-error{color:#dc2626!important}
+@media(max-width:550px){.pa-security{padding:16px}.pa-security .ek-verify-card ul{grid-template-columns:1fr}}
