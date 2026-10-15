@@ -6,7 +6,7 @@ export function DocsNavigation({locale}:{locale:"en"|"bn"}){
  const groups=[
   {label:bn?"শুরু করুন":"Get started",items:[["overview",bn?"সংক্ষিপ্ত পরিচিতি":"Overview"],["authentication",bn?"API key":"API keys"]]},
   {label:bn?"পেমেন্ট API":"Payment API",items:[["create-checkout",bn?"পেমেন্ট তৈরি":"Create payment"],["request-fields",bn?"ফিল্ড ও প্যারামিটার":"Request fields"],["checkout-flow",bn?"চেকআউট URL":"Checkout URL"],["payment-status",bn?"পেমেন্ট যাচাই":"Verify payment"],["webhooks",bn?"ওয়েবহুক":"Webhooks"]]},
-  {label:bn?"নিজের Checkout":"Custom checkout",items:[["custom-verification",bn?"✨ নিজের UI-তে যাচাই":"✨ Custom verification"]]},
+  {label:bn?"নিজের Checkout":"Custom checkout",items:[["custom-verification",bn?"নিজের UI-তে যাচাই":"Custom verification"]]},
   {label:bn?"পরীক্ষা ও Reference":"Testing & reference",items:[["sandbox",bn?"Sandbox পরীক্ষা":"Sandbox"],["errors",bn?"সমস্যা ও সমাধান":"Errors"],["api-reference",bn?"সব Endpoints":"All endpoints"]]},
  ];
  useEffect(()=>{const observer=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting)setActive(entry.target.id)},{rootMargin:"-110px 0px -65% 0px",threshold:0});for(const id of ["overview","authentication","create-checkout","request-fields","checkout-flow","payment-status","webhooks","custom-verification","sandbox","errors","api-reference"]){const el=document.getElementById(id);if(el)observer.observe(el)}return()=>observer.disconnect()},[]);

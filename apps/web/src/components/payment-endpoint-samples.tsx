@@ -1,4 +1,5 @@
 "use client";
+import {PublicIcon} from "./public-icon";
 import {useState} from "react";
 
 type Kind="status"|"trx";
@@ -116,7 +117,7 @@ export function PaymentEndpointSamples({kind,locale}:{kind:Kind;locale:"bn"|"en"
    <div className="ek-vscode"><div className="ek-vscode-top"><span aria-hidden="true">● ● ●</span>{kind==="status"?"get-status":"verify-transaction"} · {language}</div><pre><code>{highlight(code)}</code></pre></div>
    <div className="ek-mini-run">
     <label>{bn?"নমুনা response":"Example response"}<select value={scenario} onChange={value=>{setScenario(value.target.value as typeof scenario);setResult(null);}}><option value="pending">Pending</option><option value="verified">Verified</option><option value="invalid">Invalid input</option></select></label>
-    <button type="button" onClick={()=>{setResult(JSON.stringify(response(),null,2));}}>{bn?"▶ নমুনা চালান":"▶ Run sample"}</button>
+    <button type="button" onClick={()=>{setResult(JSON.stringify(response(),null,2));}}><PublicIcon name="play"/>{bn?"নমুনা চালান":"Run sample"}</button>
     <button type="button" onClick={()=>{void navigator.clipboard.writeText(code).then(()=>setCopied(true)).catch(()=>setCopied(false));}}>{copied?(bn?"কপি হয়েছে":"Copied"):(bn?"Copy code":"Copy code")}</button>
    </div>
    {result&&<div className="ek-sim-result"><strong>{bn?"উদাহরণ মাত্র, API কল হয়নি":"Preview only — no API request was made"}</strong><pre><code>{highlight(result)}</code></pre></div>}
