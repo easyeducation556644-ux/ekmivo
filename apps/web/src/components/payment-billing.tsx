@@ -10,9 +10,10 @@ function formatDate(value:string|undefined,locale:"bn"|"en"){
  return new Intl.DateTimeFormat(locale==="bn"?"bn-BD":"en-BD",{dateStyle:"medium",timeZone:"Asia/Dhaka"}).format(new Date(value));
 }
 export function PaymentBilling({locale,workspaceId,canManage}:{locale:"en"|"bn";workspaceId:string;canManage:boolean}){
- const router=useRouter(),bn=locale==="bn",t=(en:string,bengali:string)=>bn?bengali:en,base="/api/go/workspaces/"+workspaceId+"/billing";
+ const router=useRouter(),bn=locale==="bn",t=useCallback((en:string,bengali:string)=>bn?bengali:en,[bn]),base="/api/go/workspaces/"+workspaceId+"/billing";
  const [plans,setPlans]=useState<Plan[]>([]),[invoices,setInvoices]=useState<Invoice[]>([]),[subscription,setSubscription]=useState<Subscription|null>(null);
  const [loaded,setLoaded]=useState(false),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState(""),[operation,setOperation]=useState("");
+ const [clock,setClock]=useState(0);
  const idempotency=useRef<{plan:string;key:string}|null>(null);
  const money=(minor:number)=>new Intl.NumberFormat(bn?"bn-BD":"en-BD",{style:"currency",currency:"BDT",maximumFractionDigits:2}).format(minor/100);
  const load=useCallback(async(signal?:AbortSignal)=>{
@@ -23,11 +24,11 @@ export function PaymentBilling({locale,workspaceId,canManage}:{locale:"en"|"bn";
    const data=await r.json() as BillingData;
    if(!Array.isArray(data.plans)||!Array.isArray(data.invoices))throw Error("INVALID_BILLING_RESPONSE");
    if(signal?.aborted)return;
-   setPlans(data.plans);setInvoices(data.invoices);setSubscription(data.subscription??null);setLoaded(true);
+   setClock(Date.now());setPlans(data.plans);setInvoices(data.invoices);setSubscription(data.subscription??null);setLoaded(true);
   }catch(e){if(!signal?.aborted)setError(t("Unable to load billing. No payment was changed.","বিলিং পাওয়া যাচ্ছে না। কোনো পেমেন্ট পরিবর্তন হয়নি।")+" ("+(e instanceof Error?e.message:"UNKNOWN")+")")}
   finally{if(!signal?.aborted)setLoading(false)}
- },[base,bn]);
- useEffect(()=>{const c=new AbortController();void load(c.signal);return()=>c.abort()},[load]);
+ },[base,t]);
+ useEffect(()=>{const c=new AbortController();const start=setTimeout(()=>void load(c.signal),0);const tick=setInterval(()=>setClock(Date.now()),60000);return()=>{clearTimeout(start);clearInterval(tick);c.abort()}},[load]);
  async function issue(plan:string){
   if(!canManage||busy)return;
   setBusy(true);setOperation(plan);setError("");setNotice("");
@@ -56,11 +57,11 @@ export function PaymentBilling({locale,workspaceId,canManage}:{locale:"en"|"bn";
   finally{setBusy(false);setOperation("")}
  }
  const currentPlan=plans.find(x=>x.id===subscription?.plan_id);
- const active=Boolean(subscription?.paid_until&&Date.parse(subscription.paid_until)>Date.now());
+ const active=Boolean(subscription?.paid_until&&Date.parse(subscription.paid_until)>clock);
  return <div className="ws-workbench ws-billing">
   <header className="ws-page-head"><div><h1>{t("Billing & usage","বিলিং ও ব্যবহার")}</h1><p>{t("Service subscription and verified billing payments.","সেবার subscription ও যাচাইকৃত billing payment।")}</p></div><button type="button" className="ws-refresh" disabled={loading||busy} onClick={()=>void load()}>{t("Refresh","রিফ্রেশ")}</button></header>
   {error&&<div className="ws-alert" role="alert"><span>{error}</span><button type="button" disabled={busy} onClick={()=>void load()}>{t("Retry","আবার চেষ্টা")}</button></div>}
-  {notice&&<p className="ws-note" role="status">{notice}</p>}
+  {notice&&<p data-feedback="success" className="ws-note" role="status">{notice}</p>}
   {loading?<div className="ws-loading" role="status">{t("Loading subscription…","Subscription লোড হচ্ছে…")}</div>:!loaded?<p className="ws-empty" role="status">{t("Billing records are unavailable. Try Refresh.","বিলিং তথ্য পাওয়া যায়নি। রিফ্রেশ করুন।")}</p>:<>
    <section className="ws-card ws-billing-current"><div className="ws-section-heading"><div><h2>{t("Current subscription","বর্তমান সাবস্ক্রিপশন")}</h2><p>{currentPlan?.name||t("Payment gateway","পেমেন্ট গেটওয়ে")}</p></div><span className="ws-role" data-status={active?"active":"inactive"}>{active?t("Active","সক্রিয়"):subscription?.state||t("Not active","সক্রিয় নয়")}</span></div>
     <div className="ws-billing-stats"><div><span>{t("Paid through","পরিশোধিত মেয়াদ")}</span><strong>{formatDate(subscription?.paid_until,locale)}</strong></div><div><span>{t("Grace through","অতিরিক্ত সময়")}</span><strong>{formatDate(subscription?.grace_until,locale)}</strong></div></div>

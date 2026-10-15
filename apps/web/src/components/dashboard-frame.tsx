@@ -6,6 +6,7 @@ import { sections, type SectionKey } from "../lib/dashboard-sections";
 import { dashboardHref, navigation, searchableNavigation, searchableBusinesses, serviceEnabled, serviceNames, sectionInService, type Locale, type Service, type PaymentEnvironment } from "../lib/dashboard-navigation";
 import { DashboardIcon as Icon } from "./dashboard-icon";
 import { SiteControls } from "./site-controls";
+import { DashboardFeedback } from "./dashboard-feedback";
 import { PaymentNotifications } from "./payment-notifications";
 import { PaymentRecordSearch } from "./payment-record-search";
 import { activeDrafts,saveActiveDrafts,discardActiveDrafts } from "../lib/client/draft-navigation";
@@ -231,7 +232,7 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
    <span className="ds-product-tag">{service==="ai"?"AI":"PAY"}</span>
    {mobile&&<button type="button" className="ds-icon-button" aria-label={bn?"মেনু বন্ধ করুন":"Close menu"} onClick={()=>setMobileOpen(false)}><Icon name="close"/></button>}
   </div>
-  <details className="ds-business-picker" ref={mobile?undefined:businessMenu}>
+  <div className="ds-business-block"><details className="ds-business-picker" ref={mobile?undefined:businessMenu}>
    <summary><span className="ds-business-avatar">{workspace.name.slice(0,1).toUpperCase()}</span><span><small>{bn?"বর্তমান ব্যবসা":"Current business"}</small><strong>{workspace.name}</strong></span><Icon name="chevron"/></summary>
    <div className="ds-business-menu">
     <label className="ds-switch-search"><span className="sr-only">{bn?"ব্যবসা খুঁজুন":"Find business"}</span><input value={businessQuery} onChange={event=>setBusinessQuery(event.target.value)} placeholder={bn?"ব্যবসা খুঁজুন…":"Search businesses…"} /></label>
@@ -240,11 +241,12 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
     <Link href="/workspaces" onClick={()=>setMobileOpen(false)}><Icon name="plus"/>{bn?"ব্যবসা পরিচালনা / নতুন ব্যবসা":"Manage / create businesses"}</Link>
    </div>
   </details>
+  <Link className="ds-workspace-settings" href={contextHref("billing")} aria-label={bn?"ওয়ার্কস্পেস সেটিংস খুলুন":"Open workspace settings"}><Icon name="settings"/><span className="sr-only">{bn?"ওয়ার্কস্পেস সেটিংস":"Workspace settings"}</span></Link></div>
   <nav className="ds-navigation" aria-label={bn?`${serviceNames[service].bn} নেভিগেশন`:`${serviceNames[service].en} navigation`}>
    {groups.map(group=><section className="ds-nav-section" key={group.label.en}>
     {service==="payments"&&group.label.en==="Commerce"?<details className="ds-unreleased-nav"><summary>{group.label[locale]} <small>{bn?"নির্মাণাধীন":"In development"}</small></summary><p>{bn?"কমার্সের এই কাজগুলো Payment phase-এর পরে চালু হবে।":"Commerce operations will follow the verified payment phase."}</p></details>:<h2>{group.label[locale]}</h2>}
-    {!(service==="payments"&&group.label.en==="Commerce")&&group.items.map(key=><Link key={key} href={contextHref(key)} className={section===key?"is-current":undefined} aria-current={section===key?"page":undefined} onClick={event=>{event.preventDefault();nav(key);}}>
-     <Icon name={key}/><span>{sections[key][locale]}</span>{section===key&&<span className="ds-active-mark"/>}</Link>)}
+    {!(service==="payments"&&group.label.en==="Commerce")&&group.items.map(key=><Link key={key} href={key==="api-docs"?"/developers":contextHref(key)} target={key==="api-docs"?"_blank":undefined} rel={key==="api-docs"?"noopener noreferrer":undefined} className={section===key?"is-current":undefined} aria-current={section===key?"page":undefined} onClick={event=>{if(key!=="api-docs"){event.preventDefault();nav(key);}}}>
+     <Icon name={key}/><span>{sections[key][locale]}</span>{key==="api-docs"&&<span aria-hidden="true">↗</span>}{section===key&&<span className="ds-active-mark"/>}</Link>)}
    </section>)}
   </nav>
   <div className="ds-sidebar-foot">
@@ -253,7 +255,7 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
    <div className="ds-signed-in"><span className="ds-person-avatar">{userName.slice(0,1).toUpperCase()}</span><span><strong>{userName}</strong><small>{bn?"আপনার অ্যাকাউন্ট":"Your account"}</small></span></div>
   </div>
  </>;
- return <div className="ds-app" data-service={service} data-environment={environment}>
+ return <div className="ds-app" data-service={service} data-environment={environment}><DashboardFeedback locale={locale}/>
   <a className="ds-skip" href="#dashboard-content">{bn?"মূল অংশে যান":"Skip to content"}</a>
   <aside className="ds-sidebar">{sidebar()}</aside>
   <dialog ref={drawer} className="ds-mobile-dialog" aria-label={bn?"ওয়ার্কস্পেস মেনু":"Workspace menu"} onCancel={()=>setMobileOpen(false)} onClose={()=>setMobileOpen(false)}>{sidebar(true)}</dialog>
@@ -306,7 +308,7 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
       <div className="ds-profile-popover">
        <strong>{userName}</strong><small>{workspace.name}</small>
        <Link href="/account"><Icon name="settings"/>{bn?"অ্যাকাউন্ট ও নিরাপত্তা":"Account & security"}</Link>
-       <Link href={contextHref("settings")}><Icon name="settings"/>{bn?"ওয়ার্কস্পেস সেটিংস · নির্মাণাধীন":"Workspace settings · In development"}</Link>
+       <Link href={contextHref("settings")}><Icon name="settings"/>{bn?"ওয়ার্কস্পেস সেটিংস":"Workspace settings"}</Link>
        <Link href={contextHref("help")}><Icon name="help"/>{bn?"সাহায্য":"Help"}</Link>
        {platformAdmin&&<Link href="/admin"><Icon name="shield"/>{bn?"প্ল্যাটফর্ম অ্যাডমিন":"Platform admin"}</Link>}
        {logout}
@@ -321,7 +323,7 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
    </div>}
    */}
 
-   <div className="ds-breadcrumb"><span>{workspace.name}</span><Icon name="chevron"/><span>{serviceNames[service][locale]}</span><Icon name="chevron"/><strong>{sections[section][locale]}</strong></div>
+   <nav className="ds-breadcrumb" aria-label={bn?"ব্রেডক্রাম্ব":"Breadcrumb"}><Link href="/workspaces">{workspace.name}</Link><Icon name="chevron"/><Link href={contextHref("overview")}>{serviceNames[service][locale]}</Link><Icon name="chevron"/><strong aria-current="page">{sections[section][locale]}</strong></nav>
    {isNavigating&&<div className="ds-navigation-progress" role="status">{bn?"পৃষ্ঠা খুলছে…":"Opening page…"}</div>}
    <main id="dashboard-content" className="ds-content" tabIndex={-1} aria-busy={isNavigating}>{children}</main>
    <footer className="ds-footnote"><span>{serviceNames[service][locale]} · {workspace.name}</span><span>Asia/Dhaka</span></footer>

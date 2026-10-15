@@ -1,5 +1,9 @@
 # Ekmivo agent entry point
 
+## Latest owner execution correction — 2026-10-15
+Do not start Docker or run local Docker database tests without explicit owner permission. Database work and verification for this task must use Neon. Use an isolated Neon test branch for migration/fixture checks; do not treat a test-branch pass as production rollout evidence.
+
+
 ## Latest owner correction — 2026-10-13: Android forwarder screen and reliability
 The main Android SMS Forwarder connected screen displays ONLY encrypted-outbox receipts **without a durable server ACK** (provider, amount, payer, transaction time). Acknowledged/sent receipts disappear from this screen immediately; empty outbox displays "সব SMS সার্ভারে পাঠানো হয়েছে" / "All SMS sent to the server". Do NOT show the last forwarded SMS in the main list or clutter it with offline/battery explanation. SMS_RECEIVED_ACTION must enqueue without the UI being open and immediately schedule network-constrained WorkManager; stalled/backoff work is reset for a newly received SMS. BOOT_COMPLETED and MY_PACKAGE_REPLACED must reschedule existing persisted queue and heartbeat. Optional permission-based recent-inbox recovery belongs in Settings. Never claim Android can receive SMS while completely powered off or that force-stop cannot interrupt OS broadcasts. Do not discard queued evidence or claim successful payment from a durable forwarding ACK.
 

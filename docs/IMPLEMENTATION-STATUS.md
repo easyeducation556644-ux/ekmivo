@@ -310,3 +310,10 @@ PG17 release validation now rejects staging release, insecure deployment identit
 ## 2026-10-15 — Single developer guide
 
 Owner requested /developers as the canonical API guide. /docs and /docs/payments now redirect there; dashboard API Docs links point directly there. The large generated endpoint-reference section was removed. Request details, responses and language examples remain within the relevant guide sections. Right code sidebar was removed: examples and Sandbox controls now use the reading column. Visual/navigation evidence: docs/evidence/UNIFIED-DEVELOPER-GUIDE-20261015.md. This does not change payment gates or prove real provider/device verification.
+
+
+## Owner dashboard/API refinement — 2026-10-15
+
+The latest owner instruction refines the payment dashboard: Payments replaces Transactions in navigation; Payment Links includes the existing one-time requests flow; SMS Data replaces Incoming Receipts. Workspace Billing, Team and Settings are accessed through the workspace gear, and Help through the header. Developers contains API Keys and external API Docs. Legacy deep links and integrations remain compatible. The operational dashboard uses the semantic payment tokens and an original visual direction documented in `docs/design/ekmivo-dashboard/SKILL.md`.
+
+Create Payment may accept an optional per-payment `webhook_url` without dashboard registration. Reuse signed delivery, retries and tenant isolation; callbacks are notifications and merchants must verify server-side before fulfillment. Existing default registered endpoints remain supported. Additive migrations 0063/0064 (financial) and 0065 (control) are implemented and tested on an isolated Neon branch only; production rollout and end-to-end acceptance remain pending. Do not use Docker: the owner requires Neon for database work. See `docs/evidence/DASHBOARD-REFINEMENT-20261015/README.md` and the consolidated manual ledger.

@@ -37,13 +37,17 @@ func (s *Service) ConfigurePipeline(ctx context.Context, keyHex, rulesJSON, cont
 		return errors.New("pipeline encryption/control configuration unavailable")
 	}
 	rules := []deviceevidence.ParserRule{}
-	if strings.TrimSpace(rulesJSON)=="" { rulesJSON="[]" }
+	if strings.TrimSpace(rulesJSON) == "" {
+		rulesJSON = "[]"
+	}
 	if e = json.Unmarshal([]byte(rulesJSON), &rules); e != nil {
 		return errors.New("invalid receipt parser registry")
 	}
 	registry := map[string]deviceevidence.ParserRule{}
 	for _, r := range builtinSMSRules() {
-		if e = r.Validate(); e != nil { return e }
+		if e = r.Validate(); e != nil {
+			return e
+		}
 		registry[r.ID] = r
 	}
 	for _, r := range rules {
@@ -257,13 +261,13 @@ func (s *Service) HandleOperations(w http.ResponseWriter, r *http.Request) {
 				return errors.New("invalid search filter")
 			}
 			if resource == "incoming" {
-                // New physical-phone SMS receipts live in pg06_phone_forwarded, not
-                // the legacy pg06_transport source. Preserve both without double-counting.
-                return tx.QueryRow(r.Context(),
-                    "SELECT pg56_incoming_read($1::uuid,$2,$3::uuid,$4::uuid,$5,$6::uuid,$7,$8::timestamptz,$9::timestamptz,$10)",
-                    ws, realm, nullableID(id), nullableID(cursor), nullableID(query.Get("status")), nullableID(account), nullableID(query.Get("method")), from, to, nullableID(search)).Scan(&raw)
-            }
-            return tx.QueryRow(r.Context(), "SELECT pg09_read($1::uuid,$2,$3,$4::uuid,$5::uuid,$6,$7::uuid,$8,$9::timestamptz,$10::timestamptz,$11::text)", ws, realm, resource, nullableID(id), nullableID(cursor), nullableID(query.Get("status")), nullableID(account), nullableID(query.Get("method")), from, to, nullableID(search)).Scan(&raw)
+				// New physical-phone SMS receipts live in pg06_phone_forwarded, not
+				// the legacy pg06_transport source. Preserve both without double-counting.
+				return tx.QueryRow(r.Context(),
+					"SELECT pg56_incoming_read($1::uuid,$2,$3::uuid,$4::uuid,$5,$6::uuid,$7,$8::timestamptz,$9::timestamptz,$10)",
+					ws, realm, nullableID(id), nullableID(cursor), nullableID(query.Get("status")), nullableID(account), nullableID(query.Get("method")), from, to, nullableID(search)).Scan(&raw)
+			}
+			return tx.QueryRow(r.Context(), "SELECT pg09_read($1::uuid,$2,$3,$4::uuid,$5::uuid,$6,$7::uuid,$8,$9::timestamptz,$10::timestamptz,$11::text)", ws, realm, resource, nullableID(id), nullableID(cursor), nullableID(query.Get("status")), nullableID(account), nullableID(query.Get("method")), from, to, nullableID(search)).Scan(&raw)
 		}
 		var body struct {
 			Reason    string `json:"reason"`
@@ -352,6 +356,12 @@ func (s *Service) HandleOperations(w http.ResponseWriter, r *http.Request) {
 	if e = json.Unmarshal(raw, &result); e != nil {
 		fail(w, 503, "INVALID_SERVICE_RESPONSE")
 		return
+	}
+	if r.Method == "GET" && resource == "incoming" {
+		if err := s.supplementSMS(r, ws, realm, result); err != nil {
+			mapped(w, err)
+			return
+		}
 	}
 	if r.Method == "GET" && resource == "deliveries" && id != "" {
 		var history []byte
@@ -562,18 +572,28 @@ func (s *Service) HandleDevice(w http.ResponseWriter, r *http.Request) {
 		// originatingAddress as payer or a route authority.
 		if parseErr == nil && receipt.Receiving != "" {
 			var cipher []byte
-			if err := d.Pool.QueryRow(r.Context(),"SELECT pg06_device_receiving_cipher($1::uuid)",r.Header.Get("X-Ekmivo-Device-ID")).Scan(&cipher);err!=nil||len(cipher)==0 {
-				fail(w,503,"RECEIVING_ACCOUNT_UNAVAILABLE");return
+			if err := d.Pool.QueryRow(r.Context(), "SELECT pg06_device_receiving_cipher($1::uuid)", r.Header.Get("X-Ekmivo-Device-ID")).Scan(&cipher); err != nil || len(cipher) == 0 {
+				fail(w, 503, "RECEIVING_ACCOUNT_UNAVAILABLE")
+				return
 			}
-			plain,err:=merchantwebhook.Decrypt(s.Pipeline.Key,cipher,d.Workspace+"|"+d.Realm)
-			if err!=nil {fail(w,503,"RECEIVING_ACCOUNT_UNAVAILABLE");return}
-			if receipt.Receiving!=string(plain) {parseErr=errors.New("receiving identity mismatch")}
+			plain, err := merchantwebhook.Decrypt(s.Pipeline.Key, cipher, d.Workspace+"|"+d.Realm)
+			if err != nil {
+				fail(w, 503, "RECEIVING_ACCOUNT_UNAVAILABLE")
+				return
+			}
+			if receipt.Receiving != string(plain) {
+				parseErr = errors.New("receiving identity mismatch")
+			}
 		}
 		reason := ""
 		var payer, ref any
 		var amount, at, precision, method, version any
 		if parseErr != nil {
-			if receipt.Receiving != "" {reason="receiving_identity_mismatch"} else {reason = "unrecognized_or_incomplete_receipt"}
+			if receipt.Receiving != "" {
+				reason = "receiving_identity_mismatch"
+			} else {
+				reason = "unrecognized_or_incomplete_receipt"
+			}
 		} else {
 			payer = deviceevidence.Identity(s.PayerKey, receipt.Payer)
 			ref = deviceevidence.Identity(s.PayerKey, "receipt|"+d.Account+"|"+receipt.Reference)

@@ -14,19 +14,16 @@ export const navigation: Record<Service, NavigationGroup[]> = {
     { label: { en: "Workspace", bn: "ওয়ার্কস্পেস" }, items: ["team", "billing", "settings", "help"] },
   ],
   payments: [
-    { label: { en: "Overview", bn: "সারসংক্ষেপ" }, items: ["overview", "reports"] },
-    { label: { en: "Payments", bn: "পেমেন্ট" }, items: ["transactions", "requests", "incoming", "payment-links", "invoices", "customers", "refunds"] },
-    { label: { en: "Receiving & verification", bn: "টাকা গ্রহণ ও যাচাই" }, items: ["gateways", "devices", "reconciliation"] },
-    { label: { en: "Commerce", bn: "পণ্য ও অর্ডার" }, items: ["orders", "products", "inventory", "coupons", "shipping", "returns"] },
-    { label: { en: "Developers", bn: "ডেভেলপার" }, items: ["developers", "api-docs", "webhooks", "apps"] },
-    { label: { en: "Workspace", bn: "ওয়ার্কস্পেস" }, items: ["team", "billing", "settings", "help"] },
+    { label: { en: "Workspace", bn: "ওয়ার্কস্পেস" }, items: ["overview", "transactions", "customers", "invoices", "payment-links", "reports", "refunds"] },
+    { label: { en: "Devices & methods", bn: "ডিভাইস ও মাধ্যম" }, items: ["gateways", "devices", "incoming"] },
+    { label: { en: "Developers", bn: "ডেভেলপার" }, items: ["developers", "api-docs"] },
   ],
 };
 export function serviceEnabled(service: Service, mode: "ai" | "commerce" | "both" | "off") {
   return mode === "both" || (service === "ai" ? mode === "ai" : mode === "commerce");
 }
 export function sectionInService(service: Service, section: string): section is SectionKey {
-  if(service==="payments"&&["events","integrations"].includes(section))return true;
+  if(service==="payments"&&["events","integrations","requests","webhooks","apps","reconciliation","team","billing","settings","help","orders","products","inventory","coupons","shipping","returns"].includes(section))return true;
   return navigation[service].some(group => group.items.includes(section as SectionKey));
 }
 export function defaultService(mode: "ai" | "commerce" | "both" | "off"): Service { return mode === "ai" ? "ai" : "payments"; }

@@ -1,12 +1,12 @@
 "use client";
 import {useEffect,useState} from "react";
 import Link from "next/link";
-const sectionIds=["create-checkout","request-fields","payment-status","authentication","api-keys","webhooks","custom-verification","sandbox","errors"];
+const sectionIds=["create-checkout","request-fields","payment-status","authentication","api-keys","webhooks","apps-plugins","custom-verification","sandbox","errors"];
 export function DocsNavigation({locale}:{locale:"en"|"bn"}){
  const bn=locale==="bn",[open,setOpen]=useState(false),[active,setActive]=useState("create-checkout"),[query,setQuery]=useState("");
  const groups=[
   {label:bn?"পেমেন্ট API":"Payment API",items:[["create-checkout",bn?"পেমেন্ট তৈরি":"Create payment"],["request-fields",bn?"Request body":"Request fields"],["payment-status",bn?"পেমেন্ট যাচাই":"Verify payment"],["authentication",bn?"Authentication":"Preferred auth"],["api-keys",bn?"API key সংগ্রহ":"Get API keys"]]},
-  {label:bn?"অতিরিক্ত":"Integration",items:[["webhooks",bn?"ওয়েবহুক":"Webhooks"],["custom-verification",bn?"নিজের Checkout":"Custom checkout"]]},
+  {label:bn?"অতিরিক্ত":"Integration",items:[["apps-plugins",bn?"অ্যাপ ও প্লাগইন":"Apps & Plugins"],["webhooks",bn?"ওয়েবহুক":"Webhooks"],["custom-verification",bn?"নিজের Checkout":"Custom checkout"]]},
   {label:bn?"পরীক্ষা":"Testing",items:[["sandbox","Sandbox"],["errors",bn?"সমস্যার সমাধান":"Errors"]]}
  ];
  useEffect(()=>{const observer=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting)setActive(entry.target.id)},{rootMargin:"-110px 0px -65% 0px",threshold:0});for(const id of sectionIds){const el=document.getElementById(id);if(el)observer.observe(el)}return()=>observer.disconnect()},[]);

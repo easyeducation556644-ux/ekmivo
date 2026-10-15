@@ -44,7 +44,7 @@ export function PaymentMethodManagement({locale,workspaceId,environment,canManag
  return <section className="pg-phone-panel" aria-busy={loading||busy}>
   <div className="pg-phone-hero"><div><p className="pg-device-kicker">{t("Receiving & verification","টাকা গ্রহণ ও যাচাই")} / {environment.toUpperCase()}</p><h2>{t("Payment methods","পেমেন্ট মাধ্যম")}</h2><p>{t("Your receiving numbers are saved here. Pair a phone once to forward relevant payment SMS; the server verifies the receiving identity separately.","আপনার receiving number এখানেই সংরক্ষিত। একটি ফোন একবার pair করে payment SMS forward করুন; receiving identity server আলাদাভাবে যাচাই করবে।")}</p></div><button type="button" onClick={()=>void load()} disabled={loading||busy}>{t("Refresh","Refresh")}</button></div>
   {error&&<div className="pg-phone-warning" role="alert"><strong>{t("Connection needs attention","সংযোগে সমস্যা")}</strong><p>{error}</p><button onClick={()=>void load()}>{t("Retry","আবার চেষ্টা")}</button></div>}
-  {notice&&<p role="status" className="pg-phone-notice">{notice}</p>}
+  {notice&&<p data-feedback="success" role="status" className="pg-phone-notice">{notice}</p>}
   {loading?<div className="pg-phone-placeholder" role="status">{t("Loading receiving accounts…","Receiving account লোড হচ্ছে…")}</div>:<>
    <div className="pg-method-grid">
     {accounts.map(a=>{return <article className="pg-method-card" key={a.ID}>

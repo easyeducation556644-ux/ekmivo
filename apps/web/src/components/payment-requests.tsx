@@ -401,7 +401,7 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
        {canWrite&&["requires_payer","awaiting_payment"].includes(item.state)&&<button disabled={acting===item.id} type="button" onClick={()=>void cancel(item.id)}>{acting===item.id?(bn?"বাতিল হচ্ছে…":"Cancelling…"):(bn?"বাতিল করুন":"Cancel request")}</button>}
       </div></article>})}</div>}
    {error&&load==="ready"&&<p role="alert" className="ek-form-error">{error}</p>}
-   {notice&&<p role="status" className="ek-account-success">{notice}</p>}
+   {notice&&<p data-feedback="success" role="status" className="ek-account-success">{notice}</p>}
   </section>
  </div>;
 }

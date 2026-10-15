@@ -318,6 +318,17 @@ func main() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
+	// Explicit release-only mode never runs River, PG04 or unrelated migrations.
+	if os.Getenv("EKMIVO_DASHBOARD_UPGRADE_ONLY") == "true" {
+		if os.Getenv("PG63_AUTO_WEBHOOK_ALLOW_MIGRATION") != "true" || os.Getenv("PG64_DASHBOARD_READ_MODELS_ALLOW_MIGRATION") != "true" || os.Getenv("PG65_WORKSPACE_TEAM_ALLOW_MIGRATION") != "true" {
+			log.Fatal("dashboard-only release requires explicit 0063, 0064 and 0065 authorization flags")
+		}
+		if err := migrateDashboardUpgrade(ctx, sa, lv, control); err != nil {
+			log.Fatal(err)
+		}
+		log.Print("Dashboard-only migrations 0063/0064 financial and 0065 control verified; no base migrations executed")
+		return
+	}
 	if os.Getenv("PG59_PUBLIC_SANDBOX_ALLOW_MIGRATION") == "true" {
 		if err := migratePublicSandboxControl(ctx, control, os.Getenv("PG59_PUBLIC_SANDBOX_MIGRATION_FILE")); err != nil {
 			log.Fatal("0059 public sandbox control migration blocked: ", err)
@@ -370,15 +381,15 @@ func main() {
 	}
 	if os.Getenv("PG06_PHYSICAL_PHONES_ALLOW_MIGRATION") == "true" {
 		for _, target := range []realmDSN{{"sandbox", sa}, {"live", lv}} {
-			if err := migratePhysicalPhones(ctx,target.environment,target.raw,os.Getenv("PG06_PHYSICAL_PHONES_MIGRATION_FILE"));err!=nil{
-				log.Fatalf("PG06 physical phone migration blocked in %s: %v",target.environment,err)
+			if err := migratePhysicalPhones(ctx, target.environment, target.raw, os.Getenv("PG06_PHYSICAL_PHONES_MIGRATION_FILE")); err != nil {
+				log.Fatalf("PG06 physical phone migration blocked in %s: %v", target.environment, err)
 			}
 		}
 	}
 	if os.Getenv("PG06_FORWARDER_ALLOW_MIGRATION") == "true" {
 		for _, target := range []realmDSN{{"sandbox", sa}, {"live", lv}} {
-			if err := migratePhoneForwarder(ctx,target.environment,target.raw,os.Getenv("PG06_FORWARDER_MIGRATION_FILE"));err!=nil {
-				log.Fatalf("PG06 forwarder migration blocked in %s: %v",target.environment,err)
+			if err := migratePhoneForwarder(ctx, target.environment, target.raw, os.Getenv("PG06_FORWARDER_MIGRATION_FILE")); err != nil {
+				log.Fatalf("PG06 forwarder migration blocked in %s: %v", target.environment, err)
 			}
 		}
 	}
@@ -398,15 +409,15 @@ func main() {
 	}
 	if os.Getenv("PG10_PHYSICAL_INTENT_ALLOW_MIGRATION") == "true" {
 		for _, target := range []realmDSN{{"sandbox", sa}, {"live", lv}} {
-			if err := migratePhysicalIntent(ctx,target.environment,target.raw,os.Getenv("PG10_PHYSICAL_INTENT_MIGRATION_FILE"));err!=nil {
-				log.Fatalf("PG10 physical-intent migration blocked in %s: %v",target.environment,err)
+			if err := migratePhysicalIntent(ctx, target.environment, target.raw, os.Getenv("PG10_PHYSICAL_INTENT_MIGRATION_FILE")); err != nil {
+				log.Fatalf("PG10 physical-intent migration blocked in %s: %v", target.environment, err)
 			}
 		}
 	}
 	if os.Getenv("PG10_PUBLIC_METHODS_ALLOW_MIGRATION") == "true" {
-		for _,target := range []realmDSN{{"sandbox",sa},{"live",lv}} {
-			if err:=migratePublicMethods(ctx,target.environment,target.raw,os.Getenv("PG10_PUBLIC_METHODS_MIGRATION_FILE"));err!=nil {
-				log.Fatalf("PG10 public-method migration blocked in %s: %v",target.environment,err)
+		for _, target := range []realmDSN{{"sandbox", sa}, {"live", lv}} {
+			if err := migratePublicMethods(ctx, target.environment, target.raw, os.Getenv("PG10_PUBLIC_METHODS_MIGRATION_FILE")); err != nil {
+				log.Fatalf("PG10 public-method migration blocked in %s: %v", target.environment, err)
 			}
 		}
 	}
@@ -421,61 +432,89 @@ func main() {
 			}
 		}
 	}
- if os.Getenv("PG06_LATE_SMS_REFUND_ALLOW_MIGRATION") == "true" {
-  for _,target:=range []realmDSN{{"sandbox",sa},{"live",lv}} {
-   if err:=migrateOfflineSMSRefund(ctx,target.environment,target.raw,
-    os.Getenv("PG06_LATE_SMS_REFUND_MIGRATION_FILE"));err!=nil {
-    log.Fatalf("late SMS/refund migration blocked in %s: %v",target.environment,err)
-   }
-  }
- }
+	if os.Getenv("PG06_LATE_SMS_REFUND_ALLOW_MIGRATION") == "true" {
+		for _, target := range []realmDSN{{"sandbox", sa}, {"live", lv}} {
+			if err := migrateOfflineSMSRefund(ctx, target.environment, target.raw,
+				os.Getenv("PG06_LATE_SMS_REFUND_MIGRATION_FILE")); err != nil {
+				log.Fatalf("late SMS/refund migration blocked in %s: %v", target.environment, err)
+			}
+		}
+	}
 
- if os.Getenv("PG56_INCOMING_REPORTS_ALLOW_MIGRATION") == "true" {
-  file:=os.Getenv("PG56_INCOMING_REPORTS_MIGRATION_FILE")
-  for _,target:=range []realmDSN{{"sandbox",sa},{"live",lv}} {
-   if err:=migratePhoneIncomingReports(ctx,target.environment,target.raw,file);err!=nil {
-    log.Fatalf("0056 incoming/refund reporting migration blocked in %s: %v",target.environment,err)
-   }
-  }
- }
+	if os.Getenv("PG56_INCOMING_REPORTS_ALLOW_MIGRATION") == "true" {
+		file := os.Getenv("PG56_INCOMING_REPORTS_MIGRATION_FILE")
+		for _, target := range []realmDSN{{"sandbox", sa}, {"live", lv}} {
+			if err := migratePhoneIncomingReports(ctx, target.environment, target.raw, file); err != nil {
+				log.Fatalf("0056 incoming/refund reporting migration blocked in %s: %v", target.environment, err)
+			}
+		}
+	}
 
- if os.Getenv("PG57_REPORT_PAYER_ALLOW_MIGRATION") == "true" {
-  file:=os.Getenv("PG57_REPORT_PAYER_MIGRATION_FILE")
-  for _,target:=range []realmDSN{{"sandbox",sa},{"live",lv}} {
-   if err:=migrateReportPayerLedger(ctx,target.environment,target.raw,file);err!=nil {
-    log.Fatalf("0057 report payer migration blocked in %s: %v",target.environment,err)
-   }
-  }
- }
+	if os.Getenv("PG57_REPORT_PAYER_ALLOW_MIGRATION") == "true" {
+		file := os.Getenv("PG57_REPORT_PAYER_MIGRATION_FILE")
+		for _, target := range []realmDSN{{"sandbox", sa}, {"live", lv}} {
+			if err := migrateReportPayerLedger(ctx, target.environment, target.raw, file); err != nil {
+				log.Fatalf("0057 report payer migration blocked in %s: %v", target.environment, err)
+			}
+		}
+	}
 
- if os.Getenv("PG58_INTEGRATION_ACTIVITY_ALLOW_MIGRATION") == "true" {
-  file:=os.Getenv("PG58_INTEGRATION_ACTIVITY_MIGRATION_FILE")
-  for _,target:=range []realmDSN{{"sandbox",sa},{"live",lv}} {
-   if err:=migrateIntegrationActivity(ctx,target.environment,target.raw,file);err!=nil {
-    log.Fatalf("0058 integration activity migration blocked in %s: %v",target.environment,err)
-   }
-  }
- }
+	if os.Getenv("PG58_INTEGRATION_ACTIVITY_ALLOW_MIGRATION") == "true" {
+		file := os.Getenv("PG58_INTEGRATION_ACTIVITY_MIGRATION_FILE")
+		for _, target := range []realmDSN{{"sandbox", sa}, {"live", lv}} {
+			if err := migrateIntegrationActivity(ctx, target.environment, target.raw, file); err != nil {
+				log.Fatalf("0058 integration activity migration blocked in %s: %v", target.environment, err)
+			}
+		}
+	}
 
- if os.Getenv("PG61_TRANSACTION_LOOKUP_ALLOW_MIGRATION") == "true" {
-  file:=os.Getenv("PG61_TRANSACTION_LOOKUP_MIGRATION_FILE")
-  for _,target:=range []realmDSN{{"sandbox",sa},{"live",lv}} {
-   if err:=migrateTransactionLookup(ctx,target.environment,target.raw,file);err!=nil {
-    log.Fatalf("0061 tenant-scoped transaction lookup migration blocked in %s: %v",target.environment,err)
-   }
-  }
- }
+	if os.Getenv("PG61_TRANSACTION_LOOKUP_ALLOW_MIGRATION") == "true" {
+		file := os.Getenv("PG61_TRANSACTION_LOOKUP_MIGRATION_FILE")
+		for _, target := range []realmDSN{{"sandbox", sa}, {"live", lv}} {
+			if err := migrateTransactionLookup(ctx, target.environment, target.raw, file); err != nil {
+				log.Fatalf("0061 tenant-scoped transaction lookup migration blocked in %s: %v", target.environment, err)
+			}
+		}
+	}
 
- if os.Getenv("PG62_SIMPLE_PAYMENT_ALLOW_MIGRATION") == "true" {
-   file:=os.Getenv("PG62_SIMPLE_PAYMENT_MIGRATION_FILE")
-   for _,target:=range []realmDSN{{"sandbox",sa},{"live",lv}} {
-      if err:=migrateSimplePaymentOptions(ctx,target.environment,target.raw,file);err!=nil {
-        log.Fatalf("0062 payment options blocked in %s: %v",target.environment,err)
-      }
-   }
- }
- 
- if os.Getenv("PG60_PUBLIC_RECEIVER_ALLOW_MIGRATION") == "true" {
-  if err:=migratePublicSandboxReceiver(ctx,sa,os.Getenv("PG60_PUBLIC_RECEIVER_MIGRATION_FILE"),os.Getenv("PG14_PUBLIC_SANDBOX_WORKSPACE"));err!=nil{log.Fatal("0060 public receiver migration blocked: ",err)}
- }
+	if os.Getenv("PG62_SIMPLE_PAYMENT_ALLOW_MIGRATION") == "true" {
+		file := os.Getenv("PG62_SIMPLE_PAYMENT_MIGRATION_FILE")
+		for _, target := range []realmDSN{{"sandbox", sa}, {"live", lv}} {
+			if err := migrateSimplePaymentOptions(ctx, target.environment, target.raw, file); err != nil {
+				log.Fatalf("0062 payment options blocked in %s: %v", target.environment, err)
+			}
+		}
+	}
+
+	if err := migrateDashboardUpgrade(ctx, sa, lv, control); err != nil {
+		log.Fatal(err)
+	}
+	if os.Getenv("PG60_PUBLIC_RECEIVER_ALLOW_MIGRATION") == "true" {
+		if err := migratePublicSandboxReceiver(ctx, sa, os.Getenv("PG60_PUBLIC_RECEIVER_MIGRATION_FILE"), os.Getenv("PG14_PUBLIC_SANDBOX_WORKSPACE")); err != nil {
+			log.Fatal("0060 public receiver migration blocked: ", err)
+		}
+	}
+}
+
+func migrateDashboardUpgrade(ctx context.Context, sa, lv, control string) error {
+	if os.Getenv("PG63_AUTO_WEBHOOK_ALLOW_MIGRATION") == "true" {
+		for _, target := range []realmDSN{{"sandbox", sa}, {"live", lv}} {
+			if err := migrateSimplePaymentOptions(ctx, target.environment, target.raw, os.Getenv("PG63_AUTO_WEBHOOK_MIGRATION_FILE")); err != nil {
+				return fmt.Errorf("automatic webhook binding migration blocked in %s: %w", target.environment, err)
+			}
+		}
+	}
+	if os.Getenv("PG64_DASHBOARD_READ_MODELS_ALLOW_MIGRATION") == "true" {
+		for _, target := range []realmDSN{{"sandbox", sa}, {"live", lv}} {
+			if err := migrateSimplePaymentOptions(ctx, target.environment, target.raw, os.Getenv("PG64_DASHBOARD_READ_MODELS_MIGRATION_FILE")); err != nil {
+				return fmt.Errorf("dashboard read models migration blocked in %s: %w", target.environment, err)
+			}
+		}
+	}
+	if os.Getenv("PG65_WORKSPACE_TEAM_ALLOW_MIGRATION") == "true" {
+		if err := migrateWorkspaceTeamRole(ctx, control, os.Getenv("PG65_WORKSPACE_TEAM_MIGRATION_FILE")); err != nil {
+			return fmt.Errorf("workspace team migration blocked: %w", err)
+		}
+	}
+	return nil
 }

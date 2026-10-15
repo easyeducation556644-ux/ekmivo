@@ -25,6 +25,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/masharzy/ekmivo/backend/internal/authz"
+	"github.com/masharzy/ekmivo/backend/internal/deviceevidence"
 	"github.com/masharzy/ekmivo/backend/internal/merchantwebhook"
 	"github.com/masharzy/ekmivo/backend/internal/receiptnotice"
 )
@@ -37,78 +38,120 @@ var (
 )
 
 type Service struct {
-	NoticeSMTP   *receiptnotice.SMTPConfig
-	NoticeSchema bool
-	Pipeline     *Pipeline
-	limits       limiter
-	Auth         *authz.Repository
-	Sandbox      *pgxpool.Pool
+	NoticeSMTP          *receiptnotice.SMTPConfig
+	NoticeSchema        bool
+	Pipeline            *Pipeline
+	limits              limiter
+	Auth                *authz.Repository
+	Sandbox             *pgxpool.Pool
 	PublicSandboxWorker *pgxpool.Pool
 	PublicSandboxCancel context.CancelFunc
-	TokenKey     []byte
-	PayerKey     []byte
+	TokenKey            []byte
+	PayerKey            []byte
 }
 type createRequest struct {
-	Reference string `json:"merchant_reference"` // Old integration name.
-	SimpleReference string `json:"reference,omitempty"`
-	Amount int64 `json:"amount_minor"` // Old integration amount in paisa.
-	AmountBDT json.RawMessage `json:"amount,omitempty"` // Simple API amount in BDT.
-	Currency string `json:"currency"`
-	Expiry int `json:"expires_in_minutes"`
-	OrderID string `json:"order_id,omitempty"`
-	InvoiceID string `json:"invoice_id,omitempty"`
-	RedirectURL string `json:"redirect_url,omitempty"`
-	CancelURL string `json:"cancel_url,omitempty"`
-	WebhookURL string `json:"webhook_url,omitempty"`
-	CustomerName string `json:"customer_name,omitempty"`
-	CustomerEmail string `json:"customer_email,omitempty"`
-	CustomerPhone string `json:"customer_phone,omitempty"`
-	Metadata json.RawMessage `json:"metadata,omitempty"`
+	Reference       string          `json:"merchant_reference"` // Old integration name.
+	SimpleReference string          `json:"reference,omitempty"`
+	Amount          int64           `json:"amount_minor"`     // Old integration amount in paisa.
+	AmountBDT       json.RawMessage `json:"amount,omitempty"` // Simple API amount in BDT.
+	Currency        string          `json:"currency"`
+	Expiry          int             `json:"expires_in_minutes"`
+	OrderID         string          `json:"order_id,omitempty"`
+	InvoiceID       string          `json:"invoice_id,omitempty"`
+	RedirectURL     string          `json:"redirect_url,omitempty"`
+	CancelURL       string          `json:"cancel_url,omitempty"`
+	WebhookURL      string          `json:"webhook_url,omitempty"`
+	CustomerName    string          `json:"customer_name,omitempty"`
+	CustomerEmail   string          `json:"customer_email,omitempty"`
+	CustomerPhone   string          `json:"customer_phone,omitempty"`
+	Metadata        json.RawMessage `json:"metadata,omitempty"`
 }
 
 // parseBDT handles JSON decimal numbers without float64 rounding or exponent
 // interpretation. Storage and matching continue using integer paisa.
 func parseBDT(raw json.RawMessage) (int64, bool) {
 	text := string(raw)
-	if !regexp.MustCompile(`^(0|[1-9][0-9]{0,9})(\.[0-9]{1,2})?$`).MatchString(text) {return 0,false}
-	parts:=strings.SplitN(text,".",2)
-	whole,err:=strconv.ParseInt(parts[0],10,64);if err!=nil{return 0,false}
-	minor:=whole*100
-	if len(parts)==2 {
-		cents:=parts[1]
-		if len(cents)==1{cents+="0"}
-		fraction,err:=strconv.ParseInt(cents,10,64);if err!=nil{return 0,false}
-		minor+=fraction
+	if !regexp.MustCompile(`^(0|[1-9][0-9]{0,9})(\.[0-9]{1,2})?$`).MatchString(text) {
+		return 0, false
 	}
-	if minor<1||minor>100000000000{return 0,false};return minor,true
+	parts := strings.SplitN(text, ".", 2)
+	whole, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return 0, false
+	}
+	minor := whole * 100
+	if len(parts) == 2 {
+		cents := parts[1]
+		if len(cents) == 1 {
+			cents += "0"
+		}
+		fraction, err := strconv.ParseInt(cents, 10, 64)
+		if err != nil {
+			return 0, false
+		}
+		minor += fraction
+	}
+	if minor < 1 || minor > 100000000000 {
+		return 0, false
+	}
+	return minor, true
 }
 
 // prepareCreateRequest supports the simpler public contract without changing
 // the immutable SQL money model. Reference/idempotency defaults are stable for
 // explicit idempotency keys; absent keys deliberately generate fresh payments.
 func prepareCreateRequest(body *createRequest, key, workspace, realm string) bool {
-	if body==nil{return false}
-	if len(body.AmountBDT)>0 {
-		if body.Amount!=0||body.OrderID!=""||body.InvoiceID!=""||body.RedirectURL=="" {return false}
-		minor,ok:=parseBDT(body.AmountBDT);if !ok{return false}
-		body.Amount=minor
+	if body == nil {
+		return false
 	}
-	if body.Reference!=""&&body.SimpleReference!="" {return false}
-	if body.Reference=="" {body.Reference=body.SimpleReference}
-	if body.Reference=="" {body.Reference="EK-"+digest(workspace+"|"+realm+"|"+key)[:30]}
-	if body.Currency=="" {body.Currency="BDT"}
-	if body.Expiry==0 {body.Expiry=30}
+	if len(body.AmountBDT) > 0 {
+		if body.Amount != 0 || body.OrderID != "" || body.InvoiceID != "" || body.RedirectURL == "" {
+			return false
+		}
+		minor, ok := parseBDT(body.AmountBDT)
+		if !ok {
+			return false
+		}
+		body.Amount = minor
+	}
+	if body.Reference != "" && body.SimpleReference != "" {
+		return false
+	}
+	if body.Reference == "" {
+		body.Reference = body.SimpleReference
+	}
+	if body.Reference == "" {
+		body.Reference = "EK-" + digest(workspace + "|" + realm + "|" + key)[:30]
+	}
+	if body.Currency == "" {
+		body.Currency = "BDT"
+	}
+	if body.Expiry == 0 {
+		body.Expiry = 30
+	}
 	// Public URLs may only be HTTPS public destinations. Webhooks additionally
-	// require an active, merchant-owned registered endpoint in pg62 SQL.
-	for _,candidate:=range []string{body.RedirectURL,body.CancelURL,body.WebhookURL} {
-		if candidate!="" {if _,err:=merchantwebhook.ValidateURL(candidate);err!=nil{return false}}
+	// are bound to this immutable payment using the existing signed delivery outbox.
+	for _, candidate := range []string{body.RedirectURL, body.CancelURL, body.WebhookURL} {
+		if candidate != "" {
+			if _, err := merchantwebhook.ValidateURL(candidate); err != nil {
+				return false
+			}
+		}
 	}
-	if len(body.CustomerName)>160||len(body.CustomerEmail)>254||len(body.CustomerPhone)>32{return false}
-	if body.CustomerEmail!=""&&(!strings.Contains(body.CustomerEmail,"@")||strings.ContainsAny(body.CustomerEmail," \t\r\n")){return false}
-	if len(body.Metadata)>2048{return false}
-	if len(body.Metadata)>0 {
+	if len(body.CustomerName) > 160 || len(body.CustomerEmail) > 254 || len(body.CustomerPhone) > 32 {
+		return false
+	}
+	if body.CustomerEmail != "" && (!strings.Contains(body.CustomerEmail, "@") || strings.ContainsAny(body.CustomerEmail, " \t\r\n")) {
+		return false
+	}
+	if len(body.Metadata) > 2048 {
+		return false
+	}
+	if len(body.Metadata) > 0 {
 		var object map[string]json.RawMessage
-		if json.Unmarshal(body.Metadata,&object)!=nil||object==nil{return false}
+		if json.Unmarshal(body.Metadata, &object) != nil || object == nil {
+			return false
+		}
 	}
 	return validRequest(*body)
 }
@@ -155,8 +198,12 @@ func (s *Service) ready() bool {
 	return s != nil && s.Sandbox != nil && s.Auth != nil && s.Auth.DB != nil && len(s.TokenKey) >= 32 && len(s.PayerKey) >= 32
 }
 func (s *Service) Close() {
-	if s != nil && s.PublicSandboxCancel != nil { s.PublicSandboxCancel() }
-	if s != nil && s.PublicSandboxWorker != nil { s.PublicSandboxWorker.Close() }
+	if s != nil && s.PublicSandboxCancel != nil {
+		s.PublicSandboxCancel()
+	}
+	if s != nil && s.PublicSandboxWorker != nil {
+		s.PublicSandboxWorker.Close()
+	}
 	if s != nil && s.Pipeline != nil && s.Pipeline.Live != nil {
 		s.Pipeline.Live.Close()
 	}
@@ -269,17 +316,19 @@ func mapped(w http.ResponseWriter, err error) {
 	fail(w, 503, "FINANCIAL_SERVICE_UNAVAILABLE")
 }
 func hasSimplePaymentOptions(body createRequest) bool {
- return len(body.AmountBDT)>0||body.RedirectURL!=""||body.CancelURL!=""||body.WebhookURL!=""||
- body.SimpleReference!=""||body.CustomerName!=""||body.CustomerEmail!=""||
- body.CustomerPhone!=""||len(body.Metadata)>0
+	return len(body.AmountBDT) > 0 || body.RedirectURL != "" || body.CancelURL != "" || body.WebhookURL != "" ||
+		body.SimpleReference != "" || body.CustomerName != "" || body.CustomerEmail != "" ||
+		body.CustomerPhone != "" || len(body.Metadata) > 0
 }
-func pg62OptionsAvailable(ctx context.Context, tx pgx.Tx) (bool,error) {
- var available bool
- err:=tx.QueryRow(ctx,"SELECT to_regprocedure('pg62_store_intent_options(uuid,text,uuid,text,text,text,text,text,text,jsonb)') IS NOT NULL").Scan(&available)
- return available,err
+func pg62OptionsAvailable(ctx context.Context, tx pgx.Tx) (bool, error) {
+	var available bool
+	err := tx.QueryRow(ctx, "SELECT to_regprocedure('pg62_store_intent_options(uuid,text,uuid,text,text,text,text,text,text,jsonb)') IS NOT NULL").Scan(&available)
+	return available, err
 }
 func metadataOrEmpty(raw json.RawMessage) string {
-	if len(raw)==0{return "{}"}
+	if len(raw) == 0 {
+		return "{}"
+	}
 	return string(raw)
 }
 func validRequest(body createRequest) bool {
@@ -322,7 +371,9 @@ func decodeLimit(w http.ResponseWriter, r *http.Request, into any, limit int64) 
 }
 func (s *Service) merchant(r *http.Request, ws, realm, scope string) error {
 	// The key-only API route already validated and touched the credential.
-	if present, err := boundMerchant(r, ws, realm, scope); present { return err }
+	if present, err := boundMerchant(r, ws, realm, scope); present {
+		return err
+	}
 	if realm != "sandbox" && (s.Pipeline == nil || s.Pipeline.Live == nil) {
 		return authz.ErrUnavailable
 	} // Live source adapter not yet onboarded.
@@ -458,17 +509,26 @@ func (s *Service) HandleMerchant(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		attachTokens(s, ws, realm, data)
-		if id:=r.PathValue("intentID");id!="" {
+		if id := r.PathValue("intentID"); id != "" {
 			var options []byte
-			if err:=s.scoped(r.Context(),ws,realm,func(tx pgx.Tx) error {
+			if err := s.scoped(r.Context(), ws, realm, func(tx pgx.Tx) error {
 				var installed bool
-				if err:=tx.QueryRow(r.Context(),"SELECT to_regprocedure('pg62_merchant_options(uuid,text,uuid)') IS NOT NULL").Scan(&installed);err!=nil{return err}
-				if !installed{return nil} // Legacy reads remain available before optional migration.
-				return tx.QueryRow(r.Context(),"SELECT pg62_merchant_options($1::uuid,$2,$3::uuid)",ws,realm,id).Scan(&options)
-			});err!=nil{mapped(w,err);return}
-			if detail,ok:=data.(map[string]any);ok&&len(options)>0 {
+				if err := tx.QueryRow(r.Context(), "SELECT to_regprocedure('pg62_merchant_options(uuid,text,uuid)') IS NOT NULL").Scan(&installed); err != nil {
+					return err
+				}
+				if !installed {
+					return nil
+				} // Legacy reads remain available before optional migration.
+				return tx.QueryRow(r.Context(), "SELECT pg62_merchant_options($1::uuid,$2,$3::uuid)", ws, realm, id).Scan(&options)
+			}); err != nil {
+				mapped(w, err)
+				return
+			}
+			if detail, ok := data.(map[string]any); ok && len(options) > 0 {
 				var merchantOptions map[string]any
-				if json.Unmarshal(options,&merchantOptions)==nil&&len(merchantOptions)>0{detail["options"]=merchantOptions}
+				if json.Unmarshal(options, &merchantOptions) == nil && len(merchantOptions) > 0 {
+					detail["options"] = merchantOptions
+				}
 			}
 		}
 		write(w, 200, map[string]any{"data": data, "environment": realm})
@@ -482,52 +542,88 @@ func (s *Service) HandleMerchant(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		key := r.Header.Get("Idempotency-Key")
-		if key=="" {
+		if key == "" {
 			var fresh [24]byte
-			if _,err:=rand.Read(fresh[:]);err!=nil{fail(w,503,"KEY_GENERATION_UNAVAILABLE");return}
-			key="ekmivo-"+hex.EncodeToString(fresh[:])
+			if _, err := rand.Read(fresh[:]); err != nil {
+				fail(w, 503, "KEY_GENERATION_UNAVAILABLE")
+				return
+			}
+			key = "ekmivo-" + hex.EncodeToString(fresh[:])
 		}
-		if !keyPattern.MatchString(key) {fail(w,422,"INVALID_IDEMPOTENCY_KEY");return}
+		if !keyPattern.MatchString(key) {
+			fail(w, 422, "INVALID_IDEMPOTENCY_KEY")
+			return
+		}
 		var payload createRequest
-		if !decode(w, r, &payload) { return }
-		if !prepareCreateRequest(&payload,key,ws,realm) {
+		if !decode(w, r, &payload) {
+			return
+		}
+		if !prepareCreateRequest(&payload, key, ws, realm) {
 			fail(w, 422, "INVALID_REQUEST")
 			return
 		}
 		var optionsReady bool
-		if err:=s.scoped(r.Context(),ws,realm,func(tx pgx.Tx) error {
+		if err := s.scoped(r.Context(), ws, realm, func(tx pgx.Tx) error {
 			var checkErr error
-			optionsReady,checkErr=pg62OptionsAvailable(r.Context(),tx)
+			optionsReady, checkErr = pg62OptionsAvailable(r.Context(), tx)
 			return checkErr
-		});err!=nil{mapped(w,err);return}
-		if !optionsReady&&hasSimplePaymentOptions(payload){
-			fail(w,503,"SIMPLE_PAYMENT_MIGRATION_REQUIRED")
+		}); err != nil {
+			mapped(w, err)
+			return
+		}
+		if !optionsReady && hasSimplePaymentOptions(payload) {
+			fail(w, 503, "SIMPLE_PAYMENT_MIGRATION_REQUIRED")
 			return
 		}
 		raw, _ := json.Marshal(payload)
 		token := s.token(ws, realm, key)
 		var answer []byte
-		err := s.scoped(r.Context(),ws,realm,func(tx pgx.Tx) error {
+		err := s.scoped(r.Context(), ws, realm, func(tx pgx.Tx) error {
 			var issueErr error
 			switch {
-			case payload.InvoiceID!=""&&(realm=="live"||os.Getenv("PG10_EXTENSIONS_ENABLED")=="true"):
-				issueErr=tx.QueryRow(r.Context(),"SELECT pg10_invoice_intent($1::uuid,$2,$3::uuid,$4,$5,$6,$7,$8)",ws,realm,payload.InvoiceID,payload.Reference,payload.Expiry,key,digest(token),digest(string(raw))).Scan(&answer)
-			case payload.OrderID!=""||payload.InvoiceID!="":
-				kind,sourceID:="order",payload.OrderID
-				if payload.InvoiceID!=""{kind,sourceID="invoice",payload.InvoiceID}
-				issueErr=tx.QueryRow(r.Context(),"SELECT pg05_create_linked_intent($1::uuid,$2,$3,$4,$5::uuid,$6,$7,$8,$9)",ws,realm,payload.Reference,kind,sourceID,payload.Expiry,key,digest(token),digest(string(raw))).Scan(&answer)
+			case payload.InvoiceID != "" && (realm == "live" || os.Getenv("PG10_EXTENSIONS_ENABLED") == "true"):
+				issueErr = tx.QueryRow(r.Context(), "SELECT pg10_invoice_intent($1::uuid,$2,$3::uuid,$4,$5,$6,$7,$8)", ws, realm, payload.InvoiceID, payload.Reference, payload.Expiry, key, digest(token), digest(string(raw))).Scan(&answer)
+			case payload.OrderID != "" || payload.InvoiceID != "":
+				kind, sourceID := "order", payload.OrderID
+				if payload.InvoiceID != "" {
+					kind, sourceID = "invoice", payload.InvoiceID
+				}
+				issueErr = tx.QueryRow(r.Context(), "SELECT pg05_create_linked_intent($1::uuid,$2,$3,$4,$5::uuid,$6,$7,$8,$9)", ws, realm, payload.Reference, kind, sourceID, payload.Expiry, key, digest(token), digest(string(raw))).Scan(&answer)
 			default:
-				function:="pg05_create_intent"
-				if realm=="live"{function="pg10_intent"}
-				issueErr=tx.QueryRow(r.Context(),"SELECT "+function+"($1::uuid,$2,$3,$4,$5,$6,$7,$8)",ws,realm,payload.Reference,payload.Amount,payload.Expiry,key,digest(token),digest(string(raw))).Scan(&answer)
+				function := "pg05_create_intent"
+				if realm == "live" {
+					function = "pg10_intent"
+				}
+				issueErr = tx.QueryRow(r.Context(), "SELECT "+function+"($1::uuid,$2,$3,$4,$5,$6,$7,$8)", ws, realm, payload.Reference, payload.Amount, payload.Expiry, key, digest(token), digest(string(raw))).Scan(&answer)
 			}
-			if issueErr!=nil{return issueErr}
-			var created struct{ID string `json:"id"`}
-			if json.Unmarshal(answer,&created)!=nil||!uuidPattern.MatchString(created.ID){return errors.New("invalid intent creation result")}
-			if !optionsReady {return nil} // Legacy request, before schema 0062 rollout.
+			if issueErr != nil {
+				return issueErr
+			}
+			var created struct {
+				ID string `json:"id"`
+			}
+			if json.Unmarshal(answer, &created) != nil || !uuidPattern.MatchString(created.ID) {
+				return errors.New("invalid intent creation result")
+			}
+			if !optionsReady {
+				return nil
+			} // Legacy request, before schema 0062 rollout.
+			if payload.WebhookURL != "" {
+				if s.Pipeline == nil || len(s.Pipeline.Key) != 32 {
+					return errors.New("automatic webhook signing unavailable")
+				}
+				cipher, err := deviceevidence.Encrypt(s.Pipeline.Key, []byte(s.automaticSigningSecret(ws, realm)), ws+"|"+realm)
+				if err != nil {
+					return err
+				}
+				var endpoint string
+				if err = tx.QueryRow(r.Context(), "SELECT pg63_bind_payment_endpoint($1::uuid,$2,$3::uuid,$4,$5)", ws, realm, created.ID, payload.WebhookURL, cipher).Scan(&endpoint); err != nil {
+					return err
+				}
+			}
 			var stored bool
-			return tx.QueryRow(r.Context(),"SELECT pg62_store_intent_options($1::uuid,$2,$3::uuid,$4,$5,$6,$7,$8,$9,$10::jsonb)",
-				ws,realm,created.ID,payload.RedirectURL,payload.CancelURL,payload.WebhookURL,payload.CustomerName,payload.CustomerEmail,payload.CustomerPhone,metadataOrEmpty(payload.Metadata)).Scan(&stored)
+			return tx.QueryRow(r.Context(), "SELECT pg62_store_intent_options($1::uuid,$2,$3::uuid,$4,$5,$6,$7,$8,$9,$10::jsonb)",
+				ws, realm, created.ID, payload.RedirectURL, payload.CancelURL, payload.WebhookURL, payload.CustomerName, payload.CustomerEmail, payload.CustomerPhone, metadataOrEmpty(payload.Metadata)).Scan(&stored)
 		})
 		if err != nil {
 			mapped(w, err)
@@ -743,9 +839,15 @@ func (s *Service) HandlePublic(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("action") == "cancel" {
 			var cancelled []byte
 			err = pool.QueryRow(r.Context(), "SELECT pg05_public_cancel($1)", digest(token)).Scan(&cancelled)
-			if err != nil { mapped(w, err); return }
-			if len(cancelled)==0 || string(cancelled)=="null" { fail(w,404,"NOT_FOUND");return }
-			write(w,200,json.RawMessage(cancelled))
+			if err != nil {
+				mapped(w, err)
+				return
+			}
+			if len(cancelled) == 0 || string(cancelled) == "null" {
+				fail(w, 404, "NOT_FOUND")
+				return
+			}
+			write(w, 200, json.RawMessage(cancelled))
 			return
 		}
 		if r.PathValue("action") != "lock" {
@@ -909,17 +1011,28 @@ func (s *Service) publicResult(w http.ResponseWriter, r *http.Request, raw []byt
 	}
 	// Redirect URLs are resolved only from a token-bound, tenant-scoped intent.
 	// Never expose customer contact or merchant-only metadata publicly.
-	if intentID,ok:=data["id"].(string);ok&&uuidPattern.MatchString(intentID) {
-		realm:=checkoutRealm(raw)
+	if intentID, ok := data["id"].(string); ok && uuidPattern.MatchString(intentID) {
+		realm := checkoutRealm(raw)
 		var redirects []byte
-		if err:=s.scoped(r.Context(),ws,realm,func(tx pgx.Tx) error {
+		if err := s.scoped(r.Context(), ws, realm, func(tx pgx.Tx) error {
 			var installed bool
-			if err:=tx.QueryRow(r.Context(),"SELECT to_regprocedure('pg62_checkout_redirects(uuid,text,uuid)') IS NOT NULL").Scan(&installed);err!=nil{return err}
-			if !installed{return nil}
-			return tx.QueryRow(r.Context(),"SELECT pg62_checkout_redirects($1::uuid,$2,$3::uuid)",ws,realm,intentID).Scan(&redirects)
-		});err!=nil{fail(w,503,"CHECKOUT_OPTIONS_UNAVAILABLE");return}
+			if err := tx.QueryRow(r.Context(), "SELECT to_regprocedure('pg62_checkout_redirects(uuid,text,uuid)') IS NOT NULL").Scan(&installed); err != nil {
+				return err
+			}
+			if !installed {
+				return nil
+			}
+			return tx.QueryRow(r.Context(), "SELECT pg62_checkout_redirects($1::uuid,$2,$3::uuid)", ws, realm, intentID).Scan(&redirects)
+		}); err != nil {
+			fail(w, 503, "CHECKOUT_OPTIONS_UNAVAILABLE")
+			return
+		}
 		var options map[string]any
-		if json.Unmarshal(redirects,&options)==nil {for k,v:=range options{data[k]=v}}
+		if json.Unmarshal(redirects, &options) == nil {
+			for k, v := range options {
+				data[k] = v
+			}
+		}
 	}
 	data["merchant_name"] = business.Name
 	data["brand"] = business.Brand

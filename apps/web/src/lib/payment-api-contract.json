@@ -58987,6 +58987,291 @@
         }
       }
     },
+    "/v1/payment/create": {
+      "post": {
+        "operationId": "createSimplePayment",
+        "summary": "Create a hosted payment",
+        "description": "Creates an immutable payment using the existing intent engine. Optional webhook_url is bound automatically; manual registration is not required.",
+        "security": [
+          {
+            "MerchantBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "amount",
+                  "redirect_url"
+                ],
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000000000,
+                    "multipleOf": 0.01
+                  },
+                  "redirect_url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "webhook_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Optional public HTTPS destination for this payment."
+                  },
+                  "cancel_url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "reference": {
+                    "type": "string",
+                    "maxLength": 128
+                  },
+                  "customer_name": {
+                    "type": "string",
+                    "maxLength": 160
+                  },
+                  "customer_email": {
+                    "type": "string",
+                    "maxLength": 254
+                  },
+                  "customer_phone": {
+                    "type": "string",
+                    "maxLength": 32
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created, not paid. Legacy fields remain available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "invoice_id",
+                    "status"
+                  ],
+                  "properties": {
+                    "invoice_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "payment_url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "COMPLETED",
+                        "CANCELLED",
+                        "EXPIRED",
+                        "FAILED",
+                        "REFUNDED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected or source unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlation_id"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_ENVIRONMENT",
+                            "INVALID_API_KEY",
+                            "SCOPE_OR_ENVIRONMENT_DENIED",
+                            "AUTH_SERVICE_UNAVAILABLE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlation_id": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/payment/verify": {
+      "post": {
+        "operationId": "verifySimplePayment",
+        "summary": "Read authoritative payment status by invoice_id",
+        "description": "Read-only lookup. Match invoice_id, amount_minor and currency against the stored order before fulfilment. A webhook or redirect alone is not proof.",
+        "security": [
+          {
+            "MerchantBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "invoice_id"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "invoice_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lookup succeeded; status must equal COMPLETED before fulfilment.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "invoice_id",
+                    "status",
+                    "amount_minor",
+                    "currency"
+                  ],
+                  "properties": {
+                    "invoice_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "COMPLETED",
+                        "CANCELLED",
+                        "EXPIRED",
+                        "FAILED",
+                        "REFUNDED"
+                      ]
+                    },
+                    "amount_minor": {
+                      "type": "integer"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Request rejected or source unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlation_id"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_ENVIRONMENT",
+                            "INVALID_API_KEY",
+                            "SCOPE_OR_ENVIRONMENT_DENIED",
+                            "AUTH_SERVICE_UNAVAILABLE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlation_id": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/payment-intents": {
       "get": {
         "operationId": "listPaymentIntentsKey",
@@ -59107,11 +59392,11 @@
       },
       "post": {
         "operationId": "createPaymentIntentKey",
-        "summary": "Create a payment using amount (BDT) and redirect_url; optional details",
+        "summary": "Issue an immutable standalone or order/invoice-linked BDT request",
         "tags": [
           "Merchant"
         ],
-        "description": "Simple payments take amount in BDT and redirect_url; optional cancel_url, webhook_url (registered active endpoint only), customer details, metadata and reference. Older amount_minor and linked-source forms remain supported. Use a stable Idempotency-Key on retries. Redirects are not payment proof.",
+        "description": "Simple standalone payments require only amount (BDT) and redirect_url\n(HTTPS). The server derives BDT/paisa, merchant_reference, currency BDT\nand default expiry (30 minutes). Existing integrations may continue\nsending amount_minor, merchant_reference, currency and expiry.\nLinked order/invoice requests still resolve the amount from the\nfrozen tenant source. Supplying amount and amount_minor together is\ninvalid. Idempotency-Key is optional but strongly recommended: reuse\nthe same key and body to get a single intent on retries.\nwebhook_url is securely bound to this payment automatically;\nsigned webhook delivery is handled by the normal endpoint worker.\nA redirect or unsigned callback never proves payment.\n",
         "security": [
           {
             "MerchantBearer": []
@@ -59122,12 +59407,12 @@
             "name": "Idempotency-Key",
             "in": "header",
             "required": false,
+            "description": "Recommended stable identifier for safe server retries.",
             "schema": {
               "type": "string",
               "minLength": 16,
               "maxLength": 128
-            },
-            "description": "Optional but recommended to deduplicate retries"
+            }
           }
         ],
         "requestBody": {
@@ -59137,7 +59422,6 @@
               "schema": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": [],
                 "oneOf": [
                   {
                     "required": [
@@ -59167,13 +59451,13 @@
                     "minimum": 0.01,
                     "maximum": 1000000000,
                     "multipleOf": 0.01,
-                    "description": "BDT, not paisa. Up to two decimal places."
+                    "description": "Amount in BDT, max two decimal places. No floats are used for server money arithmetic."
                   },
                   "redirect_url": {
                     "type": "string",
                     "format": "uri",
                     "maxLength": 2048,
-                    "description": "Public HTTPS navigation URL, not proof of payment"
+                    "description": "Public HTTPS return page; not payment proof."
                   },
                   "cancel_url": {
                     "type": "string",
@@ -59184,7 +59468,7 @@
                     "type": "string",
                     "format": "uri",
                     "maxLength": 2048,
-                    "description": "Must match an active registered endpoint"
+                    "description": "Optional public HTTPS callback bound to this payment. Automatic callback signing secret is available in API Keys."
                   },
                   "customer_name": {
                     "type": "string",
@@ -59201,8 +59485,7 @@
                   },
                   "metadata": {
                     "type": "object",
-                    "additionalProperties": true,
-                    "description": "Merchant-only JSON object, max 2048 bytes"
+                    "description": "Merchant-only JSON object, maximum 2048 bytes."
                   },
                   "reference": {
                     "type": "string",
@@ -59247,7 +59530,7 @@
         },
         "responses": {
           "201": {
-            "description": "Payment created (requires payer, not yet verified)",
+            "description": "Issued standalone payment request, not paid",
             "content": {
               "application/json": {
                 "schema": {
@@ -59337,7 +59620,7 @@
                         "checkout_url": {
                           "type": "string",
                           "format": "uri",
-                          "description": "Provided when a public HTTPS origin is configured"
+                          "description": "Present when the public HTTPS web origin is configured."
                         }
                       }
                     }
@@ -59359,7 +59642,7 @@
             "description": "Duplicate reference or changed idempotency payload"
           },
           "422": {
-            "description": "Invalid amount/URL; webhook URL not registered; invalid data"
+            "description": "Invalid amount, expiry, mixed source or caller-forged linked total"
           },
           "503": {
             "description": "Finance or live source unavailable"
@@ -59381,12 +59664,33 @@
         ],
         "parameters": [
           {
+            "name": "workspaceID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
             "name": "intentID",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "environment",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "sandbox",
+                "live"
+              ]
             }
           }
         ],
@@ -59608,12 +59912,33 @@
         ],
         "parameters": [
           {
+            "name": "workspaceID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
             "name": "intentID",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "environment",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "sandbox",
+                "live"
+              ]
             }
           }
         ],
@@ -59643,7 +59968,7 @@
           "Merchant"
         ],
         "summary": "Read-only TrxID-assisted lookup of an already verified payment",
-        "description": "This request does not consume a transaction, verify raw SMS, charge a credit or mark money paid. It only reports an already uniquely matched, verified observation within the authenticated API key's workspace and environment.\n",
+        "description": "This request does not consume a transaction, verify raw SMS, charge a credit\nor mark money paid. It only reports an already uniquely matched, verified\nobservation within the authenticated API key's workspace and environment.\n",
         "security": [
           {
             "MerchantBearer": []

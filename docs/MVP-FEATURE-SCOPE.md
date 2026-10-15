@@ -111,3 +111,10 @@ Additional gateway route verifies its own transactions through its provider API.
 ```
 
 Any transaction ID in the receipt is extracted automatically for internal deduplication/audit. It is not requested from the customer. Sender number means the actual payer number contained in the receipt, not the SMS sender label. Checkout/API must identify the expected payment number; an order contact number cannot silently stand in for a different payer account. Receipt transaction time, device receive time and server ingest time remain separate. Gateway confirmation is not required for a successful phone-based verification; its method remains visible in the audit.
+
+
+## Owner dashboard/API refinement — 2026-10-15
+
+The latest owner instruction refines the payment dashboard: Payments replaces Transactions in navigation; Payment Links includes the existing one-time requests flow; SMS Data replaces Incoming Receipts. Workspace Billing, Team and Settings are accessed through the workspace gear, and Help through the header. Developers contains API Keys and external API Docs. Legacy deep links and integrations remain compatible. The operational dashboard uses the semantic payment tokens and an original visual direction documented in `docs/design/ekmivo-dashboard/SKILL.md`.
+
+Create Payment may accept an optional per-payment `webhook_url` without dashboard registration. Reuse signed delivery, retries and tenant isolation; callbacks are notifications and merchants must verify server-side before fulfillment. Existing default registered endpoints remain supported. Additive migrations 0063/0064 (financial) and 0065 (control) are implemented and tested on an isolated Neon branch only; production rollout and end-to-end acceptance remain pending. Do not use Docker: the owner requires Neon for database work. See `docs/evidence/DASHBOARD-REFINEMENT-20261015/README.md` and the consolidated manual ledger.

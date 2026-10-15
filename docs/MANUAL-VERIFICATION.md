@@ -623,3 +623,13 @@ All of the following are **MANUAL PENDING**, not passed: apply migration 0062 in
 ## Simple Payment API migration 0062 — operator update (2026-10-15)
 
 **DB SCHEMA APPLIED / VERIFIED** in both physical Neon finance databases `ekmivo_sandbox_financial` and `ekmivo_live_financial` (production branch); 13-statement atomic transaction each. Owner, realm, SQL objects, RLS and grants checked; existing payment rows untouched. Control database `ekmivo` unchanged. Prior ledger entries saying migration pending are superseded by this statement only. Still MANUAL PENDING: actual verified Sandbox/Live payment + provider device, signed webhook callback/retries, Go runtime smoke, checkout redirects and responsive EN/BN browser checks. See `docs/evidence/SIMPLE-PAYMENT-API-20261015.md`.
+
+
+## Dashboard/API refinement — 2026-10-15 — manual pending
+
+- After authorized rollout of financial migrations 0063/0064, control migration 0065 and API/web deployment, verify owner/admin Team access against the actual workspace. Isolated Neon branch confirms the ambiguous role SQL fix; production has not been changed.
+- Use an authorized merchant sandbox API key and a publicly reachable HTTPS receiver: create with/without webhook_url, complete a genuine payment, validate signature and retry/deduplication, call verify before fulfillment, and confirm callback failure never reverses payment. Repeat with legacy default endpoint and cross-workspace/environment denial.
+- Verify automatic invoice/customer activity with genuine authorized payment records; check permissions, pagination, search, filters, SMS evidence and ciphertext privacy.
+- Complete actual-data browser pass EN/BN, Light/Dark/System, 320/768/1024/desktop, keyboard, offline, denied roles, documents create/edit and workspace settings. Saved screenshots use explicitly fictional development fixtures and do not establish live integration.
+- Review the reference public payment-link/QR destination; clipboard capture was unavailable, so that reference path is not verified.
+- Neon test branch `br-silent-breeze-b32znlqj` remains for review. Delete only with owner authorization. No Docker permitted.

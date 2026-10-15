@@ -33,7 +33,9 @@ function at(value?:string,locale:"en"|"bn"="en"){
 function isHttps(value:string){try{const u=new URL(value);return u.protocol==="https:"&&!u.username&&!u.password&&!!u.hostname}catch{return false}}
 function formatSettings(body:Settings):Settings{return Object.fromEntries(Object.entries(body).map(([k,v])=>[k,v.trim()])) as unknown as Settings}
 export function PaymentWorkspaceTools({locale,workspaceId,environment,resource,canManage,isOwner,userId}:{locale:"en"|"bn";workspaceId:string;environment:string;resource:Resource;canManage:boolean;isOwner:boolean;userId:string}){
- const router=useRouter(),bn=locale==="bn",t=(en:string,bengali:string)=>bn?bengali:en,base="/api/go/workspaces/"+workspaceId+"/workspace-tools";
+ const router=useRouter(),bn=locale==="bn";
+ const t=useCallback((en:string,bengali:string)=>bn?bengali:en,[bn]);
+ const base="/api/go/workspaces/"+workspaceId+"/workspace-tools";
  const [members,setMembers]=useState<Member[]>([]),[invites,setInvites]=useState<Invitation[]>([]),[tickets,setTickets]=useState<Ticket[]>([]);
  const [body,setBody]=useState<Settings>(defaults),[version,setVersion]=useState(0),[saved,setSaved]=useState<Settings>(defaults);
  const [grants,setGrants]=useState<Record<string,Record<string,boolean>>>({});
@@ -65,8 +67,8 @@ export function PaymentWorkspaceTools({locale,workspaceId,environment,resource,c
    setLoaded(true);
   }catch(e){if(!signal?.aborted)setError(t("Unable to load workspace data. Check the connection and retry.","ওয়ার্কস্পেসের তথ্য পাওয়া যায়নি। সংযোগ দেখে আবার চেষ্টা করুন।")+" ("+(e instanceof Error?e.message:"UNKNOWN")+")")}
   finally{if(!signal?.aborted)setLoading(false)}
- },[base,resource,environment,bn]);
- useEffect(()=>{const c=new AbortController();void load(c.signal);return()=>c.abort()},[load]);
+ },[base,resource,environment,t]);
+ useEffect(()=>{const c=new AbortController();void Promise.resolve().then(()=>{if(!c.signal.aborted)return load(c.signal)});return()=>c.abort()},[load]);
  const refresh=()=>{if(resource==="settings"&&dirty&&!window.confirm(t("Discard unsaved settings and reload?","সংরক্ষণ না করা সেটিংস বাদ দিয়ে আবার লোড করবেন?")))return;void load()};
  async function command(action:string,data:Record<string,unknown>,target?:string){
   if(busy)return false;
@@ -111,7 +113,7 @@ export function PaymentWorkspaceTools({locale,workspaceId,environment,resource,c
  return <div className="ws-workbench" aria-busy={busy}>
   <header className="ws-page-head"><div><h1>{resourceTitle}</h1><p>{resource==="team"?t("People and permissions for this business.","এই ব্যবসার সদস্য ও তাদের অনুমতি।"):resource==="settings"?t("Business identity, checkout branding and customer contact.","ব্যবসার পরিচয়, চেকআউট ও যোগাযোগ।"):t("Contact support and follow your submitted requests.","সহায়তার অনুরোধ পাঠান ও অগ্রগতি দেখুন।")}</p></div><button type="button" className="ws-refresh" disabled={busy||loading} onClick={refresh}>{t("Refresh","রিফ্রেশ")}</button></header>
   {error&&<div className="ws-alert" role="alert"><span>{error}</span><button type="button" onClick={refresh} disabled={busy}>{t("Retry","আবার চেষ্টা")}</button></div>}
-  {notice&&<p className="ws-note" role="status">{notice}</p>}
+  {notice&&<p data-feedback="success" className="ws-note" role="status">{notice}</p>}
   {loading?<div className="ws-loading" role="status">{t("Loading workspace…","ওয়ার্কস্পেস লোড হচ্ছে…")}</div>:!loaded?<p className="ws-empty" role="status">{t("Workspace data is unavailable. Try Refresh.","ওয়ার্কস্পেসের তথ্য পাওয়া যায়নি। রিফ্রেশ করুন।")}</p>:<>
    {resource==="team"&&<>
     <div className="ws-stat-strip"><div><span>{t("Active members","সক্রিয় সদস্য")}</span><strong>{members.length}</strong></div><div><span>{t("Open invitations","অপেক্ষমাণ আমন্ত্রণ")}</span><strong>{invites.length}</strong></div><div><span>{t("Your access","আপনার অনুমতি")}</span><strong>{isOwner?t("Owner","মালিক"):canManage?t("Admin","অ্যাডমিন"):t("Member","সদস্য")}</strong></div></div>
@@ -140,15 +142,18 @@ export function PaymentWorkspaceTools({locale,workspaceId,environment,resource,c
      </div>
     </div>
    </>}
-   {resource==="settings"&&<div className="ws-two-col ws-settings-layout"><div className="ws-sidebar-col">
-    <section className="ws-card"><div className="ws-section-heading"><div><h2>{t("Business profile","ব্যবসার পরিচয়")}</h2><p>{t("What customers see at checkout.","চেকআউটে গ্রাহক যা দেখবেন।")}</p></div></div>
+   {resource==="settings"&&<nav className="ref-settings-categories" aria-label={t("Settings categories","সেটিংস বিভাগ")}>
+ {[['business-profile',t("Business identity","ব্যবসার পরিচয়"),t("Name and checkout presentation","নাম ও চেকআউটের পরিচয়"),'◈'],['customer-contact',t("Contact & policies","যোগাযোগ ও নীতিমালা"),t("Support, notices and legal links","সহায়তা, নোটিশ ও শর্তাবলি"),'↗'],['language-region',t("Language & region","ভাষা ও অঞ্চল"),t("Checkout language and timezone","চেকআউটের ভাষা ও সময়"),'◎'],...(isOwner?[['privacy-data',t("Privacy & data","গোপনীয়তা ও তথ্য"),t("Workspace data requests","ওয়ার্কস্পেসের তথ্যের অনুরোধ"),'◇']]:[])].map(([id,title,description,icon])=><a key={id} href={"#"+id}><span aria-hidden="true">{icon}</span><div><strong>{title}</strong><small>{description}</small></div><b aria-hidden="true">↗</b></a>)}
+ </nav>}
+ {resource==="settings"&&<div className="ws-two-col ws-settings-layout"><div className="ws-sidebar-col">
+    <section className="ws-card" id="business-profile"><div className="ws-section-heading"><div><h2>{t("Business profile","ব্যবসার পরিচয়")}</h2><p>{t("What customers see at checkout.","চেকআউটে গ্রাহক যা দেখবেন।")}</p></div></div>
      <div className="ws-form ws-settings-grid">{(["name","checkout_title","checkout_description","logo_url"] as const).map(k=><label key={k}>{fields[k][bn?1:0]}<input disabled={!canManage||busy} value={body[k]} maxLength={500} onChange={e=>setBody(v=>({...v,[k]:e.target.value}))} placeholder={k==="logo_url"?"https://":undefined}/></label>)}</div>
     </section>
-    <section className="ws-card"><h2>{t("Customer contact","গ্রাহকের যোগাযোগ")}</h2><div className="ws-form ws-settings-grid">{(["support_email","notification_email","support_url","legal_url"] as const).map(k=><label key={k}>{fields[k][bn?1:0]}<input type={k.endsWith("_email")?"email":"url"} disabled={!canManage||busy} value={body[k]} maxLength={500} onChange={e=>setBody(v=>({...v,[k]:e.target.value}))} placeholder={k.endsWith("_url")?"https://":undefined}/></label>)}</div></section>
+    <section className="ws-card" id="customer-contact"><h2>{t("Customer contact","গ্রাহকের যোগাযোগ")}</h2><div className="ws-form ws-settings-grid">{(["support_email","notification_email","support_url","legal_url"] as const).map(k=><label key={k}>{fields[k][bn?1:0]}<input type={k.endsWith("_email")?"email":"url"} disabled={!canManage||busy} value={body[k]} maxLength={500} onChange={e=>setBody(v=>({...v,[k]:e.target.value}))} placeholder={k.endsWith("_url")?"https://":undefined}/></label>)}</div></section>
    </div><div className="ws-sidebar-col">
-    <section className="ws-card"><h2>{t("Language & region","ভাষা ও অঞ্চল")}</h2><div className="ws-form"><label>{fields.locale[bn?1:0]}<select value={body.locale} disabled={!canManage||busy} onChange={e=>setBody(v=>({...v,locale:e.target.value}))}><option value="bn">বাংলা</option><option value="en">English</option></select></label><label>{fields.timezone[bn?1:0]}<input value={body.timezone} disabled={!canManage||busy} maxLength={120} onChange={e=>setBody(v=>({...v,timezone:e.target.value}))} list="ws-common-timezones"/><datalist id="ws-common-timezones"><option value="Asia/Dhaka"/><option value="UTC"/><option value="Asia/Kolkata"/></datalist></label></div></section>
+    <section className="ws-card" id="language-region"><h2>{t("Language & region","ভাষা ও অঞ্চল")}</h2><div className="ws-form"><label>{fields.locale[bn?1:0]}<select value={body.locale} disabled={!canManage||busy} onChange={e=>setBody(v=>({...v,locale:e.target.value}))}><option value="bn">বাংলা</option><option value="en">English</option></select></label><label>{fields.timezone[bn?1:0]}<input value={body.timezone} disabled={!canManage||busy} maxLength={120} onChange={e=>setBody(v=>({...v,timezone:e.target.value}))} list="ws-common-timezones"/><datalist id="ws-common-timezones"><option value="Asia/Dhaka"/><option value="UTC"/><option value="Asia/Kolkata"/></datalist></label></div></section>
     {canManage&&<section className="ws-card ws-sticky-actions"><h2>{t("Save your changes","পরিবর্তন সংরক্ষণ")}</h2><p className="ws-muted">{dirty?t("You have unsaved settings.","সংরক্ষণ না করা পরিবর্তন আছে।"):t("All changes are saved.","সব পরিবর্তন সংরক্ষিত আছে।")}</p><div className="ws-row"><button className="ws-primary" disabled={busy||loading||!dirty} type="button" onClick={()=>void saveSettings()}>{busy?t("Saving…","সংরক্ষণ হচ্ছে…"):t("Save settings","সেটিংস সংরক্ষণ")}</button><button type="button" disabled={busy||!dirty} onClick={()=>latest.current.discard()}>{t("Discard","বাতিল")}</button></div></section>}
-    {isOwner&&<section className="ws-card"><h2>{t("Privacy & data","গোপনীয়তা ও তথ্য")}</h2><PaymentPrivacy locale={locale} workspaceId={workspaceId}/></section>}
+    {isOwner&&<section className="ws-card" id="privacy-data"><h2>{t("Privacy & data","গোপনীয়তা ও তথ্য")}</h2><PaymentPrivacy locale={locale} workspaceId={workspaceId}/></section>}
    </div></div>}
    {resource==="help"&&<div className="ws-two-col ws-help-layout"><section className="ws-card"><h2>{t("Request support","সহায়তা চান")}</h2><p className="ws-muted">{t("Please do not include passwords, API keys, full payment SMS or other secrets.","পাসওয়ার্ড, API key বা সম্পূর্ণ পেমেন্ট SMS শেয়ার করবেন না।")}</p><form className="ws-form" onSubmit={support}><label>{t("Subject","বিষয়")}<input required minLength={3} maxLength={160} disabled={busy} value={subject} onChange={e=>setSubject(e.target.value)}/></label><label>{t("Describe the issue","সমস্যা লিখুন")}<textarea required rows={6} minLength={10} maxLength={4000} disabled={busy} value={issue} onChange={e=>setIssue(e.target.value)}/></label><button className="ws-primary" type="submit" disabled={busy||subject.trim().length<3||issue.trim().length<10}>{t("Submit request","অনুরোধ পাঠান")}</button></form></section>
     <section className="ws-card"><h2>{t("Your support requests","আপনার সহায়তার অনুরোধ")}</h2>{!tickets.length?<div className="ws-empty">{t("No support requests yet.","এখনো কোনো সহায়তার অনুরোধ নেই।")}</div>:<div className="ws-tickets">{tickets.map(ticket=><article key={ticket.id}><div className="ws-ticket-head"><strong>{ticket.subject}</strong><span>{ticket.status}</span></div><time>{at(ticket.created_at,locale)}</time><p>{ticket.message}</p>{!!ticket.replies?.length&&<details><summary>{t("Replies","উত্তর")} ({ticket.replies.length})</summary>{ticket.replies.map((reply,i)=><blockquote key={i}><p>{reply.message}</p><time>{at(reply.created_at,locale)}</time></blockquote>)}</details>}</article>)}</div>}</section>

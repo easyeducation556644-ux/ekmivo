@@ -187,3 +187,10 @@ Evidence path per work item: docs/evidence/<ID>/README.md with commit/change, en
 
 ## PG06–PG09 source contract checkpoint (not deployed)
 The canonical contracts/openapi.yaml now includes operational and signed-device paths. Merchant signatures follow timestamp + period + exact raw body; key ID is the first eight SHA-256 bytes of the signing secret, hex. Event/delivery IDs agree with the signed envelope. See evidence/PG06-PG09-CODE-CHECKPOINT.md. Only payment.verified currently has a producer; other events/notices retain their lifecycle/channel dependencies. All new contract validation and generated-client compatibility checks are pending.
+
+
+## Owner dashboard/API refinement — 2026-10-15
+
+The latest owner instruction refines the payment dashboard: Payments replaces Transactions in navigation; Payment Links includes the existing one-time requests flow; SMS Data replaces Incoming Receipts. Workspace Billing, Team and Settings are accessed through the workspace gear, and Help through the header. Developers contains API Keys and external API Docs. Legacy deep links and integrations remain compatible. The operational dashboard uses the semantic payment tokens and an original visual direction documented in `docs/design/ekmivo-dashboard/SKILL.md`.
+
+Create Payment may accept an optional per-payment `webhook_url` without dashboard registration. Reuse signed delivery, retries and tenant isolation; callbacks are notifications and merchants must verify server-side before fulfillment. Existing default registered endpoints remain supported. Additive migrations 0063/0064 (financial) and 0065 (control) are implemented and tested on an isolated Neon branch only; production rollout and end-to-end acceptance remain pending. Do not use Docker: the owner requires Neon for database work. See `docs/evidence/DASHBOARD-REFINEMENT-20261015/README.md` and the consolidated manual ledger.

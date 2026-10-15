@@ -125,7 +125,7 @@ export function WorkspaceOnboarding({locale,userId}:{locale:Locale;userId:string
     <button type="button" onClick={restore}>{locale==="bn"?"ড্রাফট ফিরিয়ে আনুন":"Restore saved draft"}</button>
     <button type="button" onClick={discard}>{locale==="bn"?"ড্রাফট বাতিল":"Discard draft"}</button>
    </div>
-   {notice&&<p role="status" className="ek-onboard-note">{notice}</p>}
+   {notice&&<p data-feedback="success" role="status" className="ek-onboard-note">{notice}</p>}
   </form>
   <p className="ek-onboard-note">{locale==="bn"?"সেবা বেছে নেওয়া মানে কোনো পেইড সাবস্ক্রিপশন সক্রিয় করা নয়।":"Choosing a service does not activate a paid subscription or live provider integration."}</p>
   <dialog ref={dialog} aria-label={locale==="bn"?"অসম্পূর্ণ ফর্ম":"Unsaved changes"} className="ek-onboard-leave" onClose={()=>setPendingUrl("")}>

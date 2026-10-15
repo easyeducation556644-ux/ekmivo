@@ -251,3 +251,10 @@ Platform admin আলাদা shell/routes; বর্তমান /{locale}/adm
 | Audit/privacy | Filter actor/tenant/action/time/correlation; export/retention/deletion request and backup-expiry state; immutable financial audit not deletable via “clear logs”। |
 
 Finance investigation cannot quietly mutate source evidence. Emergency account/device revoke immediately effective; accepted financial work preserved. Platform support views also have complete locale/theme, keyboard and mobile states.
+
+
+## Owner dashboard/API refinement — 2026-10-15
+
+The latest owner instruction refines the payment dashboard: Payments replaces Transactions in navigation; Payment Links includes the existing one-time requests flow; SMS Data replaces Incoming Receipts. Workspace Billing, Team and Settings are accessed through the workspace gear, and Help through the header. Developers contains API Keys and external API Docs. Legacy deep links and integrations remain compatible. The operational dashboard uses the semantic payment tokens and an original visual direction documented in `docs/design/ekmivo-dashboard/SKILL.md`.
+
+Create Payment may accept an optional per-payment `webhook_url` without dashboard registration. Reuse signed delivery, retries and tenant isolation; callbacks are notifications and merchants must verify server-side before fulfillment. Existing default registered endpoints remain supported. Additive migrations 0063/0064 (financial) and 0065 (control) are implemented and tested on an isolated Neon branch only; production rollout and end-to-end acceptance remain pending. Do not use Docker: the owner requires Neon for database work. See `docs/evidence/DASHBOARD-REFINEMENT-20261015/README.md` and the consolidated manual ledger.

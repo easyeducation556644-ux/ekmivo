@@ -245,3 +245,10 @@ AI groups: Overview; Customer conversations; Sales & growth; Your AI; Connection
 The product switch presents both products with an icon, clear name, one-line purpose, current selection and entitlement state. It switches product within the same business. A business switch keeps the current product if enabled, otherwise opens that business's available product. Never present unavailable products as working links. Overview metrics are product-specific; unconnected data is shown as unavailable, never fake revenue or zero activity.
 
 Every route requires its own domain view, actual data service, authorized actions and applicable provider evidence. Tabs, tables and empty states alone are not completion. Light/dark, EN/BN, mobile and keyboard verification remain required before this shell is called production-ready.
+
+
+## Owner dashboard/API refinement — 2026-10-15
+
+The latest owner instruction refines the payment dashboard: Payments replaces Transactions in navigation; Payment Links includes the existing one-time requests flow; SMS Data replaces Incoming Receipts. Workspace Billing, Team and Settings are accessed through the workspace gear, and Help through the header. Developers contains API Keys and external API Docs. Legacy deep links and integrations remain compatible. The operational dashboard uses the semantic payment tokens and an original visual direction documented in `docs/design/ekmivo-dashboard/SKILL.md`.
+
+Create Payment may accept an optional per-payment `webhook_url` without dashboard registration. Reuse signed delivery, retries and tenant isolation; callbacks are notifications and merchants must verify server-side before fulfillment. Existing default registered endpoints remain supported. Additive migrations 0063/0064 (financial) and 0065 (control) are implemented and tested on an isolated Neon branch only; production rollout and end-to-end acceptance remain pending. Do not use Docker: the owner requires Neon for database work. See `docs/evidence/DASHBOARD-REFINEMENT-20261015/README.md` and the consolidated manual ledger.

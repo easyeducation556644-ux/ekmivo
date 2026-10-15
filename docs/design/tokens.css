@@ -161,3 +161,41 @@
     --duration-panel: 0ms;
   }
 }
+
+/* Merchant dashboard refinement, owner direction 2026-10-15. */
+:root {
+ --dashboard-canvas: #F5F5F1;
+ --dashboard-surface: #FFFEFB;
+ --dashboard-raised: #FFFFFF;
+ --dashboard-subtle: #EEEFEA;
+ --dashboard-border: #E2E5DE;
+ --dashboard-control-border: #A6ADA7;
+ --dashboard-text: #203148;
+ --dashboard-secondary: #5C6874;
+ --dashboard-blue: #E2EEF6;
+ --dashboard-peach: #F7E6DA;
+ --dashboard-sage: #E3EEE6;
+ --dashboard-yellow: #F7EDCA;
+}
+:root[data-theme="dark"] {
+ --dashboard-canvas: #181C20;
+ --dashboard-surface: #20262B;
+ --dashboard-raised: #293138;
+ --dashboard-subtle: #252C31;
+ --dashboard-border: #333D44;
+ --dashboard-control-border: #65727D;
+ --dashboard-text: #E6EAE7;
+ --dashboard-secondary: #ACB7BF;
+ --dashboard-blue: #283E4D;
+ --dashboard-peach: #49382F;
+ --dashboard-sage: #2B4037;
+ --dashboard-yellow: #453F2A;
+}
+@media(prefers-color-scheme:dark){
+ :root:not([data-theme="light"]):not([data-theme="dark"]){
+  --dashboard-canvas:#181C20;--dashboard-surface:#20262B;--dashboard-raised:#293138;
+  --dashboard-subtle:#252C31;--dashboard-border:#333D44;--dashboard-control-border:#65727D;
+  --dashboard-text:#E6EAE7;--dashboard-secondary:#ACB7BF;
+  --dashboard-blue:#283E4D;--dashboard-peach:#49382F;--dashboard-sage:#2B4037;--dashboard-yellow:#453F2A;
+ }
+}

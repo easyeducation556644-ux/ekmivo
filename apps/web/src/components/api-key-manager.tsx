@@ -158,7 +158,7 @@ export function ApiKeyManager({locale,userId,workspaceId,environment,keys}:{
     <button type="button" onClick={restoreDraft}>{bn?"খসড়া ফিরিয়ে আনুন":"Restore draft"}</button>
     <button type="button" onClick={discardDraft}>{bn?"খসড়া বাতিল":"Discard draft"}</button>
    </div>
-   {draftNotice&&<p role="status">{draftNotice}</p>}
+   {draftNotice&&<p data-feedback="success" role="status">{draftNotice}</p>}
    <Result state={state} locale={locale}/>
   </form>}
   {!keys.length?<div className="ds-empty" role="status">

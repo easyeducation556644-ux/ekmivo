@@ -169,6 +169,16 @@
     "path": "/v1/workspaces/{workspaceID}/linked-sources",
     "public": false
   },
+  "createSimplePayment": {
+    "method": "POST",
+    "path": "/v1/payment/create",
+    "public": false
+  },
+  "verifySimplePayment": {
+    "method": "POST",
+    "path": "/v1/payment/verify",
+    "public": false
+  },
   "listPaymentIntentsKey": {
     "method": "GET",
     "path": "/v1/payment-intents",

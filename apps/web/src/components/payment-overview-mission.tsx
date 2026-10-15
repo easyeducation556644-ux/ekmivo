@@ -143,7 +143,7 @@ export function PaymentOverviewMission({locale,workspaceId,environment,canManage
  const peak=Math.max(1,...days.map(d=>Math.max(0,d.verified_minor)));
  const refundItems=loaded(refunds)&&Array.isArray(refunds.value.items)?refunds.value.items:null;
  const pendingRefunds=refundItems?refundItems.filter(r=>["requested","reviewing","approved"].includes(r.status)).length:null;
- const pendingRefundsLabel=pendingRefunds===null?"—":String(pendingRefunds)+(refunds.value?.next_cursor?"+":"");
+ const pendingRefundsLabel=pendingRefunds===null?"—":new Intl.NumberFormat(bn?"bn-BD":"en-BD").format(pendingRefunds)+(refunds.value?.next_cursor?"+":"");
  const count=(value:number|null|undefined)=>typeof value==="number"&&Number.isFinite(value)?new Intl.NumberFormat(bn?"bn-BD":"en-BD").format(value):"—";
  const moneyOrDash=(value:number|null|undefined)=>typeof value==="number"&&Number.isFinite(value)?amount(value,locale):"—";
  const incompleteSource=unknown||!overview||verified===null||refundItems===null;
@@ -151,12 +151,12 @@ export function PaymentOverviewMission({locale,workspaceId,environment,canManage
   <header className="em-heading">
    <div className="em-heading-copy">
     <div className="em-heading-title"><h1>{t("Overview","সারসংক্ষেপ")}</h1><span className="em-realm">{environment==="live"?"LIVE":"SANDBOX"}</span></div>
-    <p>{operational?t("Your payment operations, without the clutter.","পেমেন্টের গুরুত্বপূর্ণ সব তথ্য এক জায়গায়।"):t("Your payment workspace starts here.","এখান থেকেই পেমেন্ট গ্রহণের প্রস্তুতি শুরু।")}</p>
+    <p>{operational?t("Your payment operations, without the clutter.","পেমেন্টের গুরুত্বপূর্ণ সব তথ্য এক জায়গায়।"):t("A clear view of your payments.","আপনার পেমেন্ট, সংযোগ ও প্রয়োজনীয় কাজ এক নজরে।")}</p>
    </div>
-   <div className="em-actions"><button type="button" onClick={update} disabled={loading}>{t("Refresh","আপডেট")}</button></div>
+   <div className="em-actions"><Link className="em-primary" href={go("payment-links")}>{t("Create payment link","পেমেন্ট লিংক তৈরি")} <span aria-hidden="true">+</span></Link><button type="button" onClick={update} disabled={loading}>{t("Refresh","আপডেট")}</button></div>
   </header>
   {loading&&!snapshot?<section className="em-panel em-loading" role="status"><span className="em-shimmer"/><span className="em-shimmer"/><span className="em-shimmer"/>{t("Checking setup and payments…","সেটআপ ও পেমেন্ট যাচাই হচ্ছে…")}</section>:null}
-  {snapshot&&!operational&&<div className="em-activation">
+  {snapshot&&!operational&&showSteps&&<div className="em-activation">
    <section className="em-launch">
     <div className="em-launch-copy"><span className="em-eyebrow">{t("ACTIVATION HUB","শুরু করার কেন্দ্র")}</span><h2>{completed===0?t("Let's get your business ready","পেমেন্ট গ্রহণের প্রস্তুতি নিন"):t("Your workspace is taking shape","আপনার ওয়ার্কস্পেস এগিয়ে যাচ্ছে")}</h2>
      <p>{t("Complete each milestone to activate your operational overview. No manual checkmarks.","প্রতিটি ধাপ সার্ভার থেকে যাচাই হয়ে সম্পূর্ণ হবে। টিক ম্যানুয়ালি দেওয়া যাবে না।")}</p>
@@ -183,14 +183,14 @@ export function PaymentOverviewMission({locale,workspaceId,environment,canManage
     <Link href={go("help")}>{t("Need help?","সহায়তা প্রয়োজন?")} ↗</Link>
    </div>
   </div>}
-  {snapshot&&operational&&<div className="em-live">
+  {snapshot&&<div className="em-live">
    <div className="em-live-strip"><div><span className="em-live-mark">✓</span><span>{ready?t("Workspace configured","ওয়ার্কস্পেস প্রস্তুত"):t("Payment activity available","পেমেন্ট কার্যক্রম পাওয়া যাচ্ছে")}</span>{!ready&&<span className="em-muted">{t("Some setup checks remain","কিছু সেটআপ ধাপ বাকি")}</span>}</div><button type="button" onClick={()=>setShowSteps(v=>!v)} aria-expanded={showSteps}>{showSteps?t("Hide setup","সেটআপ বন্ধ"):t("Setup details","সেটআপ দেখুন")}</button></div>
    {showSteps&&<div className="em-completed-steps">{tasks.map(step=><Link key={step.id} href={go(step.target)}><span aria-hidden="true">{step.ok===true?"✓":step.ok===false?"○":"—"}</span>{t(step.en,step.bn)}</Link>)}</div>}
    {incompleteSource&&<p className="em-source-warning" role="status">{t("Some figures are unavailable. A dash means no verified source, not zero.","কিছু তথ্য পাওয়া যাচ্ছে না। ড্যাশ (—) মানে অজানা, শূন্য নয়।")}</p>}
    <div className="em-kpis">
     <Link href={go("transactions")} className="em-kpi"><span>{t("Verified volume","যাচাইকৃত পেমেন্ট")}</span><strong>{moneyOrDash(overview?.verified_minor)}</strong><small>{t("Server-verified · not settlement","সার্ভারে যাচাইকৃত · settlement নয়")}</small></Link>
-    <Link href={go("transactions")} className="em-kpi"><span>{t("Recent verified","সাম্প্রতিক যাচাইকৃত")}</span><strong>{verified===null?"—":verified.length+(payments.value?.next_cursor?"+":"")}</strong><small>{t("Recent records, not lifetime total","সাম্প্রতিক রেকর্ড, মোট সংখ্যা নয়")}</small></Link>
-    <Link href={go("requests")} className="em-kpi"><span>{t("Pending requests","অপেক্ষমাণ রিকোয়েস্ট")}</span><strong>{count(overview?.pending_requests)}</strong><small>{t("Awaiting payer or verification","গ্রাহক বা যাচাইয়ের অপেক্ষায়")}</small></Link>
+    <Link href={go("transactions")} className="em-kpi"><span>{t("Recent verified","সাম্প্রতিক যাচাইকৃত")}</span><strong>{verified===null?"—":count(verified.length)+(payments.value?.next_cursor?"+":"")}</strong><small>{t("Recent records, not lifetime total","সাম্প্রতিক রেকর্ড, মোট সংখ্যা নয়")}</small></Link>
+    <Link href={go("payment-links") } className="em-kpi"><span>{t("Pending requests","অপেক্ষমাণ রিকোয়েস্ট")}</span><strong>{count(overview?.pending_requests)}</strong><small>{t("Awaiting payer or verification","গ্রাহক বা যাচাইয়ের অপেক্ষায়")}</small></Link>
     <Link href={go("incoming")} className="em-kpi"><span>{t("Receipt exceptions","Receipt সমস্যা")}</span><strong>{count(overview?.unmatched_receipts)}</strong><small>{t("Needs review","যাচাই করা প্রয়োজন")}</small></Link>
    </div>
    <div className="em-main-grid">
@@ -205,7 +205,7 @@ export function PaymentOverviewMission({locale,workspaceId,environment,canManage
     <section className="em-panel em-attention">
      <div className="em-panel-top"><h2>{t("Action center","জরুরি কাজ")}</h2><span>{t("Live issues","সক্রিয় সমস্যা")}</span></div>
      <Link href={go("refunds")}><span>{t("Refund requests","রিফান্ড অনুরোধ")}</span><strong>{pendingRefundsLabel}</strong></Link>
-     <Link href={go("webhooks")}><span>{t("Failed webhooks","ব্যর্থ webhook")}</span><strong>{count(overview?.failed_deliveries)}</strong></Link>
+     <Link href={go("developers")}><span>{t("Failed webhooks","ব্যর্থ webhook")}</span><strong>{count(overview?.failed_deliveries)}</strong></Link>
      <Link href={go("incoming")}><span>{t("Receipt review","Receipt যাচাই")}</span><strong>{count(overview?.unmatched_receipts)}</strong></Link>
     </section>
     <section className="em-panel em-connections">
@@ -218,11 +218,11 @@ export function PaymentOverviewMission({locale,workspaceId,environment,canManage
    <div className="em-bottom-grid">
     <section className="em-panel em-recent"><div className="em-panel-top"><h2>{t("Recent verified payments","সাম্প্রতিক যাচাইকৃত পেমেন্ট")}</h2><Link href={go("transactions")}>{t("View all","সব দেখুন")} ↗</Link></div>
      {verified===null?<p className="em-inline-empty">{t("Transaction source unavailable","লেনদেনের তথ্য পাওয়া যাচ্ছে না")}</p>:recent.length===0?<p className="em-inline-empty">{t("No verified payments yet","এখনো যাচাইকৃত পেমেন্ট নেই")}</p>:
-      <div className="em-transaction-list">{recent.map(row=><Link href={go("payments/"+row.id)} key={row.id} className="em-transaction"><span className="em-transaction-id">{row.merchant_reference}</span><strong>{moneyOrDash(row.verified_amount_minor)}</strong><time>{Number.isNaN(Date.parse(row.verified_at))?"—":new Intl.DateTimeFormat(bn?"bn-BD":"en-BD",{timeZone:"Asia/Dhaka",dateStyle:"short",timeStyle:"short"}).format(new Date(row.verified_at))}</time></Link>)}</div>}
+      <div className="em-transaction-list">{recent.map(row=><Link href={go("transactions/"+row.id)} key={row.id} className="em-transaction"><span className="em-transaction-id">{row.merchant_reference}</span><strong>{moneyOrDash(row.verified_amount_minor)}</strong><time>{Number.isNaN(Date.parse(row.verified_at))?"—":new Intl.DateTimeFormat(bn?"bn-BD":"en-BD",{timeZone:"Asia/Dhaka",dateStyle:"short",timeStyle:"short"}).format(new Date(row.verified_at))}</time></Link>)}</div>}
     </section>
     <section className="em-panel em-shortcuts"><div className="em-panel-top"><h2>{t("Quick actions","দ্রুত কাজ")}</h2></div>
      <Link href={go("payment-links")}>{t("Create payment link","পেমেন্ট লিংক তৈরি")} <span>↗</span></Link>
-     <Link href={go("requests")}>{t("New payment request","নতুন পেমেন্ট রিকোয়েস্ট")} <span>↗</span></Link>
+     <Link href={go("payment-links") }>{t("New payment request","নতুন পেমেন্ট রিকোয়েস্ট")} <span>↗</span></Link>
      <Link href={go("reports")}>{t("View reports","রিপোর্ট দেখুন")} <span>↗</span></Link>
     </section>
    </div>

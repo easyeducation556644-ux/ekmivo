@@ -60,7 +60,7 @@ func newHandlerWithRepository(repo *authz.Repository) http.Handler {
 }
 func newHandlerWithCheckout(repo *authz.Repository, pay *checkout.Service) http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /v1/public-sandbox/receiver/{receiverID}",pay.HandlePublicSandboxReceiver)
+	mux.HandleFunc("POST /v1/public-sandbox/receiver/{receiverID}", pay.HandlePublicSandboxReceiver)
 	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/activity/{activityKind}", pay.HandleActivity)
 	mux.HandleFunc("POST /v1/public/checkout/{token}/notices/{noticeAction}", pay.HandleNotice)
 	mux.HandleFunc("POST /v1/public/checkout/{token}/refunds", pay.HandlePublicRefund)
@@ -107,6 +107,7 @@ func newHandlerWithCheckout(repo *authz.Repository, pay *checkout.Service) http.
 	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/phones", pay.HandlePhones)
 	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/phones", pay.HandlePhones)
 	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/phones/{phoneID}/{phoneAction}", pay.HandlePhones)
+	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/automatic-webhook-secret", pay.HandleSigningSecret)
 	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/operations/{resource}", pay.HandleOperations)
 	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/operations/{resource}/{resourceID}", pay.HandleOperations)
 	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/operations/{resource}", pay.HandleOperations)
@@ -117,7 +118,7 @@ func newHandlerWithCheckout(repo *authz.Repository, pay *checkout.Service) http.
 	// Public merchant integration: resolve tenant/realm from the authenticated API key.
 	// Keep workspace-prefixed routes for existing signed-in dashboard clients.
 	merchantByKey := func(w http.ResponseWriter, r *http.Request) {
-		if action := r.PathValue("action"); action != "" && action != "cancel" && action != "verify-transaction" {
+		if action := r.PathValue("action"); action != "" && action != "cancel" && action != "verify-transaction" && action != "verify" {
 			merchantError(w, http.StatusNotFound, "NOT_FOUND", "Unknown payment action", false)
 			return
 		}
@@ -140,7 +141,9 @@ func newHandlerWithCheckout(repo *authz.Repository, pay *checkout.Service) http.
 			return
 		}
 		scope := "payments:read"
-		if r.Method != http.MethodGet && r.PathValue("action") != "verify-transaction" { scope = "payments:write" }
+		if r.Method != http.MethodGet && r.PathValue("action") != "verify-transaction" && r.PathValue("action") != "verify" {
+			scope = "payments:write"
+		}
 		credential, err := repo.AuthenticateMerchant(r.Context(), authorization, realm, scope)
 		if err != nil {
 			switch {
@@ -161,13 +164,23 @@ func newHandlerWithCheckout(repo *authz.Repository, pay *checkout.Service) http.
 		u.RawQuery = query.Encode()
 		next.URL = &u
 		next.SetPathValue("workspaceID", credential.WorkspaceID)
-		next = checkout.WithAuthenticatedMerchant(next,credential)
+		next = checkout.WithAuthenticatedMerchant(next, credential)
 		if next.PathValue("action") == "verify-transaction" {
 			pay.HandleTransactionLookup(w, next)
 			return
 		}
+		if next.PathValue("action") == "verify" {
+			pay.HandleSimpleVerify(w, next)
+			return
+		}
+		if r.URL.Path == "/v1/payment/create" {
+			pay.HandleSimpleCreate(w, next)
+			return
+		}
 		pay.HandleMerchant(w, next)
 	}
+	mux.HandleFunc("POST /v1/payment/create", merchantByKey)
+	mux.HandleFunc("POST /v1/payment/verify", func(w http.ResponseWriter, r *http.Request) { r.SetPathValue("action", "verify"); merchantByKey(w, r) })
 	mux.HandleFunc("GET /v1/payment-intents", merchantByKey)
 	mux.HandleFunc("POST /v1/payment-intents", merchantByKey)
 	mux.HandleFunc("GET /v1/payment-intents/{intentID}", merchantByKey)
@@ -372,9 +385,12 @@ func main() {
 	}
 	port := os.Getenv("PORT")
 	if dsn := os.Getenv("PG14_PUBLIC_SANDBOX_WORKER_DATABASE_URL"); dsn != "" && pg05 != nil {
-		ctx,cancel:=context.WithTimeout(context.Background(),8*time.Second)
-		err:=pg05.ConfigurePublicSandboxWorker(ctx,dsn,os.Getenv("PG14_PUBLIC_SANDBOX_WORKSPACE"));cancel()
-		if err!=nil{log.Print("public sandbox disabled: restricted worker preflight did not pass")}
+		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+		err := pg05.ConfigurePublicSandboxWorker(ctx, dsn, os.Getenv("PG14_PUBLIC_SANDBOX_WORKSPACE"))
+		cancel()
+		if err != nil {
+			log.Print("public sandbox disabled: restricted worker preflight did not pass")
+		}
 	}
 	if port == "" {
 		port = "8080"

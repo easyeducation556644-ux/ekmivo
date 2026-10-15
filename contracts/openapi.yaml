@@ -454,6 +454,85 @@ paths:
         '409': { description: Duplicate issued document reference }
         '422': { description: Invalid line or total overflow }
         '503': { description: Dependency unavailable }
+  /v1/payment/create:
+    post:
+      operationId: createSimplePayment
+      summary: Create a hosted payment
+      description: Creates an immutable payment using the existing intent engine. Optional webhook_url is bound automatically; manual registration is not required.
+      security: [{ MerchantBearer: [] }]
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          schema: { type: string, minLength: 16, maxLength: 128 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, redirect_url]
+              properties:
+                amount: { type: number, exclusiveMinimum: 0, maximum: 1000000000, multipleOf: 0.01 }
+                redirect_url: { type: string, format: uri }
+                webhook_url: { type: string, format: uri, description: Optional public HTTPS destination for this payment. }
+                cancel_url: { type: string, format: uri }
+                reference: { type: string, maxLength: 128 }
+                customer_name: { type: string, maxLength: 160 }
+                customer_email: { type: string, maxLength: 254 }
+                customer_phone: { type: string, maxLength: 32 }
+                metadata: { type: object, additionalProperties: true }
+      responses:
+        '201':
+          description: Created, not paid. Legacy fields remain available.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [invoice_id, status]
+                properties:
+                  invoice_id: { type: string, format: uuid }
+                  payment_url: { type: string, format: uri }
+                  status: { type: string, enum: [PENDING, COMPLETED, CANCELLED, EXPIRED, FAILED, REFUNDED] }
+        default:
+          description: Request rejected or source unavailable.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+  /v1/payment/verify:
+    post:
+      operationId: verifySimplePayment
+      summary: Read authoritative payment status by invoice_id
+      description: Read-only lookup. Match invoice_id, amount_minor and currency against the stored order before fulfilment. A webhook or redirect alone is not proof.
+      security: [{ MerchantBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [invoice_id]
+              additionalProperties: false
+              properties:
+                invoice_id: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Lookup succeeded; status must equal COMPLETED before fulfilment.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [invoice_id, status, amount_minor, currency]
+                properties:
+                  invoice_id: { type: string, format: uuid }
+                  status: { type: string, enum: [PENDING, COMPLETED, CANCELLED, EXPIRED, FAILED, REFUNDED] }
+                  amount_minor: { type: integer }
+                  currency: { type: string }
+                  reference: { type: string }
+        default:
+          description: Request rejected or source unavailable.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
   /v1/payment-intents:
     get:
       operationId: listPaymentIntentsKey
@@ -488,7 +567,7 @@ paths:
         frozen tenant source. Supplying amount and amount_minor together is
         invalid. Idempotency-Key is optional but strongly recommended: reuse
         the same key and body to get a single intent on retries.
-        webhook_url must match an active registered workspace webhook;
+        webhook_url is securely bound to this payment automatically;
         signed webhook delivery is handled by the normal endpoint worker.
         A redirect or unsigned callback never proves payment.
       security:
@@ -515,7 +594,7 @@ paths:
                 amount: { type: number, minimum: 0.01, maximum: 1000000000, multipleOf: 0.01, description: "Amount in BDT, max two decimal places. No floats are used for server money arithmetic." }
                 redirect_url: { type: string, format: uri, maxLength: 2048, description: "Public HTTPS return page; not payment proof." }
                 cancel_url: { type: string, format: uri, maxLength: 2048 }
-                webhook_url: { type: string, format: uri, maxLength: 2048, description: "Must be an existing active workspace endpoint. Use Webhooks to register and obtain its signing secret." }
+                webhook_url: { type: string, format: uri, maxLength: 2048, description: "Optional public HTTPS callback bound to this payment. Automatic callback signing secret is available in API Keys." }
                 customer_name: { type: string, maxLength: 160 }
                 customer_email: { type: string, format: email, maxLength: 254 }
                 customer_phone: { type: string, maxLength: 32 }
