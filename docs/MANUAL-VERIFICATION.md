@@ -633,3 +633,8 @@ All of the following are **MANUAL PENDING**, not passed: apply migration 0062 in
 - Complete actual-data browser pass EN/BN, Light/Dark/System, 320/768/1024/desktop, keyboard, offline, denied roles, documents create/edit and workspace settings. Saved screenshots use explicitly fictional development fixtures and do not establish live integration.
 - Review the reference public payment-link/QR destination; clipboard capture was unavailable, so that reference path is not verified.
 - Neon test branch `br-silent-breeze-b32znlqj` remains for review. Delete only with owner authorization. No Docker permitted.
+
+
+## Production migration rollout — 2026-10-15
+
+After explicit owner approval (push + migrations), existing financial-migrate runner with `EKMIVO_DASHBOARD_UPGRADE_ONLY=true` successfully applied only 0063/0064 to production Neon Sandbox/Live financial databases and 0065 to the control database at 2026-10-15 14:11 UTC. Runner confirmed no base migrations executed. Catalog probes confirm both financial migrations and the Team role fix. Before/after counts unchanged: Sandbox intents 15/payments 2/endpoints 1; Live intents 21/payments 3/endpoints 0. Runtime rollout and actual payment/browser E2E remain separate gates.
