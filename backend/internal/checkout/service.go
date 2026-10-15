@@ -17,6 +17,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,6 +25,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/masharzy/ekmivo/backend/internal/authz"
+	"github.com/masharzy/ekmivo/backend/internal/merchantwebhook"
 	"github.com/masharzy/ekmivo/backend/internal/receiptnotice"
 )
 
@@ -47,12 +49,68 @@ type Service struct {
 	PayerKey     []byte
 }
 type createRequest struct {
-	Reference string `json:"merchant_reference"`
-	Amount    int64  `json:"amount_minor"`
-	Currency  string `json:"currency"`
-	Expiry    int    `json:"expires_in_minutes"`
-	OrderID   string `json:"order_id,omitempty"`
+	Reference string `json:"merchant_reference"` // Old integration name.
+	SimpleReference string `json:"reference,omitempty"`
+	Amount int64 `json:"amount_minor"` // Old integration amount in paisa.
+	AmountBDT json.RawMessage `json:"amount,omitempty"` // Simple API amount in BDT.
+	Currency string `json:"currency"`
+	Expiry int `json:"expires_in_minutes"`
+	OrderID string `json:"order_id,omitempty"`
 	InvoiceID string `json:"invoice_id,omitempty"`
+	RedirectURL string `json:"redirect_url,omitempty"`
+	CancelURL string `json:"cancel_url,omitempty"`
+	WebhookURL string `json:"webhook_url,omitempty"`
+	CustomerName string `json:"customer_name,omitempty"`
+	CustomerEmail string `json:"customer_email,omitempty"`
+	CustomerPhone string `json:"customer_phone,omitempty"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
+}
+
+// parseBDT handles JSON decimal numbers without float64 rounding or exponent
+// interpretation. Storage and matching continue using integer paisa.
+func parseBDT(raw json.RawMessage) (int64, bool) {
+	text := string(raw)
+	if !regexp.MustCompile(`^(0|[1-9][0-9]{0,9})(\.[0-9]{1,2})?$`).MatchString(text) {return 0,false}
+	parts:=strings.SplitN(text,".",2)
+	whole,err:=strconv.ParseInt(parts[0],10,64);if err!=nil{return 0,false}
+	minor:=whole*100
+	if len(parts)==2 {
+		cents:=parts[1]
+		if len(cents)==1{cents+="0"}
+		fraction,err:=strconv.ParseInt(cents,10,64);if err!=nil{return 0,false}
+		minor+=fraction
+	}
+	if minor<1||minor>100000000000{return 0,false};return minor,true
+}
+
+// prepareCreateRequest supports the simpler public contract without changing
+// the immutable SQL money model. Reference/idempotency defaults are stable for
+// explicit idempotency keys; absent keys deliberately generate fresh payments.
+func prepareCreateRequest(body *createRequest, key, workspace, realm string) bool {
+	if body==nil{return false}
+	if len(body.AmountBDT)>0 {
+		if body.Amount!=0||body.OrderID!=""||body.InvoiceID!=""||body.RedirectURL=="" {return false}
+		minor,ok:=parseBDT(body.AmountBDT);if !ok{return false}
+		body.Amount=minor
+	}
+	if body.Reference!=""&&body.SimpleReference!="" {return false}
+	if body.Reference=="" {body.Reference=body.SimpleReference}
+	if body.Reference=="" {body.Reference="EK-"+digest(workspace+"|"+realm+"|"+key)[:30]}
+	if body.Currency=="" {body.Currency="BDT"}
+	if body.Expiry==0 {body.Expiry=30}
+	// Public URLs may only be HTTPS public destinations. Webhooks additionally
+	// require an active, merchant-owned registered endpoint in pg62 SQL.
+	for _,candidate:=range []string{body.RedirectURL,body.CancelURL,body.WebhookURL} {
+		if candidate!="" {if _,err:=merchantwebhook.ValidateURL(candidate);err!=nil{return false}}
+	}
+	if len(body.CustomerName)>160||len(body.CustomerEmail)>254||len(body.CustomerPhone)>32{return false}
+	if body.CustomerEmail!=""&&(!strings.Contains(body.CustomerEmail,"@")||strings.ContainsAny(body.CustomerEmail," \t\r\n")){return false}
+	if len(body.Metadata)>2048{return false}
+	if len(body.Metadata)>0 {
+		var object map[string]json.RawMessage
+		if json.Unmarshal(body.Metadata,&object)!=nil||object==nil{return false}
+	}
+	return validRequest(*body)
 }
 
 func write(w http.ResponseWriter, status int, body any) {
@@ -209,6 +267,20 @@ func mapped(w http.ResponseWriter, err error) {
 		}
 	}
 	fail(w, 503, "FINANCIAL_SERVICE_UNAVAILABLE")
+}
+func hasSimplePaymentOptions(body createRequest) bool {
+ return len(body.AmountBDT)>0||body.RedirectURL!=""||body.CancelURL!=""||body.WebhookURL!=""||
+ body.SimpleReference!=""||body.CustomerName!=""||body.CustomerEmail!=""||
+ body.CustomerPhone!=""||len(body.Metadata)>0
+}
+func pg62OptionsAvailable(ctx context.Context, tx pgx.Tx) (bool,error) {
+ var available bool
+ err:=tx.QueryRow(ctx,"SELECT to_regprocedure('pg62_store_intent_options(uuid,text,uuid,text,text,text,text,text,text,jsonb)') IS NOT NULL").Scan(&available)
+ return available,err
+}
+func metadataOrEmpty(raw json.RawMessage) string {
+	if len(raw)==0{return "{}"}
+	return string(raw)
 }
 func validRequest(body createRequest) bool {
 	if body.Currency != "BDT" || body.Expiry < 5 || body.Expiry > 60 {
@@ -386,6 +458,19 @@ func (s *Service) HandleMerchant(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		attachTokens(s, ws, realm, data)
+		if id:=r.PathValue("intentID");id!="" {
+			var options []byte
+			if err:=s.scoped(r.Context(),ws,realm,func(tx pgx.Tx) error {
+				var installed bool
+				if err:=tx.QueryRow(r.Context(),"SELECT to_regprocedure('pg62_merchant_options(uuid,text,uuid)') IS NOT NULL").Scan(&installed);err!=nil{return err}
+				if !installed{return nil} // Legacy reads remain available before optional migration.
+				return tx.QueryRow(r.Context(),"SELECT pg62_merchant_options($1::uuid,$2,$3::uuid)",ws,realm,id).Scan(&options)
+			});err!=nil{mapped(w,err);return}
+			if detail,ok:=data.(map[string]any);ok&&len(options)>0 {
+				var merchantOptions map[string]any
+				if json.Unmarshal(options,&merchantOptions)==nil&&len(merchantOptions)>0{detail["options"]=merchantOptions}
+			}
+		}
 		write(w, 200, map[string]any{"data": data, "environment": realm})
 	case "POST":
 		if r.PathValue("intentID") != "" {
@@ -397,40 +482,52 @@ func (s *Service) HandleMerchant(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		key := r.Header.Get("Idempotency-Key")
-		if !keyPattern.MatchString(key) {
-			fail(w, 422, "IDEMPOTENCY_KEY_REQUIRED")
-			return
+		if key=="" {
+			var fresh [24]byte
+			if _,err:=rand.Read(fresh[:]);err!=nil{fail(w,503,"KEY_GENERATION_UNAVAILABLE");return}
+			key="ekmivo-"+hex.EncodeToString(fresh[:])
 		}
+		if !keyPattern.MatchString(key) {fail(w,422,"INVALID_IDEMPOTENCY_KEY");return}
 		var payload createRequest
-		if !decode(w, r, &payload) {
+		if !decode(w, r, &payload) { return }
+		if !prepareCreateRequest(&payload,key,ws,realm) {
+			fail(w, 422, "INVALID_REQUEST")
 			return
 		}
-		if !validRequest(payload) {
-			fail(w, 422, "INVALID_REQUEST")
+		var optionsReady bool
+		if err:=s.scoped(r.Context(),ws,realm,func(tx pgx.Tx) error {
+			var checkErr error
+			optionsReady,checkErr=pg62OptionsAvailable(r.Context(),tx)
+			return checkErr
+		});err!=nil{mapped(w,err);return}
+		if !optionsReady&&hasSimplePaymentOptions(payload){
+			fail(w,503,"SIMPLE_PAYMENT_MIGRATION_REQUIRED")
 			return
 		}
 		raw, _ := json.Marshal(payload)
 		token := s.token(ws, realm, key)
 		var answer []byte
-		err := s.scoped(r.Context(), ws, realm, func(tx pgx.Tx) error {
-			if payload.InvoiceID != "" && (realm == "live" || os.Getenv("PG10_EXTENSIONS_ENABLED") == "true") {
-				return tx.QueryRow(r.Context(), "SELECT pg10_invoice_intent($1::uuid,$2,$3::uuid,$4,$5,$6,$7,$8)", ws, realm, payload.InvoiceID, payload.Reference, payload.Expiry, key, digest(token), digest(string(raw))).Scan(&answer)
+		err := s.scoped(r.Context(),ws,realm,func(tx pgx.Tx) error {
+			var issueErr error
+			switch {
+			case payload.InvoiceID!=""&&(realm=="live"||os.Getenv("PG10_EXTENSIONS_ENABLED")=="true"):
+				issueErr=tx.QueryRow(r.Context(),"SELECT pg10_invoice_intent($1::uuid,$2,$3::uuid,$4,$5,$6,$7,$8)",ws,realm,payload.InvoiceID,payload.Reference,payload.Expiry,key,digest(token),digest(string(raw))).Scan(&answer)
+			case payload.OrderID!=""||payload.InvoiceID!="":
+				kind,sourceID:="order",payload.OrderID
+				if payload.InvoiceID!=""{kind,sourceID="invoice",payload.InvoiceID}
+				issueErr=tx.QueryRow(r.Context(),"SELECT pg05_create_linked_intent($1::uuid,$2,$3,$4,$5::uuid,$6,$7,$8,$9)",ws,realm,payload.Reference,kind,sourceID,payload.Expiry,key,digest(token),digest(string(raw))).Scan(&answer)
+			default:
+				function:="pg05_create_intent"
+				if realm=="live"{function="pg10_intent"}
+				issueErr=tx.QueryRow(r.Context(),"SELECT "+function+"($1::uuid,$2,$3,$4,$5,$6,$7,$8)",ws,realm,payload.Reference,payload.Amount,payload.Expiry,key,digest(token),digest(string(raw))).Scan(&answer)
 			}
-			if payload.OrderID != "" || payload.InvoiceID != "" {
-				kind, sourceID := "order", payload.OrderID
-				if payload.InvoiceID != "" {
-					kind, sourceID = "invoice", payload.InvoiceID
-				}
-				return tx.QueryRow(r.Context(),
-					`SELECT pg05_create_linked_intent($1::uuid,$2,$3,$4,$5::uuid,$6,$7,$8,$9)`,
-					ws, realm, payload.Reference, kind, sourceID, payload.Expiry, key, digest(token), digest(string(raw))).Scan(&answer)
-			}
-			function := "pg05_create_intent"
-			if realm == "live" {
-				function = "pg10_intent"
-			}
-			return tx.QueryRow(r.Context(), "SELECT "+function+"($1::uuid,$2,$3,$4,$5,$6,$7,$8)",
-				ws, realm, payload.Reference, payload.Amount, payload.Expiry, key, digest(token), digest(string(raw))).Scan(&answer)
+			if issueErr!=nil{return issueErr}
+			var created struct{ID string `json:"id"`}
+			if json.Unmarshal(answer,&created)!=nil||!uuidPattern.MatchString(created.ID){return errors.New("invalid intent creation result")}
+			if !optionsReady {return nil} // Legacy request, before schema 0062 rollout.
+			var stored bool
+			return tx.QueryRow(r.Context(),"SELECT pg62_store_intent_options($1::uuid,$2,$3::uuid,$4,$5,$6,$7,$8,$9,$10::jsonb)",
+				ws,realm,created.ID,payload.RedirectURL,payload.CancelURL,payload.WebhookURL,payload.CustomerName,payload.CustomerEmail,payload.CustomerPhone,metadataOrEmpty(payload.Metadata)).Scan(&stored)
 		})
 		if err != nil {
 			mapped(w, err)
@@ -809,6 +906,20 @@ func (s *Service) publicResult(w http.ResponseWriter, r *http.Request, raw []byt
 				break
 			}
 		}
+	}
+	// Redirect URLs are resolved only from a token-bound, tenant-scoped intent.
+	// Never expose customer contact or merchant-only metadata publicly.
+	if intentID,ok:=data["id"].(string);ok&&uuidPattern.MatchString(intentID) {
+		realm:=checkoutRealm(raw)
+		var redirects []byte
+		if err:=s.scoped(r.Context(),ws,realm,func(tx pgx.Tx) error {
+			var installed bool
+			if err:=tx.QueryRow(r.Context(),"SELECT to_regprocedure('pg62_checkout_redirects(uuid,text,uuid)') IS NOT NULL").Scan(&installed);err!=nil{return err}
+			if !installed{return nil}
+			return tx.QueryRow(r.Context(),"SELECT pg62_checkout_redirects($1::uuid,$2,$3::uuid)",ws,realm,intentID).Scan(&redirects)
+		});err!=nil{fail(w,503,"CHECKOUT_OPTIONS_UNAVAILABLE");return}
+		var options map[string]any
+		if json.Unmarshal(redirects,&options)==nil {for k,v:=range options{data[k]=v}}
 	}
 	data["merchant_name"] = business.Name
 	data["brand"] = business.Brand
