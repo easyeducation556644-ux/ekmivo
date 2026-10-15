@@ -89,7 +89,7 @@ export async function loginAction(localeParam:string,_previous:FormErrorState,fo
   if(e && typeof e==="object" && "digest" in e && String(e.digest).startsWith("NEXT_REDIRECT"))throw e;
   report("login",e);return fail(t.generic);
  }
- redirect("/workspaces/open");
+ redirect(asText(form.get("admin"))==="1"?"/"+locale+"/admin/verify":"/workspaces/open");
 }
 
 export async function createWorkspaceAction(localeParam:string,_previous:FormErrorState,form:FormData):Promise<FormErrorState>{
