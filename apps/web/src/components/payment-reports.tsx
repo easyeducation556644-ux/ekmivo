@@ -1,6 +1,6 @@
 "use client";
 
-import {useCallback,useEffect,useMemo,useState} from "react";
+import {useCallback,useEffect,useMemo,useRef,useState} from "react";
 import type {FormEvent} from "react";
 import Link from "next/link";
 import {DashboardIcon} from "./dashboard-icon";
@@ -22,7 +22,7 @@ type Report={
 type AccountOption={id:string;method:string;display_suffix:string};
 type Filters={from:string;to:string;account:string};
 type Preset="7"|"30"|"90"|"custom";
-type Section="payers"|"methods"|"accounts"|"customers"|"refunds"|"statements"|"daily";
+type Section="summary"|"payments"|"methods"|"customers"|"refunds"|"payouts";
 type ViewState={report:Report;filters:Filters};
 type CompareSnapshot={key:string;report:Report;from:string;to:string};
 function previousPeriod(filters:Filters):Filters|null{
@@ -37,7 +37,7 @@ function changePercent(current:number,previous:number):string|null{
  return (change>0?"+":"")+change.toFixed(1)+"%";
 }
 
-const sections:Section[]=["payers","methods","accounts","customers","refunds","statements","daily"];
+const sections:Section[]=["summary","payments","methods","customers","refunds","payouts"];
 const millis=86400000;
 function dhakaToday(){return new Date(Date.now()+6*3600000).toISOString().slice(0,10)}
 function startDate(end:string,days:number){return new Date(Date.parse(end+"T00:00:00Z")-(days-1)*millis).toISOString().slice(0,10)}
@@ -68,7 +68,7 @@ function escapeCSV(value:unknown){
  const raw=String(value??"");
  return '"'+( /^[\s]*[=+\-@\t\r]/.test(raw)?"'"+raw:raw ).replaceAll('"','""')+'"';
 }
-function exportReport(report:Report,period:Filters){
+function exportReport(report:Report,period:Filters,scope:"all"|"summary"="all"){
  const rows:(string|number)[][]=[
   ["section","reference","label","status","amount_minor","count","from","through","currency"],
   ["summary","","verified","",""+report.verified_gross_minor,report.payment_count,period.from,period.to,"BDT"],
@@ -83,7 +83,8 @@ function exportReport(report:Report,period:Filters){
   ...report.daily.map(r=>["daily",r.day,r.day+" UTC","",r.amount_minor,"","","","BDT"] as (string|number)[]),
   ["statement","merchant_import","","imported",report.statement_links.amount_minor,report.statement_links.count,"","","BDT"]
  ];
- const csv="\uFEFF"+rows.map(row=>row.map(escapeCSV).join(",")).join("\r\n")+"\r\n";
+ const exportRows=scope==="summary"?rows.filter((row,index)=>index===0||row[0]==="summary"):rows;
+ const csv="\uFEFF"+exportRows.map(row=>row.map(escapeCSV).join(",")).join("\r\n")+"\r\n";
  const uri=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
  const a=document.createElement("a");a.href=uri;a.download="ekmivo-report-"+period.from+"-"+period.to+".csv";document.body.append(a);a.click();a.remove();
  window.setTimeout(()=>URL.revokeObjectURL(uri),2000);
@@ -91,9 +92,12 @@ function exportReport(report:Report,period:Filters){
 export function PaymentReports({locale,workspaceId,environment,canReveal}:{locale:Locale;workspaceId:string;environment:string;canReveal:boolean}){
  const bn=locale==="bn",t=useCallback((en:string,bengali:string)=>bn?bengali:en,[bn]);
  const [draft,setDraft]=useState<Filters>(defaults);
+ const exportDialog=useRef<HTMLDialogElement|null>(null);
+ const [exportFormat,setExportFormat]=useState<"csv"|"pdf">("csv");
+ const [exportScope,setExportScope]=useState<"all"|"summary">("all");
  const [applied,setApplied]=useState<Filters>(defaults);
  const [preset,setPreset]=useState<Preset>("30");
- const [section,setSection]=useState<Section>(canReveal?"payers":"methods");
+ const [section,setSection]=useState<Section>("summary");
  const [compare,setCompare]=useState(false);
  const [previous,setPrevious]=useState<CompareSnapshot|null>(null);
  const [compareLoading,setCompareLoading]=useState(false);
@@ -104,7 +108,7 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
  const root="/w/"+workspaceId+"/payments/";
  const applies=draft.from===applied.from&&draft.to===applied.to&&draft.account===applied.account;
  const pending=useMemo(()=>dateRange(draft),[draft]);
- const labels:Record<Section,string>={payers:t("Payers","প্রেরক"),methods:t("Methods","মাধ্যম"),accounts:t("Receiving accounts","গ্রহণকারী অ্যাকাউন্ট"),customers:t("Invoice customers","ইনভয়েসের গ্রাহক"),refunds:t("Refunds","রিফান্ড"),statements:t("Statements","স্টেটমেন্ট"),daily:t("Daily","দৈনিক")};
+ const labels:Record<Section,string>={summary:t("Summary","সারাংশ"),payments:t("Payments","পেমেন্ট"),methods:t("Methods","মাধ্যম"),customers:t("Customers","গ্রাহক"),refunds:t("Refunds","রিফান্ড"),payouts:t("Payouts","পেআউট")};
  const refundLabels:Record<string,string>={requested:t("Requested","অনুরোধ"),reviewing:t("In review","পর্যালোচনায়"),approved:t("Approved","অনুমোদিত"),rejected:t("Rejected","প্রত্যাখ্যাত"),seller_reported_returned:t("Seller reported returned","বিক্রেতার ফেরত রিপোর্ট"),cancelled:t("Cancelled","বাতিল")};
 
  useEffect(()=>{
@@ -179,13 +183,21 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
  const countDelta=matchedCompare&&displayed?changePercent(displayed.payment_count,matchedCompare.report.payment_count):null;
  return <div className="er-reports">
   <header className="er-heading">
-   <div><h1>{t("Reports","রিপোর্ট")}</h1><p>{t("Review actual payer transactions, reconcile amounts and export records.","প্রেরকের নম্বরসহ প্রকৃত লেনদেন, হিসাব মিল ও রিপোর্ট।")}</p></div>
+   <div><h1>{t("Reports","রিপোর্ট")}</h1><p>{t("Your payments at a glance.","এক নজরে পেমেন্টের হিসাব।")}</p></div>
    <div className="er-heading-actions">
     <button type="button" onClick={()=>setRefresh(n=>n+1)} disabled={loading} aria-label={t("Refresh report","রিপোর্ট রিফ্রেশ")}><DashboardIcon name="arrow" width={16} height={16}/> {t("Refresh","রিফ্রেশ")}</button>
-    <button type="button" disabled={!displayed||stale} onClick={()=>displayed&&exportReport(displayed,active)}><DashboardIcon name="reports" width={16} height={16}/> {t("Export summary","সারাংশ ডাউনলোড")}</button>
+    <button type="button" disabled={!displayed||stale} onClick={()=>exportDialog.current?.showModal()}><DashboardIcon name="reports" width={16} height={16}/> {t("Export","এক্সপোর্ট")}</button>
     <button type="button" disabled={!displayed||stale} onClick={()=>window.print()}>{t("Print","প্রিন্ট")}</button>
    </div>
   </header>
+  <dialog ref={exportDialog} className="ekv2-export-dialog" aria-label={t("Export report","রিপোর্ট এক্সপোর্ট")} onClick={e=>{if(e.target===e.currentTarget)exportDialog.current?.close()}}>
+   <div className="ekv2-detail-head"><h2>{t("Export report","রিপোর্ট এক্সপোর্ট")}</h2><button type="button" onClick={()=>exportDialog.current?.close()} aria-label={t("Close","বন্ধ করুন")}>×</button></div>
+   <div className="ekv2-export-fields">
+    <label>{t("Format","ফরম্যাট")}<select value={exportFormat} onChange={e=>setExportFormat(e.target.value as "csv"|"pdf")}><option value="csv">CSV</option><option value="pdf">{t("PDF (print)","PDF (প্রিন্ট)")}</option></select></label>
+    {exportFormat==="csv"&&<label>{t("Include","যা থাকবে")}<select value={exportScope} onChange={e=>setExportScope(e.target.value as "all"|"summary")}><option value="all">{t("Summary and details","সারাংশ ও বিস্তারিত")}</option><option value="summary">{t("Summary only","শুধু সারাংশ")}</option></select></label>}
+   </div>
+   <div className="ekv2-detail-actions"><button type="button" onClick={()=>exportDialog.current?.close()}>{t("Cancel","বাতিল")}</button><button type="button" className="ekv2-primary" disabled={!displayed||stale} onClick={()=>{exportDialog.current?.close();if(exportFormat==="csv"){if(displayed)exportReport(displayed,active,exportScope)}else window.print()}}>{t("Export","এক্সপোর্ট")}</button></div>
+  </dialog>
   <section className="er-filter-panel" aria-label={t("Report filters","রিপোর্টের ফিল্টার")}>
    <div className="er-period-buttons" role="group" aria-label={t("Date presets","সময়সীমা")}>
     {([7,30,90] as const).map(days=><button key={days} type="button" aria-pressed={preset===String(days)} onClick={()=>quick(days)}>{days} {t("days","দিন")}</button>)}
@@ -210,13 +222,13 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
    <div className="er-result-period"><span>{active.from} — {active.to}{active.account?" · "+t("Selected account","নির্বাচিত অ্যাকাউন্ট"):""}</span>{generated&&<span>{t("Updated","আপডেট")}: {generated}</span>}</div>
    <section className="er-period-analysis" aria-label={t("Period analysis","সময়সীমার বিশ্লেষণ")}>
     <div className="er-analysis-total">
-     <span className="er-eyebrow">{t("VERIFIED COLLECTION · SELECTED PERIOD","যাচাইকৃত টাকা · নির্বাচিত সময়")}</span>
+     <span className="er-eyebrow">{t("Verified volume","যাচাইকৃত পরিমাণ")}</span>
      <strong>{cash(displayed.verified_gross_minor,locale)}</strong>
      <span className="er-analysis-context">{numeric(displayed.payment_count,locale)} {t("verified transactions","টি যাচাইকৃত লেনদেন")}</span>
     </div>
     <div className="er-analysis-metrics">
-     <div><span>{t("Average transaction","প্রতি লেনদেনে গড়")}</span><strong>{avg===null?"—":cash(avg,locale)}</strong></div>
-     <div><span>{t("Compared with previous period","আগের সময়ের তুলনায়")}</span><strong>{matchedCompare?(delta??t("No previous baseline","আগে লেনদেন নেই")):compareLoading?t("Loading…","লোড হচ্ছে…"):compareError?"—":t("Not compared","তুলনা বন্ধ")}</strong></div>
+     <div><span>{t("Average payment","গড় পেমেন্ট")}</span><strong>{avg===null?"—":cash(avg,locale)}</strong></div>
+     <div><span>{t("Change","পরিবর্তন")}</span><strong>{matchedCompare?(delta??t("No previous baseline","আগে লেনদেন নেই")):compareLoading?t("Loading…","লোড হচ্ছে…"):compareError?"—":t("Not compared","তুলনা বন্ধ")}</strong></div>
      <label className="er-comparison-toggle"><input type="checkbox" checked={compare} onChange={e=>{setCompare(e.target.checked);setCompareError("")}}/>{t("Compare previous period","আগের সময়ের সঙ্গে তুলনা")}</label>
     </div>
     {compare&&<div className="er-comparison-detail" role="status">
@@ -226,30 +238,30 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
     </div>}
    </section>
    <section className="er-allocation-analysis">
-    <div className="er-allocation-head"><div><h2>{t("Allocation & reconciliation","বরাদ্দ ও হিসাব মিল")}</h2><span>{t("Verified payment allocation, not bank settlement","যাচাইকৃত পেমেন্টের বরাদ্দ, ব্যাংক settlement নয়")}</span></div><Link href={root+"reconciliation"}>{t("Reconciliation","হিসাব মিল")} ↗</Link></div>
+    <div className="er-allocation-head"><div><h2>{t("Payment breakdown","পেমেন্টের হিসাব")}</h2><span>{t("","")}</span></div><Link href={root+"reconciliation"}>{t("Reconciliation","হিসাব মিল")} ↗</Link></div>
     
     <div className="er-allocation-values">
-     <div><span>{t("Allocated","বরাদ্দ")}</span><strong>{cash(displayed.allocated_minor,locale)}</strong></div>
-     <div><span>{t("Unallocated","অবরাদ্দ")}</span><strong>{cash(displayed.unallocated_minor,locale)}</strong></div>
-     <div><span>{t("Statement linked","স্টেটমেন্টে সংযুক্ত")}</span><strong>{cash(displayed.statement_links.amount_minor,locale)}</strong></div>
+     <div><span>{t("Matched","মিলেছে")}</span><strong>{cash(displayed.allocated_minor,locale)}</strong></div>
+     <div><span>{t("Not matched","মেলেনি")}</span><strong>{cash(displayed.unallocated_minor,locale)}</strong></div>
+     <div><span>{t("Statement matches","স্টেটমেন্টে মিলেছে")}</span><strong>{cash(displayed.statement_links.amount_minor,locale)}</strong></div>
     </div>
    </section>
   </div>}
   <section className="er-card er-details">
-    <div className="er-details-heading"><h2>{t("Detailed breakdown","বিস্তারিত হিসাব")}</h2><span>{t("BDT · verified amounts","BDT · যাচাইকৃত পরিমাণ")}</span></div>
-    <div className="er-tabs" role="group" aria-label={t("Report breakdown","রিপোর্টের বিভাগ")}>
-     {sections.filter(id=>id!=="payers"||canReveal).map(id=><button type="button" key={id} aria-pressed={section===id} onClick={()=>setSection(id)}>{labels[id]}</button>)}
+    <div className="er-details-heading"><h2>{t("Breakdown","বিভাগভিত্তিক হিসাব")}</h2><span>{t("","")}</span></div>
+    <div className="er-tabs" role="tablist" aria-label={t("Report sections","রিপোর্টের বিভাগ")}>
+     {sections.map(id=><button type="button" role="tab" key={id} aria-selected={section===id} onClick={()=>setSection(id)}>{labels[id]}</button>)}
     </div>
-    {section==="payers"&&canReveal&&<PaymentReportLedger
-      key={JSON.stringify([workspaceId,environment,applied.from,applied.to,applied.account])}
-      locale={locale} workspaceId={workspaceId} environment={environment} period={applied} canReveal={canReveal}/>}
-    {!displayed&&section!=="payers"&&<p className="er-card-empty" role="status">{error||t("Loading breakdown…","বিস্তারিত হিসাব লোড হচ্ছে…")}</p>}
-    {displayed&&section==="methods"&&<BreakdownTable locale={locale} headings={[t("Method","মাধ্যম"),t("Transactions","লেনদেন"),t("Verified amount","যাচাইকৃত টাকা")]} rows={displayed.methods.map(r=>[r.method,numeric(r.payment_count,locale),cash(r.amount_minor,locale)])} empty={t("No verified method transactions.","এই সময়ে মাধ্যমভিত্তিক লেনদেন নেই।")}/>}
-    {displayed&&section==="accounts"&&<BreakdownTable locale={locale} headings={[t("Receiving account","গ্রহণকারী অ্যাকাউন্ট"),t("Transactions","লেনদেন"),t("Verified amount","যাচাইকৃত টাকা")]} rows={displayed.accounts.map(r=>[r.method+" ••••"+r.display_suffix,numeric(r.payment_count,locale),cash(r.amount_minor,locale)])} empty={t("No receiving-account payments.","গ্রহণকারী অ্যাকাউন্টে পেমেন্ট নেই।")}/>}
-    {displayed&&section==="customers"&&<><BreakdownTable locale={locale} headings={[t("Invoice-linked customer","ইনভয়েস-সংযুক্ত গ্রাহক"),t("Payments","পেমেন্ট"),t("Allocated","বরাদ্দ")]} rows={displayed.customers.map(r=>[r.name||r.reference,numeric(r.payment_count,locale),cash(r.amount_minor,locale)])} empty={t("No invoice-linked customer payments.","ইনভয়েস-সংযুক্ত গ্রাহকের পেমেন্ট নেই।")}/><p className="er-fineprint">{t("Top 100 invoice-linked contacts; not necessarily the actual payer.","ইনভয়েস-সংযুক্ত সর্বোচ্চ ১০০ জন; তাঁরা প্রকৃত প্রেরক নাও হতে পারেন।")}</p></>}
-    {displayed&&section==="refunds"&&<><BreakdownTable locale={locale} headings={[t("Status","অবস্থা"),t("Requests","অনুরোধ"),t("Amount","পরিমাণ")]} rows={displayed.refunds.map(r=>[refundLabels[r.status]||r.status,numeric(r.request_count,locale),cash(r.amount_minor,locale)])} empty={t("No refund requests in this period.","এই সময়ে রিফান্ড অনুরোধ নেই।")}/><p className="er-fineprint">{t("Refunds are managed by the seller. Reported returns are not provider-confirmed.","রিফান্ড বিক্রেতা পরিচালনা করেন। ফেরতের রিপোর্ট provider-যাচাইকৃত নয়।")}</p><Link className="er-detail-link" href={root+"refunds"}>{t("Manage refunds","রিফান্ড পরিচালনা করুন")} ↗</Link></>}
-    {displayed&&section==="statements"&&<div className="er-statement-box"><span>{t("Merchant-imported statement links","বিক্রেতার স্টেটমেন্ট সংযোগ")}</span><strong>{cash(displayed.statement_links.amount_minor,locale)}</strong><small>{numeric(displayed.statement_links.count,locale)} {t("linked records","সংযুক্ত রেকর্ড")}</small><p>{t("Statement matches do not confirm provider settlement.","স্টেটমেন্টে মিল পাওয়া মানেই provider settlement নিশ্চিত নয়।")}</p><Link href={root+"reconciliation"}>{t("Open reconciliation","Reconciliation খুলুন")} ↗</Link></div>}
-    {displayed&&section==="daily"&&<BreakdownTable locale={locale} headings={[t("Day (UTC)","দিন (UTC)"),t("Verified amount","যাচাইকৃত টাকা")]} rows={displayed.daily.map(r=>[r.day,cash(r.amount_minor,locale)])} empty={t("No verified payments during this period.","এই সময়ে যাচাইকৃত পেমেন্ট নেই।")}/>}
+    {section==="payments"&&canReveal&&<PaymentReportLedger key={JSON.stringify([workspaceId,environment,applied.from,applied.to,applied.account])} locale={locale} workspaceId={workspaceId} environment={environment} period={applied} canReveal={canReveal}/>}
+    {section==="payments"&&!canReveal&&<p className="er-card-empty">{t("You do not have access to payment details.","পেমেন্টের বিস্তারিত দেখার অনুমতি নেই।")}</p>}
+    {!displayed&&section!=="payments"&&<p className="er-card-empty" role="status">{error||t("Loading…","লোড হচ্ছে…")}</p>}
+    {displayed&&section==="summary"&&<BreakdownTable locale={locale} headings={[t("Day","দিন"),t("Verified volume","যাচাইকৃত পরিমাণ")]} rows={displayed.daily.map(r=>[r.day,cash(r.amount_minor,locale)])} empty={t("No payments in this period","এই সময়ে কোনো পেমেন্ট নেই")}/>}
+    {displayed&&section==="methods"&&<div className="ekv2-report-method-breakdown"><BreakdownTable locale={locale} headings={[t("Method","মাধ্যম"),t("Payments","পেমেন্ট"),t("Amount","পরিমাণ")]} rows={displayed.methods.map(r=>[r.method,numeric(r.payment_count,locale),cash(r.amount_minor,locale)])} empty={t("No payments in this period","এই সময়ে কোনো পেমেন্ট নেই")}/>
+      <details className="ekv2-report-accounts"><summary>{t("Receiving accounts","রিসিভিং অ্যাকাউন্ট")}</summary><BreakdownTable locale={locale} headings={[t("Account","অ্যাকাউন্ট"),t("Payments","পেমেন্ট"),t("Amount","পরিমাণ")]} rows={displayed.accounts.map(r=>[r.method+" ••••"+r.display_suffix,numeric(r.payment_count,locale),cash(r.amount_minor,locale)])} empty={t("No account data","অ্যাকাউন্টের তথ্য নেই")}/></details>
+    </div>}
+    {displayed&&section==="customers"&&<BreakdownTable locale={locale} headings={[t("Customer","গ্রাহক"),t("Payments","পেমেন্ট"),t("Amount","পরিমাণ")]} rows={displayed.customers.map(r=>[r.name||r.reference,numeric(r.payment_count,locale),cash(r.amount_minor,locale)])} empty={t("No customer payments in this period","এই সময়ে গ্রাহকের পেমেন্ট নেই")}/>}
+    {displayed&&section==="refunds"&&<BreakdownTable locale={locale} headings={[t("Status","অবস্থা"),t("Requests","অনুরোধ"),t("Amount","পরিমাণ")]} rows={displayed.refunds.map(r=>[refundLabels[r.status]||r.status,numeric(r.request_count,locale),cash(r.amount_minor,locale)])} empty={t("No refunds in this period","এই সময়ে কোনো রিফান্ড নেই")}/>}
+    {displayed&&section==="payouts"&&<p className="er-card-empty">{t("Payout data is not available.","পেআউটের তথ্য পাওয়া যাচ্ছে না।")}</p>}
    </section>
  </div>;
 }

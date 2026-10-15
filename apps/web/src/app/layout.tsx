@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import localFont from "next/font/local";
+import "@fontsource-variable/geist";
 import "./globals.css";
 import {InterfaceLocaleProvider} from "../components/interface-locale-provider";
 
