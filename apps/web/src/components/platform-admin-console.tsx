@@ -1,8 +1,9 @@
 
 import Link from "next/link";
+import type {ReactNode} from "react";
 import {cookies} from "next/headers";
 import {notFound,redirect} from "next/navigation";
-import {requireUser} from "../lib/server/auth";
+import {currentUser,requireUser} from "../lib/server/auth";
 import {database} from "../lib/server/db";
 import {platformRole,platformSettings,verifiedAdmin} from "../lib/server/platform-admin";
 import {sessionMfaValid} from "../lib/server/mfa";
@@ -39,7 +40,7 @@ function label(locale:AdminLocale,en:string,bn:string){return locale==="bn"?bn:e
 function short(v:string){return v.length>12?v.slice(0,8)+"…":v;}
 function formatDate(value:unknown,locale:AdminLocale){if(!value)return "—";const d=new Date(String(value));return Number.isNaN(d.valueOf())?"—":new Intl.DateTimeFormat(locale==="bn"?"bn-BD":"en-GB",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Dhaka"}).format(d);}
 function titleCase(s:string){return s.replace(/[._-]/g," ").replace(/\b\w/g,c=>c.toUpperCase());}
-function PageHead({title,action,description}:{title:string;action?:React.ReactNode;description?:string}){return <div className="pa-page-head"><div><h1>{title}</h1>{description&&<p>{description}</p>}</div>{action&&<div className="pa-page-actions">{action}</div>}</div>;}
+function PageHead({title,action,description}:{title:string;action?:ReactNode;description?:string}){return <div className="pa-page-head"><div><h1>{title}</h1>{description&&<p>{description}</p>}</div>{action&&<div className="pa-page-actions">{action}</div>}</div>;}
 function Offline({locale,description}:{locale:AdminLocale;description?:string}){return <div className="pa-surface pa-not-connected"><p><span className="pa-muted-dot"/>{label(locale,"Not connected","সংযুক্ত নয়")}</p><span>{description||label(locale,"The platform backend does not provide this capability yet.","এই সুবিধাটি এখনো প্ল্যাটফর্মের backend-এ যুক্ত হয়নি।")}</span></div>;}
 function Denied({locale}:{locale:AdminLocale}){return <div className="pa-surface pa-not-connected"><p>{label(locale,"You don't have access to this information.","এই তথ্য দেখার অনুমতি নেই।")}</p></div>;}
 function PageTabs({locale,base,items,active}:{locale:AdminLocale;base:string;items:string[];active?:string}){return <nav className="pa-tabs" aria-label="Sections">{items.map((name,i)=>{const slug=name.toLowerCase().replaceAll(" & ","-").replaceAll(" ","-");return <Link key={slug} href={base+"/"+slug} aria-current={(active||items[0].toLowerCase().replaceAll(" & ","-").replaceAll(" ","-"))===slug?"page":undefined}>{name}</Link>;})}</nav>;}
@@ -108,10 +109,11 @@ async function Overview({locale,isSuper}:{locale:AdminLocale;isSuper:boolean}){
  </>;
 }
 export async function PlatformAdminConsole({locale,segments=[],query="",after=""}:Props){
+ if(!await currentUser())redirect("/"+locale+"/admin/sign-in");
  const user=await requireUser(locale);
  const role=await platformRole(user.id);
  if(!role)notFound();
- if(!await sessionMfaValid(user.id))redirect("/"+locale+"/admin/mfa");
+ if(!await sessionMfaValid(user.id))redirect("/"+locale+"/admin/verify");
  const admin=await verifiedAdmin();
  if(!admin||admin.user.id!==user.id)notFound();
  const key=segments[0]==="gateway"?"gateway/"+(segments[1]||""):segments[0]||"";
@@ -120,10 +122,10 @@ export async function PlatformAdminConsole({locale,segments=[],query="",after=""
  const sub=extra[0]||"",base="/"+locale+"/admin"+(key?"/"+key:"");
  const t=names[key][locale==="bn"?1:0],isSuper=role==="super_admin",q=query.trim().slice(0,80);
  const cookie=await cookies();const rawTheme=cookie.get("ekmivo-theme")?.value;const theme=rawTheme==="light"||rawTheme==="dark"?rawTheme:"system";
- let body:React.ReactNode;
+ let body:ReactNode;
  if(!key){body=<Overview locale={locale} isSuper={isSuper}/>;}
  else if((key==="workspaces"||key==="users")&&extra[0]){
- body=isSuper?<Details locale={locale} kind={key} id={extra[0]}/>:<><PageHead title={t}/><Denied locale={locale}/></>;
+ body=!isSuper?<><PageHead title={t}/><Denied locale={locale}/></>:extra[1]&&extra[1]!=="overview"?<><PageHead title={t}/><Offline locale={locale}/></>:<Details locale={locale} kind={key} id={extra[0]}/>;
  }else if(key==="workspaces"||key==="users"||key==="audit"){
  const page=isSuper?(key==="workspaces"?await workspaces(locale,q,after):key==="users"?await users(locale,q,after):await audit(locale,q)):null;
  body=<><PageHead title={t}/>{page?<><Search locale={locale} query={q}/><Records locale={locale} base={base} query={q} page={page}/></>:<Denied locale={locale}/>}</>;
