@@ -1,15 +1,20 @@
-import Link from "next/link";
-import { redirect, notFound } from "next/navigation";
-import { verifiedAdmin } from "../../../../lib/server/platform-admin";
-import { requireUser } from "../../../../lib/server/auth";
-import { MfaSecurityControls, GoSessionStatus } from "../../../../components/mfa-security-controls";
+import {cookies} from "next/headers";
+import {redirect,notFound} from "next/navigation";
+import {verifiedAdmin} from "../../../../lib/server/platform-admin";
+import {requireUser} from "../../../../lib/server/auth";
+import {AdminShell} from "../../../../components/platform-admin-shell";
+import {MfaSecurityControls,GoSessionStatus} from "../../../../components/mfa-security-controls";
 export const dynamic="force-dynamic";
-export default async function Security({params}:{params:Promise<{locale:string}>}) {
- const {locale:raw}=await params;if(raw!=="bn"&&raw!=="en")notFound();
+export default async function Security({params}:{params:Promise<{locale:string}>}){
+ const {locale:raw}=await params;
+ if(raw!=="bn"&&raw!=="en")notFound();
  const locale=raw;
- await requireUser(locale);if(!await verifiedAdmin())redirect(`/${locale}/admin/mfa`);
- return <main className="ek-verification-screen"><div style={{width:"min(100%, 620px)",padding:20}}>
-  <Link href={`/${locale}/admin`}>{locale==="bn"?"← অ্যাডমিনে ফিরুন":"← Back to administration"}</Link>
-  <GoSessionStatus locale={locale}/><MfaSecurityControls locale={locale}/>
- </div></main>;
+ const user=await requireUser(locale),admin=await verifiedAdmin();
+ if(!admin||admin.user.id!==user.id)redirect("/"+locale+"/admin/verify");
+ const cookie=await cookies(),pref=cookie.get("ekmivo-theme")?.value;
+ const theme=pref==="light"||pref==="dark"?pref:"system";
+ return <AdminShell locale={locale} role={admin.role} name={user.name} theme={theme} production={process.env.NODE_ENV==="production"}>
+ <div className="pa-page-head"><h1>{locale==="bn"?"আমার নিরাপত্তা":"My security"}</h1></div>
+ <section className="pa-surface pa-security"><GoSessionStatus locale={locale}/><MfaSecurityControls locale={locale}/></section>
+ </AdminShell>;
 }
