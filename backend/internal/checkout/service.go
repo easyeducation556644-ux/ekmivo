@@ -249,6 +249,8 @@ func decodeLimit(w http.ResponseWriter, r *http.Request, into any, limit int64) 
 	return true
 }
 func (s *Service) merchant(r *http.Request, ws, realm, scope string) error {
+	// The key-only API route already validated and touched the credential.
+	if present, err := boundMerchant(r, ws, realm, scope); present { return err }
 	if realm != "sandbox" && (s.Pipeline == nil || s.Pipeline.Live == nil) {
 		return authz.ErrUnavailable
 	} // Live source adapter not yet onboarded.
@@ -440,6 +442,9 @@ func (s *Service) HandleMerchant(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		data["checkout_token"] = token
+		if origin := strings.TrimSuffix(getAllowedOrigin(), "/"); strings.HasPrefix(origin, "https://") {
+			data["checkout_url"] = origin + "/en/checkout/" + url.PathEscape(token)
+		}
 		write(w, 201, data)
 	default:
 		fail(w, 405, "METHOD_NOT_ALLOWED")
