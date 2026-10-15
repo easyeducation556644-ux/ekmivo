@@ -93,6 +93,46 @@ async function Details({locale,kind,id}:{locale:AdminLocale;kind:"users"|"worksp
  FROM workspaces w WHERE w.id=${id}::uuid LIMIT 1`;
  if(!r.length)notFound();const w=r[0];return <><PageHead title={String(w.name)} action={<Link className="pa-button pa-button-secondary" href={"/"+locale+"/admin/workspaces"}>← Workspaces</Link>}/><PageTabs locale={locale} base={"/"+locale+"/admin/workspaces/"+id} items={["Overview","Products & plan","Members","Payments","Devices","API keys","Usage & credits","Billing","Activity"]}/><Fields values={[["Workspace ID",short(String(w.id)),String(w.id)],["Owner",w.owner?String(w.owner):"—"],["Payment gateway",w.pay?"Enabled":"Disabled"],["AI Bot",w.ai?"Enabled":"Disabled"],["Created",formatDate(w.created_at,locale)]]}/><Offline locale={locale} description="Plan changes, suspensions, credits and product actions are not connected."/></>;
 }
+
+const offlineColumns:Record<string,string[]>={
+ payments:["Reference","Workspace","Method","Amount","Status","Created","Verified at"],
+ "payments/exceptions":["Receipt","Workspace","Reason","Amount","Received","Status"],
+ "payments/disputes":["Case","Workspace","Payment","Opened","SLA","Status"],
+ "payments/refunds":["Reference","Workspace","Method","Amount","Requested","Status"],
+ "payments/reconciliation":["Date","Method","Expected","Matched","Unmatched","Status"],
+ billing:["Workspace","Product","Plan","Status","Renews","MRR"],
+ "billing/invoices":["Invoice","Workspace","Amount","Status","Due date"],
+ "billing/revenue":["Product","Plan","MRR","ARR","Period"],
+ "billing/coupons":["Code","Product","Discount","Redemptions","Status"],
+ credits:["Workspace","Product","Balance","Included","Used","Expires","Status"],
+ "credits/ledger":["Date","Workspace","Product","Change","Balance after","Actor"],
+ "credits/packs":["Pack","Product","Credits","Price","Validity","Status"],
+ "credits/rules":["Rule","Product","Credits","Effective date","Version"],
+ plans:["Name","Price","Interval","Subscribers","Status","Visibility","Updated"],
+ "gateway/providers":["Provider","Type","Status","Last check","Workspaces"],
+ "gateway/devices":["Device","Workspace","Status","Version","Last sync","Queued"],
+ "gateway/webhooks":["Event","Workspace","Endpoint","Status","Attempts","Last attempt","Response"],
+ "gateway/webhooks/endpoints":["Workspace","Endpoint","Status","Failure rate","Updated"],
+ "gateway/webhooks/queues":["Queue","Pending","Running","Failed","Oldest","Dead-letter"],
+ api:["Key prefix","Workspace","Environment","Scopes","Created","Last used","Status"],
+ "api/limits":["Plan / Key","Requests/min","Burst","Override","Updated"],
+ "api/versions":["Version","Status","Sunset","Updated"],
+ health:["Component","Status","p50 latency","p95 latency","Error rate"],
+ "settings/feature-flags":["Flag","Description","Scope","Status"],
+ "settings/legal-contact":["Field","Value","Status"]
+};
+const offlineActions:Record<string,string>={
+ payments:"Export CSV",billing:"Export CSV",credits:"Grant credits",plans:"New plan",
+ "gateway/providers":"Run health check","gateway/devices":"Revoke device","gateway/webhooks":"Retry failed",
+ api:"Rotate key",health:"Create incident"
+};
+function OfflineList({locale,kind,sub}:{locale:AdminLocale;kind:string;sub:string}){
+ const source=kind+(sub&&offlineColumns[kind+"/"+sub]?"/"+sub:"");
+ const columns=offlineColumns[source]||offlineColumns[kind]||["Name","Status","Updated"];
+ return <><div className="pa-filter-bar"><input type="search" disabled placeholder={label(locale,"Search (not connected)","খোঁজ (সংযুক্ত নয়)")}/><button className="pa-button pa-button-secondary" disabled>Filters</button><button className="pa-button pa-button-secondary" disabled>Export CSV</button></div>
+ <section className="pa-surface pa-table-card"><div className="pa-table-wrap"><table><thead><tr>{columns.map(h=><th key={h} scope="col">{h}</th>)}</tr></thead><tbody><tr><td colSpan={columns.length} className="pa-empty-row"><span className="pa-muted-dot"/> {label(locale,"Not connected","সংযুক্ত নয়")}</td></tr></tbody></table></div><div className="pa-table-footer"><span>—</span><button disabled className="pa-button pa-button-secondary">Next →</button></div></section></>;
+}
+
 function Stat({title,value,unavailable=false}:{title:string;value:string|number;unavailable?:boolean}){return <div className="pa-stat"><span>{title}</span><strong>{value}</strong>{unavailable&&<small>Not connected</small>}</div>;}
 async function Overview({locale,isSuper}:{locale:AdminLocale;isSuper:boolean}){
  const [r,activities]=await Promise.all([
@@ -142,7 +182,10 @@ export async function PlatformAdminConsole({locale,segments=[],query="",after=""
  if(isSuper&&sub==="sandbox"){try{config=await publicSandboxConfig();}catch{config=null;}}
  body=<><PageHead title={t}/><PageTabs locale={locale} base={base} items={tabs[key]} active={sub}/>{!isSuper?<Denied locale={locale}/>:sub==="sandbox"&&config?<section className="pa-surface pa-description"><h2>Public sandbox</h2><p className="pa-subtle">Test data only. Never use real customer data.</p><dl><div className="pa-description-row"><dt>Shared test key</dt><dd className="pa-mono">{config.testKey.slice(0,12)+"••••"+config.testKey.slice(-4)}</dd></div><div className="pa-description-row"><dt>Workspace</dt><dd>{short(config.workspaceId)}<AdminCopy value={config.workspaceId} label="Copy workspace ID"/></dd></div><div className="pa-description-row"><dt>Sandbox API URL</dt><dd>{config.apiOrigin||"—"}</dd></div><div className="pa-description-row"><dt>Status</dt><dd>{config.enabled?"Enabled":"Disabled"}</dd></div></dl><div className="pa-inline-actions"><button className="pa-button pa-button-secondary" disabled>Check service</button><button className="pa-button pa-button-secondary" disabled>Rotate key</button><button className="pa-button pa-button-secondary" disabled>Revoke key</button></div><p className="pa-subtle">Audited step-up operations not connected.</p></section>:<Offline locale={locale}/>}</>;
  }else{
- body=<><PageHead title={t}/>{tabs[key]&&<PageTabs locale={locale} base={base} items={tabs[key]} active={sub}/>}<Offline locale={locale} description={key==="ai"?"AI Bot administrative metrics are still in development.":undefined}/></>;
+ const op=offlineActions[key];
+ body=<><PageHead title={t} action={op?<button type="button" disabled className="pa-button pa-button-primary">{op}</button>:undefined}/>
+ {tabs[key]&&<PageTabs locale={locale} base={base} items={tabs[key]} active={sub}/>}
+ {key==="ai"?<Offline locale={locale} description="AI Bot administrative metrics are still in development."/>:<OfflineList locale={locale} kind={key} sub={sub}/>}</>;
  }
  return <AdminShell locale={locale} role={role} name={user.name} theme={theme} production={process.env.NODE_ENV==="production"}>{body}</AdminShell>;
 }
