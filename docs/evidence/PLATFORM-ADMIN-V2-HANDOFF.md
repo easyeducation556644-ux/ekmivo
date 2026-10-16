@@ -76,3 +76,9 @@ No backend financial or receipt verification code altered. No database migration
 - React checklist reviewed: server authorization before reads, parameterized filters, no secret serialization, effect cleanup and stable per-user draft keys.
 - GitHub Actions billing/spending limit previously prevented jobs from starting; local passing checks are not represented as CI passes. No Docker or browser tests.
 - Pending product/security enhancements listed above remain open; existing super-admin plus session MFA checks remain required.
+
+### Deployment compiler correction
+
+The Vercel preview rejected a re-exported route `dynamic` config under Turbopack; webpack had accepted it. The verify page now declares its own literal `force-dynamic` config and reuses only the MFA page component. This preserves request-time authorization and avoids static config re-export.
+
+Final default Turbopack production build passed, including TypeScript, page-data collection and static generation. Production merge status reports Vercel deployment rate limited (retry in 24 hours); no production READY claim. GitHub Actions annotations confirm billing prevented every job from starting.

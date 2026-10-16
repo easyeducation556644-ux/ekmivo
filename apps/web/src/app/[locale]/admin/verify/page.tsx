@@ -1,1 +1,2 @@
-export {default,dynamic} from "../mfa/page";
+export {default} from "../mfa/page";
+export const dynamic="force-dynamic";
