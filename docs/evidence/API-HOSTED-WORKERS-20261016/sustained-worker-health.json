@@ -1,0 +1,496 @@
+{
+  "started": "2026-10-16T14:53:47.357Z",
+  "samples": [
+    {
+      "at": "2026-10-16T14:53:47.360Z",
+      "realms": {
+        "sandbox": {
+          "health": {
+            "environment": "sandbox",
+            "export_ready": true,
+            "notice_ready": false,
+            "critical_ready": true,
+            "maintenance_ready": true,
+            "invoice_notice_ready": false
+          },
+          "beats": [
+            {
+              "kind": "critical",
+              "seen_at": "2026-10-16T14:53:47.358Z",
+              "healthy": true
+            },
+            {
+              "kind": "export",
+              "seen_at": "2026-10-16T14:53:46.359Z",
+              "healthy": true
+            },
+            {
+              "kind": "maintenance",
+              "seen_at": "2026-10-16T14:53:21.374Z",
+              "healthy": true
+            }
+          ],
+          "runs": [
+            {
+              "kind": "payment_retention_billing",
+              "completed": 2,
+              "latest": "2026-10-16T14:53:21.376Z"
+            },
+            {
+              "kind": "private_document_export",
+              "completed": 7,
+              "latest": "2026-10-16T14:53:46.361Z"
+            },
+            {
+              "kind": "receipt_pipeline",
+              "completed": 15,
+              "latest": "2026-10-16T14:53:47.359Z"
+            }
+          ]
+        },
+        "live": {
+          "health": {
+            "environment": "live",
+            "export_ready": true,
+            "notice_ready": false,
+            "critical_ready": true,
+            "maintenance_ready": true,
+            "invoice_notice_ready": false
+          },
+          "beats": [
+            {
+              "kind": "critical",
+              "seen_at": "2026-10-16T14:53:47.796Z",
+              "healthy": true
+            },
+            {
+              "kind": "export",
+              "seen_at": "2026-10-16T14:53:44.791Z",
+              "healthy": true
+            },
+            {
+              "kind": "maintenance",
+              "seen_at": "2026-10-16T14:53:19.815Z",
+              "healthy": true
+            }
+          ],
+          "runs": [
+            {
+              "kind": "payment_retention_billing",
+              "completed": 2,
+              "latest": "2026-10-16T14:53:19.816Z"
+            },
+            {
+              "kind": "private_document_export",
+              "completed": 7,
+              "latest": "2026-10-16T14:53:44.793Z"
+            },
+            {
+              "kind": "receipt_pipeline",
+              "completed": 16,
+              "latest": "2026-10-16T14:53:47.798Z"
+            }
+          ]
+        }
+      },
+      "httpStatus": 200,
+      "readiness": {
+        "release_verified": false,
+        "status": "operationally_ready"
+      }
+    },
+    {
+      "at": "2026-10-16T14:54:24.086Z",
+      "realms": {
+        "sandbox": {
+          "health": {
+            "environment": "sandbox",
+            "export_ready": true,
+            "notice_ready": false,
+            "critical_ready": true,
+            "maintenance_ready": true,
+            "invoice_notice_ready": false
+          },
+          "beats": [
+            {
+              "kind": "critical",
+              "seen_at": "2026-10-16T14:54:23.358Z",
+              "healthy": true
+            },
+            {
+              "kind": "export",
+              "seen_at": "2026-10-16T14:54:21.368Z",
+              "healthy": true
+            },
+            {
+              "kind": "maintenance",
+              "seen_at": "2026-10-16T14:54:21.373Z",
+              "healthy": true
+            }
+          ],
+          "runs": [
+            {
+              "kind": "payment_retention_billing",
+              "completed": 3,
+              "latest": "2026-10-16T14:54:21.375Z"
+            },
+            {
+              "kind": "private_document_export",
+              "completed": 14,
+              "latest": "2026-10-16T14:54:21.369Z"
+            },
+            {
+              "kind": "receipt_pipeline",
+              "completed": 33,
+              "latest": "2026-10-16T14:54:23.359Z"
+            }
+          ]
+        },
+        "live": {
+          "health": {
+            "environment": "live",
+            "export_ready": true,
+            "notice_ready": false,
+            "critical_ready": true,
+            "maintenance_ready": true,
+            "invoice_notice_ready": false
+          },
+          "beats": [
+            {
+              "kind": "critical",
+              "seen_at": "2026-10-16T14:54:23.793Z",
+              "healthy": true
+            },
+            {
+              "kind": "export",
+              "seen_at": "2026-10-16T14:54:24.792Z",
+              "healthy": true
+            },
+            {
+              "kind": "maintenance",
+              "seen_at": "2026-10-16T14:54:19.802Z",
+              "healthy": true
+            }
+          ],
+          "runs": [
+            {
+              "kind": "payment_retention_billing",
+              "completed": 3,
+              "latest": "2026-10-16T14:54:19.804Z"
+            },
+            {
+              "kind": "private_document_export",
+              "completed": 15,
+              "latest": "2026-10-16T14:54:24.793Z"
+            },
+            {
+              "kind": "receipt_pipeline",
+              "completed": 34,
+              "latest": "2026-10-16T14:54:23.795Z"
+            }
+          ]
+        }
+      },
+      "httpStatus": 200,
+      "readiness": {
+        "release_verified": false,
+        "status": "operationally_ready"
+      }
+    },
+    {
+      "at": "2026-10-16T14:54:59.556Z",
+      "realms": {
+        "sandbox": {
+          "health": {
+            "environment": "sandbox",
+            "export_ready": true,
+            "notice_ready": false,
+            "critical_ready": true,
+            "maintenance_ready": true,
+            "invoice_notice_ready": false
+          },
+          "beats": [
+            {
+              "kind": "critical",
+              "seen_at": "2026-10-16T14:54:59.359Z",
+              "healthy": true
+            },
+            {
+              "kind": "export",
+              "seen_at": "2026-10-16T14:54:56.357Z",
+              "healthy": true
+            },
+            {
+              "kind": "maintenance",
+              "seen_at": "2026-10-16T14:54:21.373Z",
+              "healthy": true
+            }
+          ],
+          "runs": [
+            {
+              "kind": "payment_retention_billing",
+              "completed": 3,
+              "latest": "2026-10-16T14:54:21.375Z"
+            },
+            {
+              "kind": "private_document_export",
+              "completed": 21,
+              "latest": "2026-10-16T14:54:56.359Z"
+            },
+            {
+              "kind": "receipt_pipeline",
+              "completed": 51,
+              "latest": "2026-10-16T14:54:59.360Z"
+            }
+          ]
+        },
+        "live": {
+          "health": {
+            "environment": "live",
+            "export_ready": true,
+            "notice_ready": false,
+            "critical_ready": true,
+            "maintenance_ready": true,
+            "invoice_notice_ready": false
+          },
+          "beats": [
+            {
+              "kind": "critical",
+              "seen_at": "2026-10-16T14:54:59.794Z",
+              "healthy": true
+            },
+            {
+              "kind": "export",
+              "seen_at": "2026-10-16T14:54:59.793Z",
+              "healthy": true
+            },
+            {
+              "kind": "maintenance",
+              "seen_at": "2026-10-16T14:54:19.802Z",
+              "healthy": true
+            }
+          ],
+          "runs": [
+            {
+              "kind": "payment_retention_billing",
+              "completed": 3,
+              "latest": "2026-10-16T14:54:19.804Z"
+            },
+            {
+              "kind": "private_document_export",
+              "completed": 22,
+              "latest": "2026-10-16T14:54:59.794Z"
+            },
+            {
+              "kind": "receipt_pipeline",
+              "completed": 52,
+              "latest": "2026-10-16T14:54:59.794Z"
+            }
+          ]
+        }
+      },
+      "httpStatus": 200,
+      "readiness": {
+        "release_verified": false,
+        "status": "operationally_ready"
+      }
+    },
+    {
+      "at": "2026-10-16T14:55:35.343Z",
+      "realms": {
+        "sandbox": {
+          "health": {
+            "environment": "sandbox",
+            "export_ready": true,
+            "notice_ready": false,
+            "critical_ready": true,
+            "maintenance_ready": true,
+            "invoice_notice_ready": false
+          },
+          "beats": [
+            {
+              "kind": "critical",
+              "seen_at": "2026-10-16T14:55:35.358Z",
+              "healthy": true
+            },
+            {
+              "kind": "export",
+              "seen_at": "2026-10-16T14:55:31.356Z",
+              "healthy": true
+            },
+            {
+              "kind": "maintenance",
+              "seen_at": "2026-10-16T14:55:21.364Z",
+              "healthy": true
+            }
+          ],
+          "runs": [
+            {
+              "kind": "payment_retention_billing",
+              "completed": 4,
+              "latest": "2026-10-16T14:55:21.365Z"
+            },
+            {
+              "kind": "private_document_export",
+              "completed": 28,
+              "latest": "2026-10-16T14:55:31.358Z"
+            },
+            {
+              "kind": "receipt_pipeline",
+              "completed": 69,
+              "latest": "2026-10-16T14:55:35.359Z"
+            }
+          ]
+        },
+        "live": {
+          "health": {
+            "environment": "live",
+            "export_ready": true,
+            "notice_ready": false,
+            "critical_ready": true,
+            "maintenance_ready": true,
+            "invoice_notice_ready": false
+          },
+          "beats": [
+            {
+              "kind": "critical",
+              "seen_at": "2026-10-16T14:55:35.795Z",
+              "healthy": true
+            },
+            {
+              "kind": "export",
+              "seen_at": "2026-10-16T14:55:34.795Z",
+              "healthy": true
+            },
+            {
+              "kind": "maintenance",
+              "seen_at": "2026-10-16T14:55:19.805Z",
+              "healthy": true
+            }
+          ],
+          "runs": [
+            {
+              "kind": "payment_retention_billing",
+              "completed": 4,
+              "latest": "2026-10-16T14:55:19.806Z"
+            },
+            {
+              "kind": "private_document_export",
+              "completed": 29,
+              "latest": "2026-10-16T14:55:34.796Z"
+            },
+            {
+              "kind": "receipt_pipeline",
+              "completed": 70,
+              "latest": "2026-10-16T14:55:35.796Z"
+            }
+          ]
+        }
+      },
+      "httpStatus": 200,
+      "readiness": {
+        "release_verified": false,
+        "status": "operationally_ready"
+      }
+    },
+    {
+      "at": "2026-10-16T14:56:10.883Z",
+      "realms": {
+        "sandbox": {
+          "health": {
+            "environment": "sandbox",
+            "export_ready": true,
+            "notice_ready": false,
+            "critical_ready": true,
+            "maintenance_ready": true,
+            "invoice_notice_ready": false
+          },
+          "beats": [
+            {
+              "kind": "critical",
+              "seen_at": "2026-10-16T14:56:11.363Z",
+              "healthy": true
+            },
+            {
+              "kind": "export",
+              "seen_at": "2026-10-16T14:56:11.361Z",
+              "healthy": true
+            },
+            {
+              "kind": "maintenance",
+              "seen_at": "2026-10-16T14:55:21.364Z",
+              "healthy": true
+            }
+          ],
+          "runs": [
+            {
+              "kind": "payment_retention_billing",
+              "completed": 4,
+              "latest": "2026-10-16T14:55:21.365Z"
+            },
+            {
+              "kind": "private_document_export",
+              "completed": 36,
+              "latest": "2026-10-16T14:56:11.362Z"
+            },
+            {
+              "kind": "receipt_pipeline",
+              "completed": 87,
+              "latest": "2026-10-16T14:56:11.364Z"
+            }
+          ]
+        },
+        "live": {
+          "health": {
+            "environment": "live",
+            "export_ready": true,
+            "notice_ready": false,
+            "critical_ready": true,
+            "maintenance_ready": true,
+            "invoice_notice_ready": false
+          },
+          "beats": [
+            {
+              "kind": "critical",
+              "seen_at": "2026-10-16T14:56:11.792Z",
+              "healthy": true
+            },
+            {
+              "kind": "export",
+              "seen_at": "2026-10-16T14:56:09.793Z",
+              "healthy": true
+            },
+            {
+              "kind": "maintenance",
+              "seen_at": "2026-10-16T14:55:19.805Z",
+              "healthy": true
+            }
+          ],
+          "runs": [
+            {
+              "kind": "payment_retention_billing",
+              "completed": 4,
+              "latest": "2026-10-16T14:55:19.806Z"
+            },
+            {
+              "kind": "private_document_export",
+              "completed": 36,
+              "latest": "2026-10-16T14:56:09.794Z"
+            },
+            {
+              "kind": "receipt_pipeline",
+              "completed": 87,
+              "latest": "2026-10-16T14:56:09.795Z"
+            }
+          ]
+        }
+      },
+      "httpStatus": 200,
+      "readiness": {
+        "release_verified": false,
+        "status": "operationally_ready"
+      }
+    }
+  ],
+  "passed": true
+}
