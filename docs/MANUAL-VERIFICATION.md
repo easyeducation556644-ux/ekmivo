@@ -663,4 +663,6 @@ Source and isolated Neon checks: `docs/evidence/MANAGED-PLANS-20261016/README.md
 
 ## API-hosted workers — 2026-10-16
 
+**Activated 14:46 UTC with owner authorization:** #71 merged; restricted worker credentials configured in existing Render API. Both runtime startup logs and genuine critical/export/maintenance heartbeats observed in Sandbox/Live. `/readyz` HTTP 200, `release_verified=false`. No error logs in initial post-start interval. Earlier authorization-pending notes below are historical. Optional mail workers are not configured. Still manual pending: actual owner-controlled callback/renewal/provider lifecycle and host sleep/recovery under operational load.
+
 Owner chose the existing API process temporarily. Full Go suite and isolated Neon two-realm audit-runtime startup/drain pass. Production activation awaits explicit permission to place the three restricted worker/projection credentials in the existing Render API service after automatic approval review rejected that egress. After authorization: confirm both River runtime startup logs and genuine critical/export/maintenance heartbeats, SMTP-dependent health if configured, and `/readyz`. Real authorized provider/callback/renewal acceptance remains distinct. Free Render instance sleep pauses both API and workers; no new paid service or always-on guarantee.

@@ -1,5 +1,7 @@
 # Managed payment plans — 2026-10-16
 
+> **Worker activation follow-up, 14:46 UTC:** Owner approved existing-API hosting and its restricted credentials. PR #71 is merged; both realm workers are active in Render's existing API process. Genuine critical/export/maintenance health is true and `/readyz` is HTTP 200 (`release_verified=false`). Earlier missing-worker/503 notes describe the pre-activation checkpoint. Evidence: [API-hosted workers](../API-HOSTED-WORKERS-20261016/README.md).
+
 > **Latest production rollout — 2026-10-16 14:20 UTC:** Owner authorized completing rollout after merging #69/#70. Control 0067 and Sandbox/Live financial 0068 are now applied through the existing targeted coordinator. Both Vercel production `dpl_EshVzpb5T94mZ9SB63tRxp63R6fu` and Render API `dep-db932ck4ljoc73d1fp80` are live on merged commit `65d6f80ec290c6f7fa366b2378a8d1c9c153f288`. Notes below describing unmerged/unapplied state are historical checkpoints, superseded by this block. Full financial release acceptance is still not claimed.
 
 Implementation scope: PG13 billing/catalog and public pricing continuation. This is not whole-PG13 acceptance, a production rollout, real-provider payment proof or AI billing implementation.

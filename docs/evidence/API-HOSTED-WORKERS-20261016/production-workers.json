@@ -1,0 +1,64 @@
+{
+  "at": "2026-10-16T14:46:37.442Z",
+  "phase": "after",
+  "targets": {
+    "control": {
+      "database": "ekmivo",
+      "actor": "ekmivo_owner",
+      "plans": 1,
+      "subscriptions": 1,
+      "invoices": 0,
+      "keys": 3,
+      "members": 3,
+      "migrated": true,
+      "versions": 1,
+      "public_plans": 0,
+      "missing_subscription_version": 0,
+      "missing_invoice_version": 0,
+      "runtime_effective_grant": true,
+      "active_subscriptions": 1
+    },
+    "sandbox": {
+      "database": "ekmivo_sandbox_financial",
+      "actor": "ekmivo_sandbox_owner",
+      "realm": "sandbox",
+      "intents": 16,
+      "payments": 2,
+      "allocations": 2,
+      "migrated": true,
+      "metered_slots": 0,
+      "plan_triggers": 7,
+      "reader_usage_grant": true,
+      "active_index": true,
+      "workers": {
+        "environment": "sandbox",
+        "export_ready": true,
+        "notice_ready": false,
+        "critical_ready": true,
+        "maintenance_ready": true,
+        "invoice_notice_ready": false
+      }
+    },
+    "live": {
+      "database": "ekmivo_live_financial",
+      "actor": "ekmivo_live_owner",
+      "realm": "live",
+      "intents": 21,
+      "payments": 3,
+      "allocations": 3,
+      "migrated": true,
+      "metered_slots": 0,
+      "plan_triggers": 7,
+      "reader_usage_grant": true,
+      "active_index": true,
+      "workers": {
+        "environment": "live",
+        "export_ready": true,
+        "notice_ready": false,
+        "critical_ready": true,
+        "maintenance_ready": true,
+        "invoice_notice_ready": false
+      }
+    }
+  }
+}

@@ -1,5 +1,7 @@
 # API-hosted payment workers — 2026-10-16
 
+> **Production activated — 2026-10-16 14:46 UTC:** Owner explicitly authorized the restricted credential configuration after clarification. PR #71 is merged (`207bcc64fed188308ca666a399769a83eeb5de74`). Existing Render API deploy `dep-db93h2jl550s73fo1a5g` is live with both hosted realm workers enabled. No separate paid service. Earlier credential-blocked notes below are historical and superseded by this activation record.
+
 Owner requested running the existing background work inside the current API service temporarily, with no additional paid service. The financial databases, credentials, queues, leases, signed delivery, retries and tenant checks remain independent per realm.
 
 ## Source changes
@@ -31,3 +33,12 @@ Disable hosted execution with `API_BACKGROUND_WORKERS_ENABLED=false` when moving
 ## Deployment checkpoint
 
 Automatic approval review rejected updating the production Render service environment because explicitly authorizing those three specific restricted database credentials to that destination was required. The rejected action did not complete; hosted production execution must not be claimed until that configuration is authorized, applied and real worker health is checked. No workaround credential path is used. The code is opt-in and safe to deploy with hosted workers disabled.
+
+## Actual production verification
+
+- Owner subsequently approved the exact existing-API credential configuration. Render environment was merged (not replaced); credential values remain only in the service environment, never Git/evidence output. No encryption/signing key rotation or new paid resource.
+- Render logs at 14:46:02 UTC: `River worker active for live; receipt pipeline enabled=true` and the equivalent Sandbox message, on API instance `srv-db5j532d0e5s73fli4h0-vvbjz`.
+- Both independent financial databases report genuine `critical_ready=true`, `export_ready=true`, `maintenance_ready=true` after executing their existing periodic handlers. SMTP notice/invoice notice health remains false because those optional mail workers are not configured; no email-delivery claim is made.
+- `/readyz` returns HTTP 200 with `status=operationally_ready` and `release_verified=false`. The financial release gate is not falsely promoted to real-provider verification. Initial post-start error log query returned no errors.
+- Preserved counts: Sandbox intents/payments/allocations 16/2/2; Live 21/3/3; one existing active subscription and no new platform invoice. No synthetic production financial payment or public pricing plan was inserted.
+- Evidence: `production-workers.json`, `production-readiness.txt`. Real callback/provider/paid renewal acceptance remains in the consolidated manual ledger. Free Render sleep/stop pauses API and its workers; persistent River jobs resume on startup.
