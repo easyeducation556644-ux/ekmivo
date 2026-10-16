@@ -1,0 +1,1 @@
+PASS: unauthenticated plan selection survives registration, no-workspace choice persists, unknown workspace is denied, unavailable plan clears stale selection

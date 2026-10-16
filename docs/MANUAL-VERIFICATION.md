@@ -652,3 +652,8 @@ Manual pending: authorized Sandbox/Live workspace data reconciliation; EN/BN and
 ## Customer and navigation correction — 2026-10-16 (manual pending)
 
 Use the existing authorized owner session and verified payer customer in the Neon-backed preview. Confirm full number in list/details; confirm viewer/editor do not gain recovery access. Navigate Payments → Customers and other payment menus with a slow source: old page stays until data or explicit error is ready, top progress line is visible, no page skeleton flash. Check full-width workspace picker on desktop/mobile and light/dark; retain draft guards and filter resets. No new payment or financial mutation is required. Automated evidence: `docs/evidence/CUSTOMERS-NAVIGATION-20261016.md`.
+
+
+## Managed payment plans — 2026-10-16 (release pending)
+
+Source and isolated Neon checks: `docs/evidence/MANAGED-PLANS-20261016/README.md`. Before production activation, review exact catalog pricing and entitlement terms; apply only control 0067 and financial 0068 to the intended realms using the existing targeted coordinator; deploy matching API, worker and web together. Confirm existing purchased subscriptions and pre-migration accepted checkouts. With an owner-controlled workspace/phone/platform receiving account: free activation, a real paid subscription invoice → verified receipt → renewal, quota exhaustion/upgrade, and expiry while a previously accepted payment/webhook completes. Check fresh-MFA challenge using a real enrolled admin and keyboard/screen-reader flows. Synthetic sessions/financial evidence are not real payment or MFA-enrollment acceptance. Test branches `br-lucky-mode-b3hkfaxa` and `br-still-fog-b38to82q` remain isolated; do not delete without owner authorization. No Docker used.

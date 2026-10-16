@@ -220,7 +220,11 @@ func (s *Service) HandleOperations(w http.ResponseWriter, r *http.Request) {
 	var raw []byte
 	var secret string
 	var pairing string
-	e := s.pipelineScoped(r.Context(), ws, realm, func(tx pgx.Tx) error {
+	withScope := s.pipelineScoped
+	if r.Method != "GET" && ((id == "" && (resource == "devices" || resource == "gateways")) || resource == "gateways" && action == "enable") {
+		withScope = s.creationScoped
+	}
+	e := withScope(r.Context(), ws, realm, func(tx pgx.Tx) error {
 		if actorID != "" {
 			if _, e := tx.Exec(r.Context(), "SELECT set_config('ekmivo.actor_id',$1,true)", actorID); e != nil {
 				return e
@@ -364,8 +368,8 @@ func (s *Service) HandleOperations(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if r.Method == "GET" && (resource == "payments" || resource == "incoming") {
-        s.supplementAuthorizedPaymentEvidence(r, ws, realm, resource, id, result)
-    }
+		s.supplementAuthorizedPaymentEvidence(r, ws, realm, resource, id, result)
+	}
 	if r.Method == "GET" && resource == "deliveries" && id != "" {
 		var history []byte
 		if err := s.pipelineScoped(r.Context(), ws, realm, func(tx pgx.Tx) error {

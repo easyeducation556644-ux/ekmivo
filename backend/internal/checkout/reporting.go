@@ -19,6 +19,9 @@ func (s *Service) HandleReports(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	start, err := time.Parse(time.RFC3339, r.URL.Query().Get("from"))
+	if !s.planFeature(w, r, ws, realm, "reports") {
+		return
+	}
 	end, err2 := time.Parse(time.RFC3339, r.URL.Query().Get("to"))
 	account := r.URL.Query().Get("account")
 	if err != nil || err2 != nil || !end.After(start) || end.Sub(start) > 366*24*time.Hour || account != "" && !uuidPattern.MatchString(account) {
@@ -26,35 +29,37 @@ func (s *Service) HandleReports(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var raw []byte
-    var refundRaw []byte
-    e = s.pipelineScoped(r.Context(), ws, realm, func(tx pgx.Tx) error {
-        if err := tx.QueryRow(r.Context(), "SELECT pg13_reports($1::uuid,$2,$3,$4,$5::uuid)",
-            ws, realm, start, end, nullableID(account)).Scan(&raw); err != nil { return err }
-        // Include late receipts whose seller refund case has no verified payment.
-        return tx.QueryRow(r.Context(), "SELECT pg56_refund_summary($1::uuid,$2,$3,$4,$5::uuid)",
-            ws, realm, start, end, nullableID(account)).Scan(&refundRaw)
-    })
+	var refundRaw []byte
+	e = s.pipelineScoped(r.Context(), ws, realm, func(tx pgx.Tx) error {
+		if err := tx.QueryRow(r.Context(), "SELECT pg13_reports($1::uuid,$2,$3,$4,$5::uuid)",
+			ws, realm, start, end, nullableID(account)).Scan(&raw); err != nil {
+			return err
+		}
+		// Include late receipts whose seller refund case has no verified payment.
+		return tx.QueryRow(r.Context(), "SELECT pg56_refund_summary($1::uuid,$2,$3,$4,$5::uuid)",
+			ws, realm, start, end, nullableID(account)).Scan(&refundRaw)
+	})
 	if e != nil {
 		mapped(w, e)
 		return
 	}
 	var data map[string]any
-    var refunds struct {
-        Items []any `json:"items"`
-        RequestCount int64 `json:"request_count"`
-        OpenRequestedMinor int64 `json:"open_requested_minor"`
-        SellerReportedReturnedMinor int64 `json:"seller_reported_returned_minor"`
-    }
-    if json.Unmarshal(raw, &data) != nil || json.Unmarshal(refundRaw, &refunds) != nil || data == nil {
-        fail(w, 503, "REPORT_SOURCE_UNAVAILABLE")
-        return
-    }
-    data["refunds"] = refunds.Items
-    data["refund_request_count"] = refunds.RequestCount
-    data["open_requested_refund_minor"] = refunds.OpenRequestedMinor
-    // Returned is seller-reported, never independently verified.
-    data["seller_reported_returned_minor"] = refunds.SellerReportedReturnedMinor
-    write(w, 200, data)
+	var refunds struct {
+		Items                       []any `json:"items"`
+		RequestCount                int64 `json:"request_count"`
+		OpenRequestedMinor          int64 `json:"open_requested_minor"`
+		SellerReportedReturnedMinor int64 `json:"seller_reported_returned_minor"`
+	}
+	if json.Unmarshal(raw, &data) != nil || json.Unmarshal(refundRaw, &refunds) != nil || data == nil {
+		fail(w, 503, "REPORT_SOURCE_UNAVAILABLE")
+		return
+	}
+	data["refunds"] = refunds.Items
+	data["refund_request_count"] = refunds.RequestCount
+	data["open_requested_refund_minor"] = refunds.OpenRequestedMinor
+	// Returned is seller-reported, never independently verified.
+	data["seller_reported_returned_minor"] = refunds.SellerReportedReturnedMinor
+	write(w, 200, data)
 }
 func (s *Service) HandleNotifications(w http.ResponseWriter, r *http.Request) {
 	ws, realm := r.PathValue("workspaceID"), explicitRealm(r)

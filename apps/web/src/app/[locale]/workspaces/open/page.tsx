@@ -1,9 +1,12 @@
 import {redirect} from "next/navigation";
 import {requireUser,preferredWorkspaceFor} from "../../../../lib/server/auth";
+import {cookies} from "next/headers";
 export const dynamic="force-dynamic";
 export default async function OpenWorkspace({params}:{params:Promise<{locale:string}>}){
  const {locale:raw}=await params,locale=raw==="en"?"en":"bn";
  const user=await requireUser(locale);
+ const plan=(await cookies()).get("ekmivo-selected-plan")?.value;
+ if(plan&&/^[a-z][a-z0-9_-]{1,39}$/.test(plan))redirect(`/${locale}/subscribe/${plan}`);
  const selected=await preferredWorkspaceFor(user.id);
  redirect(selected?`/${locale}/w/${selected.id}/dashboard`:`/${locale}/workspaces`);
 }

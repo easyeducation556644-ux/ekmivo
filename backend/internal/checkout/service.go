@@ -105,7 +105,7 @@ func prepareCreateRequest(body *createRequest, key, workspace, realm string) boo
 		return false
 	}
 	if len(body.AmountBDT) > 0 {
-		if body.Amount != 0 || body.OrderID != "" || body.InvoiceID != "" || body.RedirectURL == "" {
+		if body.Amount != 0 || body.OrderID != "" || body.InvoiceID != "" {
 			return false
 		}
 		minor, ok := parseBDT(body.AmountBDT)
@@ -283,6 +283,18 @@ func getAllowedOrigin() string  { return allowedOrigin }
 func mapped(w http.ResponseWriter, err error) {
 	var pg *pgconn.PgError
 	if errors.As(err, &pg) {
+		if strings.HasPrefix(pg.Code, "P680") {
+			status := http.StatusForbidden
+			if pg.Code == "P6801" {
+				status = http.StatusServiceUnavailable
+			}
+			if pg.Code == "P6804" || pg.Code == "P6805" {
+				status = http.StatusTooManyRequests
+				w.Header().Set("Retry-After", "60")
+			}
+			fail(w, status, pg.Message)
+			return
+		}
 		switch pg.Code {
 		case "23505":
 			fail(w, 409, "CONFLICT")
@@ -537,10 +549,6 @@ func (s *Service) HandleMerchant(w http.ResponseWriter, r *http.Request) {
 			s.cancel(w, r, ws, realm)
 			return
 		}
-		if !s.billingAllowsNew(r.Context(), ws, realm) {
-			fail(w, 403, "SUBSCRIPTION_REQUIRED")
-			return
-		}
 		key := r.Header.Get("Idempotency-Key")
 		if key == "" {
 			var fresh [24]byte
@@ -578,7 +586,7 @@ func (s *Service) HandleMerchant(w http.ResponseWriter, r *http.Request) {
 		raw, _ := json.Marshal(payload)
 		token := s.token(ws, realm, key)
 		var answer []byte
-		err := s.scoped(r.Context(), ws, realm, func(tx pgx.Tx) error {
+		err := s.creationScoped(r.Context(), ws, realm, func(tx pgx.Tx) error {
 			var issueErr error
 			switch {
 			case payload.InvoiceID != "" && (realm == "live" || os.Getenv("PG10_EXTENSIONS_ENABLED") == "true"):

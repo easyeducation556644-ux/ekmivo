@@ -1,0 +1,12 @@
+PASS /admin
+PASS /admin/plans
+PASS /admin/workspaces
+PASS /admin/users
+PASS /admin/billing
+PASS /admin/billing/invoices
+PASS /admin/billing/revenue
+PASS /admin/support
+PASS /admin/privacy
+PASS /admin/staff
+PASS /admin/workspaces/cc3e499f-bff8-44e3-878a-964182f0d26d/billing
+PASS /admin/workspaces/cc3e499f-bff8-44e3-878a-964182f0d26d/products-plan

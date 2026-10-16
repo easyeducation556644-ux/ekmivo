@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { MarketingExperience } from "../../components/landing/marketing-experience";
+import {PublicPricing} from "../../components/public-pricing";
+import {Suspense} from "react";
 
 export function generateStaticParams() { return [{ locale: "bn" }, { locale: "en" }]; }
 
@@ -8,6 +10,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
  if (locale !== "bn" && locale !== "en") notFound();
  return <>
   <a className="skip-link" href="#main">{locale === "bn" ? "মূল অংশে যান" : "Skip to content"}</a>
-  <MarketingExperience locale={locale} />
+  <MarketingExperience locale={locale} pricing={<Suspense fallback={<p className="mp-message" role="status">{locale==="bn"?"প্ল্যানের তথ্য লোড হচ্ছে…":"Loading plans…"}</p>}><PublicPricing locale={locale} compact/></Suspense>}/>
  </>;
 }

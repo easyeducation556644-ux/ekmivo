@@ -46899,26 +46899,13 @@
                           "id": {
                             "type": "string"
                           },
-                          "name": {
-                            "type": "string"
+                          "version_id": {
+                            "type": "string",
+                            "format": "uuid"
                           },
-                          "amount_minor": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 100000000000
-                          },
-                          "period_days": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 100000000000
-                          },
-                          "grace_days": {
-                            "type": "integer",
-                            "minimum": 0,
-                            "maximum": 100000000000
-                          },
-                          "enabled": {
-                            "type": "boolean"
+                          "terms": {
+                            "type": "object",
+                            "additionalProperties": true
                           }
                         }
                       }
@@ -46935,6 +46922,10 @@
                           },
                           "plan_id": {
                             "type": "string"
+                          },
+                          "plan_version_id": {
+                            "type": "string",
+                            "format": "uuid"
                           },
                           "amount_minor": {
                             "type": "integer",
@@ -46975,13 +46966,33 @@
                             "plan_id": {
                               "type": "string"
                             },
-                            "paid_until": {
+                            "plan_version_id": {
                               "type": "string",
-                              "format": "date-time"
+                              "format": "uuid"
+                            },
+                            "paid_until": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                {
+                                  "type": "string",
+                                  "const": "infinity"
+                                }
+                              ]
                             },
                             "grace_until": {
-                              "type": "string",
-                              "format": "date-time"
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                {
+                                  "type": "string",
+                                  "const": "infinity"
+                                }
+                              ]
                             },
                             "state": {
                               "type": "string",
@@ -46997,6 +47008,36 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "effective": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "usage": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "properties": {
+                        "used": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000000000
+                        },
+                        "reserved": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000000000
+                        },
+                        "period_start": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "period_end": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "usage_error": {
+                      "type": "boolean"
                     }
                   }
                 }
@@ -47020,26 +47061,13 @@
                           "id": {
                             "type": "string"
                           },
-                          "name": {
-                            "type": "string"
+                          "version_id": {
+                            "type": "string",
+                            "format": "uuid"
                           },
-                          "amount_minor": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 100000000000
-                          },
-                          "period_days": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 100000000000
-                          },
-                          "grace_days": {
-                            "type": "integer",
-                            "minimum": 0,
-                            "maximum": 100000000000
-                          },
-                          "enabled": {
-                            "type": "boolean"
+                          "terms": {
+                            "type": "object",
+                            "additionalProperties": true
                           }
                         }
                       }
@@ -47056,6 +47084,10 @@
                           },
                           "plan_id": {
                             "type": "string"
+                          },
+                          "plan_version_id": {
+                            "type": "string",
+                            "format": "uuid"
                           },
                           "amount_minor": {
                             "type": "integer",
@@ -47096,13 +47128,33 @@
                             "plan_id": {
                               "type": "string"
                             },
-                            "paid_until": {
+                            "plan_version_id": {
                               "type": "string",
-                              "format": "date-time"
+                              "format": "uuid"
+                            },
+                            "paid_until": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                {
+                                  "type": "string",
+                                  "const": "infinity"
+                                }
+                              ]
                             },
                             "grace_until": {
-                              "type": "string",
-                              "format": "date-time"
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                {
+                                  "type": "string",
+                                  "const": "infinity"
+                                }
+                              ]
                             },
                             "state": {
                               "type": "string",
@@ -47118,6 +47170,36 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "effective": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "usage": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "properties": {
+                        "used": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000000000
+                        },
+                        "reserved": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000000000
+                        },
+                        "period_start": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "period_end": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "usage_error": {
+                      "type": "boolean"
                     }
                   }
                 }
@@ -48447,6 +48529,978 @@
                 "additionalProperties": false,
                 "properties": {},
                 "required": []
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceID}/billing/free": {
+      "post": {
+        "operationId": "activateFreePaymentPlan",
+        "summary": "activate Free Payment Plan",
+        "description": "Source contract. Deployment and release acceptance require retained evidence. Financial outcomes come from server verification only.",
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspaceID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scoped server result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "active": {
+                      "type": "boolean"
+                    },
+                    "plan_id": {
+                      "type": "string"
+                    },
+                    "version_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "terms": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "active": {
+                      "type": "boolean"
+                    },
+                    "plan_id": {
+                      "type": "string"
+                    },
+                    "version_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "terms": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlation_id"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_ENVIRONMENT",
+                            "INVALID_API_KEY",
+                            "SCOPE_OR_ENVIRONMENT_DENIED",
+                            "AUTH_SERVICE_UNAVAILABLE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlation_id": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlation_id"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_ENVIRONMENT",
+                            "INVALID_API_KEY",
+                            "SCOPE_OR_ENVIRONMENT_DENIED",
+                            "AUTH_SERVICE_UNAVAILABLE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlation_id": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden scope/role/origin/subscription",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlation_id"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_ENVIRONMENT",
+                            "INVALID_API_KEY",
+                            "SCOPE_OR_ENVIRONMENT_DENIED",
+                            "AUTH_SERVICE_UNAVAILABLE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlation_id": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Scoped resource unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlation_id"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_ENVIRONMENT",
+                            "INVALID_API_KEY",
+                            "SCOPE_OR_ENVIRONMENT_DENIED",
+                            "AUTH_SERVICE_UNAVAILABLE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlation_id": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency/state/version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlation_id"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_ENVIRONMENT",
+                            "INVALID_API_KEY",
+                            "SCOPE_OR_ENVIRONMENT_DENIED",
+                            "AUTH_SERVICE_UNAVAILABLE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlation_id": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlation_id"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_ENVIRONMENT",
+                            "INVALID_API_KEY",
+                            "SCOPE_OR_ENVIRONMENT_DENIED",
+                            "AUTH_SERVICE_UNAVAILABLE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlation_id": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlation_id"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_ENVIRONMENT",
+                            "INVALID_API_KEY",
+                            "SCOPE_OR_ENVIRONMENT_DENIED",
+                            "AUTH_SERVICE_UNAVAILABLE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlation_id": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlation_id"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_ENVIRONMENT",
+                            "INVALID_API_KEY",
+                            "SCOPE_OR_ENVIRONMENT_DENIED",
+                            "AUTH_SERVICE_UNAVAILABLE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlation_id": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "plan_id": {
+                    "type": "string",
+                    "maxLength": 40
+                  }
+                },
+                "required": [
+                  "plan_id"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/platform/workspaces/{workspaceID}/payment-usage": {
+      "get": {
+        "operationId": "getAdminPaymentAllowance",
+        "summary": "get Admin Payment Allowance",
+        "description": "Super-admin with verified MFA only. Explicit workspace-scoped live allowance read without impersonation. A usage_error indicates the financial store is unavailable, never zero usage.",
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspaceID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scoped server result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "effective": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "usage": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "properties": {
+                        "used": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000000000
+                        },
+                        "reserved": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000000000
+                        },
+                        "period_start": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "period_end": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "usage_error": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "effective": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "usage": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "properties": {
+                        "used": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000000000
+                        },
+                        "reserved": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000000000
+                        },
+                        "period_start": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "period_end": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "usage_error": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlation_id"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_ENVIRONMENT",
+                            "INVALID_API_KEY",
+                            "SCOPE_OR_ENVIRONMENT_DENIED",
+                            "AUTH_SERVICE_UNAVAILABLE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlation_id": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlation_id"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_ENVIRONMENT",
+                            "INVALID_API_KEY",
+                            "SCOPE_OR_ENVIRONMENT_DENIED",
+                            "AUTH_SERVICE_UNAVAILABLE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlation_id": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden scope/role/origin/subscription",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlation_id"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_ENVIRONMENT",
+                            "INVALID_API_KEY",
+                            "SCOPE_OR_ENVIRONMENT_DENIED",
+                            "AUTH_SERVICE_UNAVAILABLE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlation_id": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Scoped resource unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlation_id"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_ENVIRONMENT",
+                            "INVALID_API_KEY",
+                            "SCOPE_OR_ENVIRONMENT_DENIED",
+                            "AUTH_SERVICE_UNAVAILABLE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlation_id": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency/state/version conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlation_id"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_ENVIRONMENT",
+                            "INVALID_API_KEY",
+                            "SCOPE_OR_ENVIRONMENT_DENIED",
+                            "AUTH_SERVICE_UNAVAILABLE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlation_id": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlation_id"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_ENVIRONMENT",
+                            "INVALID_API_KEY",
+                            "SCOPE_OR_ENVIRONMENT_DENIED",
+                            "AUTH_SERVICE_UNAVAILABLE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlation_id": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlation_id"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_ENVIRONMENT",
+                            "INVALID_API_KEY",
+                            "SCOPE_OR_ENVIRONMENT_DENIED",
+                            "AUTH_SERVICE_UNAVAILABLE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlation_id": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message",
+                        "retryable",
+                        "correlation_id"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INVALID_ENVIRONMENT",
+                            "INVALID_API_KEY",
+                            "SCOPE_OR_ENVIRONMENT_DENIED",
+                            "AUTH_SERVICE_UNAVAILABLE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryable": {
+                          "type": "boolean"
+                        },
+                        "correlation_id": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}$"
+                        }
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -59015,8 +60069,7 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "amount",
-                  "redirect_url"
+                  "amount"
                 ],
                 "properties": {
                   "amount": {
@@ -59396,7 +60449,7 @@
         "tags": [
           "Merchant"
         ],
-        "description": "Simple standalone payments require only amount (BDT) and redirect_url\n(HTTPS). The server derives BDT/paisa, merchant_reference, currency BDT\nand default expiry (30 minutes). Existing integrations may continue\nsending amount_minor, merchant_reference, currency and expiry.\nLinked order/invoice requests still resolve the amount from the\nfrozen tenant source. Supplying amount and amount_minor together is\ninvalid. Idempotency-Key is optional but strongly recommended: reuse\nthe same key and body to get a single intent on retries.\nwebhook_url is securely bound to this payment automatically;\nsigned webhook delivery is handled by the normal endpoint worker.\nA redirect or unsigned callback never proves payment.\n",
+        "description": "Simple standalone payments require only amount (BDT); redirect_url is optional for apps and bots\n(HTTPS). The server derives BDT/paisa, merchant_reference, currency BDT\nand default expiry (30 minutes). Existing integrations may continue\nsending amount_minor, merchant_reference, currency and expiry.\nLinked order/invoice requests still resolve the amount from the\nfrozen tenant source. Supplying amount and amount_minor together is\ninvalid. Idempotency-Key is optional but strongly recommended: reuse\nthe same key and body to get a single intent on retries.\nwebhook_url is securely bound to this payment automatically;\nsigned webhook delivery is handled by the normal endpoint worker.\nA redirect or unsigned callback never proves payment.\n",
         "security": [
           {
             "MerchantBearer": []
@@ -59425,8 +60478,7 @@
                 "oneOf": [
                   {
                     "required": [
-                      "amount",
-                      "redirect_url"
+                      "amount"
                     ]
                   },
                   {

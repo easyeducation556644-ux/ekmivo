@@ -48,6 +48,7 @@
 .pa-security .ek-verify-card li{font-family:"Geist Mono",monospace;border:1px solid var(--border);border-radius:7px;padding:8px;font-size:11px;overflow-wrap:anywhere}
 .pa-security .ek-form-error{color:#dc2626!important}
 @media(max-width:550px){.pa-security{padding:16px}.pa-security .ek-verify-card ul{grid-template-columns:1fr}}
+@media(max-width:360px){.pa-topbar{gap:6px;padding-inline:10px}.pa-search-launch{padding:6px}.pa-topbar-end{gap:2px}.pa-toolbar-select{max-width:54px}}
 
 
 /* Admin operational controls: same tokens for both products, no pricing styles changed. */

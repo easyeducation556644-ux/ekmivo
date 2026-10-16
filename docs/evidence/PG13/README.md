@@ -16,3 +16,8 @@ Shared source checks and remaining code: [implementation status](../../IMPLEMENT
 Privacy source now includes owner-confirmed cancellation while all stores remain pending, immutable retention re-observation, a bounded encrypted private-object export, an explicitly reviewed expired-object cleanup command and authenticated SQL/object archive recovery. SQL migration 0043 is unapplied and untested in a disposable database. The export and cleanup commands have not run against storage; complete deletion, retention and managed backup expiration remain open.
 
 Settings edit now registers the existing route draft guard; navigation can save to the real versioned settings endpoint or discard locally. Component TypeScript and targeted ESLint pass. Browser interaction remains untested.
+
+
+## Managed plans continuation — 2026-10-16
+
+Versioned Free/Paid/Custom catalog, immutable purchased terms, workspace-level reservation/consumption enforcement, audited admin subscription management, public pricing and merchant usage are implemented. Detailed actual checks and release limitations: [managed plans evidence](../MANAGED-PLANS-20261016/README.md). No production migration or full PG13 acceptance is claimed.

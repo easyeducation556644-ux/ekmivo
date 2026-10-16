@@ -20,7 +20,7 @@ export async function POST(request:Request){
  if(input.action==="create"){
   if(typeof input.amount!=="number"||!Number.isFinite(input.amount)||input.amount<=0||input.amount>1000000000||!/^\d+(?:\.\d{1,2})?$/.test(String(input.amount)))return failure("INVALID_AMOUNT",422);
   if(typeof input.idempotencyKey!=="string"||!/^[A-Za-z0-9_.:-]{16,128}$/.test(input.idempotencyKey))return failure("INVALID_IDEMPOTENCY_KEY",422);
-  try{if(typeof input.redirect_url!=="string")throw Error();const u=new URL(input.redirect_url);if(u.protocol!=="https:"||u.username||u.password||u.hash||input.redirect_url.length>2048)throw Error()}catch{return failure("INVALID_REDIRECT_URL",422)}
+  if(input.redirect_url!==undefined&&input.redirect_url!=="")try{if(typeof input.redirect_url!=="string")throw Error();const u=new URL(input.redirect_url);if(u.protocol!=="https:"||u.username||u.password||u.hash||input.redirect_url.length>2048)throw Error()}catch{return failure("INVALID_REDIRECT_URL",422)}
  }
  const target=goOrigin();if(!target)return failure("SANDBOX_API_UNAVAILABLE",503);
  const headers:Record<string,string>={Authorization:"Bearer "+input.testKey,"Content-Type":"application/json"};
