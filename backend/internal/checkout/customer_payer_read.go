@@ -37,6 +37,7 @@ ORDER BY evidence_rank,customer_id LIMIT 150`
 // never inherit payer identity, and missing evidence is never reconstructed
 // from a four-digit suffix.
 func (s *Service) supplementCustomerPayerNumbers(r *http.Request, ws, realm string, result any, role string) {
+	log.Printf("customer_payer_recovery stage=request role=%s", role)
 	if role != "owner" && role != "admin" {
 		return
 	}
@@ -66,6 +67,7 @@ func (s *Service) supplementCustomerPayerNumbers(r *http.Request, ws, realm stri
 		ids = append(ids, id)
 		byID[id] = body
 	}
+	log.Printf("customer_payer_recovery stage=customer_groups count=%d", len(ids))
 	if len(ids) == 0 {
 		return
 	}
@@ -111,6 +113,7 @@ func (s *Service) supplementCustomerPayerNumbers(r *http.Request, ws, realm stri
 			unresolved = append(unresolved, id)
 		}
 	}
+	log.Printf("customer_payer_recovery stage=contact_result unresolved=%d", len(unresolved))
 	if len(unresolved) != 0 {
 		s.recoverPayersFromVerifiedSMS(r, ws, realm, unresolved, byID)
 	}
@@ -143,10 +146,12 @@ func readEncryptedPayerPhone(secret []byte, b64, aad string) string {
 		Phone string `json:"phone"`
 	}
 	if json.Unmarshal(plain, &contact) != nil {
+		log.Print("customer_payer_recovery stage=contact_json invalid=true")
 		return ""
 	}
 	phone, valid := deviceevidence.NormalizeNumber(contact.Phone)
 	if !valid {
+		log.Print("customer_payer_recovery stage=contact_number invalid=true")
 		return ""
 	}
 	return phone
