@@ -6,6 +6,7 @@ import type {FormEvent} from "react";
 import Link from "next/link";
 import {DashboardIcon} from "./dashboard-icon";
 import {PaymentReportLedger} from "./payment-report-ledger";
+import {DashboardDateRangePicker} from "./dashboard-date-controls";
 
 type Locale="en"|"bn";
 type MoneyRow={amount_minor:number;payment_count:number};
@@ -63,7 +64,7 @@ function validateReport(value:unknown):value is Report{
  }
  return true;
 }
-function cash(minor:number,locale:Locale){return new Intl.NumberFormat(locale==="bn"?"bn-BD":"en-BD",{style:"currency",currency:"BDT"}).format(minor/100)}
+function cash(minor:number,locale:Locale){return "BDT "+new Intl.NumberFormat(locale==="bn"?"bn-BD":"en-GB",{minimumFractionDigits:2,maximumFractionDigits:2}).format(minor/100)}
 function numeric(value:number,locale:Locale){return new Intl.NumberFormat(locale==="bn"?"bn-BD":"en-BD").format(value)}
 function escapeCSV(value:unknown){
  const raw=String(value??"");
@@ -110,7 +111,18 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
  const [response,setResponse]=useState<ViewState|null>(seed?.data&&validateReport(seed.data)?{report:seed.data,filters:initialFilters}:null);
  const [loading,setLoading]=useState(!seed),[error,setError]=useState(seed?.error??""),[refresh,setRefresh]=useState(0);
  const [accounts,setAccounts]=useState<AccountOption[]>(accountSeed?.data?.receiving?.items??[]),[accountError,setAccountError]=useState(false);
+ const [accountNumbers,setAccountNumbers]=useState<Record<string,string>>({});
  const root="/w/"+workspaceId+"/payments/";
+ useEffect(()=>{
+  if(!canReveal)return;
+  const controller=new AbortController();
+  void fetch("/api/go/workspaces/"+workspaceId+"/phones?environment="+encodeURIComponent(environment),{cache:"no-store",credentials:"same-origin",signal:controller.signal})
+   .then(async response=>{if(!response.ok)throw Error(String(response.status));return response.json()})
+   .then(data=>{if(controller.signal.aborted||!Array.isArray(data?.accounts))return;const full:Record<string,string>={};for(const item of data.accounts){if(typeof item?.ID==="string"&&typeof item?.Number==="string"){const digits=item.Number.replace(/\\D/g,"");const local=digits.startsWith("880")?digits.slice(3):digits.startsWith("0")?digits.slice(1):digits;full[item.ID]=local.length===10?"+880 "+local.slice(0,4)+" "+local.slice(4):item.Number}}setAccountNumbers(full)})
+   .catch(()=>{/* Receiving account detail is permission-gated; never invent a full number. */});
+  return()=>controller.abort();
+ },[canReveal,workspaceId,environment]);
+
  const applies=draft.from===applied.from&&draft.to===applied.to&&draft.account===applied.account;
  const pending=useMemo(()=>dateRange(draft),[draft]);
  const labels:Record<Section,string>={summary:t("Summary","সারাংশ"),payments:t("Payments","পেমেন্ট"),methods:t("Methods","মাধ্যম"),customers:t("Customers","গ্রাহক"),refunds:t("Refunds","রিফান্ড"),payouts:t("Payouts","পেআউট")};
@@ -211,19 +223,18 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
     <button type="button" aria-pressed={preset==="custom"} onClick={()=>setPreset("custom")}>{t("Custom","নিজের মতো")}</button>
    </div>
    <form onSubmit={apply} className="er-filter-fields">
-    <label><span>{t("From","শুরু")}</span><input type="date" required value={draft.from} onChange={e=>{setPreset("custom");setDraft(v=>({...v,from:e.target.value}))}}/></label>
-    <label><span>{t("To","শেষ")}</span><input type="date" required value={draft.to} onChange={e=>{setPreset("custom");setDraft(v=>({...v,to:e.target.value}))}}/></label>
+    <DashboardDateRangePicker locale={locale} from={draft.from} to={draft.to} onChange={(from,to)=>{setPreset("custom");setDraft(v=>({...v,from,to}))}}/>
     <label className="er-account-filter"><span>{t("Account","অ্যাকাউন্ট")}</span><select value={draft.account} disabled={accountError} onChange={e=>setDraft(v=>({...v,account:e.target.value}))}>
-      <option value="">{t("All accounts","সব অ্যাকাউন্ট")}</option>{accounts.map(a=><option key={a.id} value={a.id}>{a.method} · ••••{a.display_suffix}</option>)}
+      <option value="">{t("All accounts","সব অ্যাকাউন্ট")}</option>{accounts.map(a=><option key={a.id} value={a.id}>{a.method}{accountNumbers[a.id]?" · "+accountNumbers[a.id]:""}</option>)}
      </select></label>
     <button type="submit" className="er-apply" disabled={loading}>{t("Apply","প্রয়োগ করুন")}</button>
    </form>
    {accountError&&<p className="er-inline-notice" role="status">{t("Account filter unavailable. All-account reporting still works.","অ্যাকাউন্ট ফিল্টার পাওয়া যাচ্ছে না; সব অ্যাকাউন্টের রিপোর্ট দেখা যাবে।")}</p>}
-   {!applies&&!loading&&<p className="er-inline-notice" role="status">{t("Filters changed — apply to update the report.","ফিল্টার বদলেছে—রিপোর্ট আপডেট করতে প্রয়োগ করুন।")}</p>}
+   
   </section>
   {loading&&<div className="er-status" role="status">{t("Updating report…","রিপোর্ট আপডেট হচ্ছে…")}</div>}
   {error&&<div className="er-error" role="alert"><span>{error}</span><button type="button" onClick={()=>setRefresh(n=>n+1)}>{t("Retry","আবার চেষ্টা")}</button></div>}
-  {stale&&displayed&&<p className="er-inline-notice er-stale">{t("Displaying the previous successful report until new data loads.","নতুন তথ্য আসা পর্যন্ত আগের সফল রিপোর্ট দেখানো হচ্ছে।")}</p>}
+  
   {!displayed&&!loading&&!error&&<section className="er-empty">{t("No report available yet.","এখনো রিপোর্ট পাওয়া যায়নি।")}</section>}
   {displayed&&<div className="er-results" aria-busy={loading}>
    <div className="er-result-period"><span>{active.from} — {active.to}{active.account?" · "+t("Selected account","নির্বাচিত অ্যাকাউন্ট"):""}</span>{generated&&<span>{t("Updated","আপডেট")}: {generated}</span>}</div>
