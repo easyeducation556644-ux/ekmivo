@@ -20,7 +20,7 @@ async function change(localeParam:string, operation:"recover"|"rotate"|"reset", 
  const password=form.get("password"),code=form.get("recoveryCode");
  const rows=await database()`SELECT password_hash FROM app_users WHERE id=${user.id}::uuid AND disabled_at IS NULL`;
  const correct=typeof password==="string"&&password.length<=256&&rows.length>0&&await passwordMatches(password,String(rows[0].password_hash));
- const generated=operation==="rotate"?Array.from({length:8},()=>randomBytes(24).toString("base64url")):[];
+ const generated=operation==="rotate"?Array.from({length:10},()=>randomBytes(24).toString("base64url")):[];
  const digest=(value:string)=>createHash("sha256").update(user.id+":"+value).digest("hex");
  try {
   const outcome=await database().begin(async tx=>{
