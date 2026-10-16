@@ -1,5 +1,7 @@
 # Managed payment plans — 2026-10-16
 
+> **Latest production rollout — 2026-10-16 14:20 UTC:** Owner authorized completing rollout after merging #69/#70. Control 0067 and Sandbox/Live financial 0068 are now applied through the existing targeted coordinator. Both Vercel production `dpl_EshVzpb5T94mZ9SB63tRxp63R6fu` and Render API `dep-db932ck4ljoc73d1fp80` are live on merged commit `65d6f80ec290c6f7fa366b2378a8d1c9c153f288`. Notes below describing unmerged/unapplied state are historical checkpoints, superseded by this block. Full financial release acceptance is still not claimed.
+
 Implementation scope: PG13 billing/catalog and public pricing continuation. This is not whole-PG13 acceptance, a production rollout, real-provider payment proof or AI billing implementation.
 
 ## Delivered behavior
@@ -46,3 +48,11 @@ Source commit `9255e02c1977bdf89632b8081bac737bafbcd949` is pushed in draft [PR 
 Owner explicitly requested merging #69 and #70. Integrated #69 head `4bf3ff0fd00a63ecca979719429d657b34bf6f93` into #70, resolving three conflicts while preserving fresh MFA, compact mobile header, global billing/subscription/invoice/revenue inventory, workspace product/environment operations and payment plan management. Workspace Billing retains invoices and adds subscription management; Payment plans has its own workspace tab. Infinite free access is safely formatted in legacy inventory views.
 
 Combined final Next production build and TypeScript PASS. Targeted combined-admin ESLint exits 0 with five unused-variable warnings. Twelve authenticated built-server read routes PASS against the isolated Neon branch (including both workspace billing and plan routes); `merge-smoke.txt` records them. No production mutations, new financial schema rollout, real admin mutations or live payment acceptance is inferred. #69 CI also has zero executed steps due to the same account-billing annotation. No Docker run.
+
+## Production outcome
+
+Before/after probes in `production-before.json` and `production-after.json` confirm correct database/owner identities, all seven financial triggers, active-reservation index, restricted reader/runtime grants and zero missing purchased-version bindings. Existing data unchanged: control plans 1/subscriptions 1/invoices 0/keys 3/members 3; Sandbox intents 16/payments 2/allocations 2; Live intents 21/payments 3/allocations 3. One existing subscription remains active. Historical accepted work remains unmetered; no sample pricing, payment, customer, receipt or public subscription was manufactured.
+
+Production `/pricing` returns HTTP 200, loads the catalog successfully and honestly reports no published public plans (catalog public count zero). The owner can now configure/publish Free/Paid/Custom plans in Admin → Plans. API `/healthz` returns 200; protected allowance endpoint without credentials returns 401 as expected.
+
+API `/readyz` remains 503 with `financial_release_verification_pending`; both realms' existing `pg15_health()` worker flags are false. Render workspace has no dedicated standalone payment workers. This is **not** evidence that primary signed-phone matching is broken: `phone_forward.go` commits evidence then invokes `pg07_match` synchronously in the API, independently of a worker. Existing receipt capture/primary verification can therefore work without a standalone worker. Background pipeline retries, webhook dispatch, exports and periodic maintenance/automatic billing reconciliation need their existing worker runtime for guaranteed background execution. No paid worker service was provisioned without a deployment/cost decision. No real payment or new production mutation test was performed. The owner was informed; no readiness flag or worker heartbeat was fabricated.
