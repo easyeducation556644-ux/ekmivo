@@ -36,3 +36,7 @@ Neon project: `sparkling-mountain-38618629`. Main test branch: `br-still-fog-b38
 4. Reconcile existing purchased subscriptions, verify a real owner-controlled platform billing payment and worker renewal, real fresh-MFA challenge, accepted-payment completion across expiry, and screen-reader/keyboard/System-theme flows. Details in the consolidated `docs/MANUAL-VERIFICATION.md`.
 
 No production migration, deployment, load capacity or revenue correctness is inferred from these source/test results. The existing platform receiving workspace/phone configuration is required for paid checkout. No auto-charge or real provider integration was fabricated.
+
+## Remote review checkpoint
+
+Source commit `9255e02c1977bdf89632b8081bac737bafbcd949` is pushed in draft [PR #70](https://github.com/masharzy/ekmivo/pull/70). Vercel preview succeeded. [Foundation CI run 38892196859](https://github.com/masharzy/ekmivo/actions/runs/38892196859) did **not execute any job steps** (all four jobs had zero steps): GitHub's annotation says recent account payments failed or its spending limit must be increased. These are not passing CI results and are not test failures observed in executed source. Local/Neon verification above remains separately evidenced. PR is not merged; production migrations are not applied.
