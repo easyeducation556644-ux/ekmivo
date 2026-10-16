@@ -171,7 +171,7 @@ function SectionHead({eyebrow,title,marked,lead,center=false}:{eyebrow:string;ti
  </div>;
 }
 
-export function MarketingExperience({locale}:{locale:Locale}){
+export function MarketingExperience({locale,pricing}:{locale:Locale;pricing?:import("react").ReactNode}){
  const t=copy[locale];
  const [mode,setMode]=useState<WorkflowMode>("payments");
  const steps=mode==="payments"?t.paySteps:t.aiSteps;
@@ -298,6 +298,7 @@ export function MarketingExperience({locale}:{locale:Locale}){
   </section>
 
 
+  {pricing}
   <section className="em-section em-faq" id="faq"><div className="em-container em-faq-grid"><SectionHead eyebrow={t.faqEyebrow} title={t.faqTitle} marked=""/><div className="em-questions">
    {t.faqs.map(([question,answer])=><details key={question}><summary><strong>{question}</strong><span className="em-faq-plus" aria-hidden="true">+</span></summary><p>{answer}</p></details>)}
   </div></div></section>

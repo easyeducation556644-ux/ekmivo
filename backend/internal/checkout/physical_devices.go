@@ -89,7 +89,7 @@ func (s *Service) HandlePhones(w http.ResponseWriter,r *http.Request) {
  if e:=decodeBounded(w,r,&body,4096);e!=nil{fail(w,422,"INVALID_REQUEST");return}
  var raw []byte
  token:=""
- e:=s.pipelineScoped(r.Context(),ws,realm,func(tx pgx.Tx)error{
+ e:=s.creationScoped(r.Context(),ws,realm,func(tx pgx.Tx)error{
   switch{
   case id==""&&action=="":
    if strings.TrimSpace(body.Name)==""||len(body.Name)>80{return errors.New("phone name required")}

@@ -53,8 +53,11 @@ func (s *Service) HandleBilling(w http.ResponseWriter, r *http.Request) {
 			mapped(w, e)
 			return
 		}
-		var d any
-		_ = json.Unmarshal(raw, &d)
+		d, usageErr := s.attachPlanUsage(r.Context(), ws, raw)
+		if usageErr != nil {
+			fail(w, 503, "PLAN_USAGE_UNAVAILABLE")
+			return
+		}
 		write(w, 200, d)
 		return
 	}
@@ -92,6 +95,25 @@ func (s *Service) HandleBilling(w http.ResponseWriter, r *http.Request) {
 			fail(w, 403, "ACCESS_DENIED")
 			return
 		}
+	}
+	// Free activation requires no receiving account, paid invoice or external checkout.
+	if r.PathValue("billingAction") == "free" {
+		var b struct {
+			Plan string `json:"plan_id"`
+		}
+		if decodeBounded(w, r, &b, 1024) != nil {
+			fail(w, 422, "INVALID_BILLING_REQUEST")
+			return
+		}
+		e = s.Auth.DB.QueryRowContext(r.Context(), "SELECT payment_plan_claim_free($1::uuid,$2::uuid,$3)", ws, actor.UserID, b.Plan).Scan(&raw)
+		if e != nil {
+			mapped(w, e)
+			return
+		}
+		var d any
+		_ = json.Unmarshal(raw, &d)
+		write(w, 200, d)
+		return
 	}
 	platform := os.Getenv("PLATFORM_BILLING_WORKSPACE_ID")
 	if !s.pipelineReady() || s.Pipeline.Live == nil || !uuidPattern.MatchString(platform) || platform == ws {
@@ -166,7 +188,7 @@ func (s *Service) HandleBilling(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = json.Unmarshal(raw, &invoice)
 	cap := s.token(platform, "live", "billing:"+invoice.ID)
-	e = s.pipelineScoped(r.Context(), platform, "live", func(tx pgx.Tx) error {
+	e = s.creationScoped(r.Context(), platform, "live", func(tx pgx.Tx) error {
 		var result []byte
 		return tx.QueryRow(r.Context(), "SELECT pg10_intent($1::uuid,'live',$2,$3,60,$4,$5,$6)", platform, "SAAS-"+invoice.ID, invoice.Amount, "billing:"+invoice.ID, digest(cap), digest(invoice.ID)).Scan(&result)
 	})

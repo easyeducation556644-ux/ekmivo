@@ -1,0 +1,16 @@
+import Link from "next/link";
+import {featureLabels,limitLabels,planName,planPrice,type PaymentPlan} from "../lib/payment-plans";
+export function PaymentPlanCards({plans,locale,preview=false}:{plans:PaymentPlan[];locale:"en"|"bn";preview?:boolean}){
+ const bn=locale==="bn",t=(en:string,b:string)=>bn?b:en;
+ return <div className="mp-price-grid">{plans.map(p=>{const x=p.terms;const href=x.kind==="custom"?(x.contact_url||`/${locale}/#contact`):`/${locale}/subscribe/${encodeURIComponent(p.id)}`;
+ return <article className={"mp-price-card"+(x.badge?" mp-highlight":"")} key={p.id}>
+  {(x.badge||x.badge_bn)&&<span className="mp-badge">{bn&&x.badge_bn?x.badge_bn:x.badge}</span>}
+  <h3>{planName(x,bn)}</h3><p>{bn&&x.description_bn?x.description_bn:x.description}</p>
+  <div className="mp-price">{planPrice(x,bn)}</div><small>{x.kind==="paid"?t(`every ${x.period_days} days`,`প্রতি ${x.period_days} দিন`):x.kind==="custom"?t("Terms agreed with your business","আপনার ব্যবসা অনুযায়ী শর্ত"):x.free_days?t(`Free for ${x.free_days} days from activation`,`চালু করার পর ${x.free_days} দিন ফ্রি`):t("Always free","সবসময় ফ্রি")}</small>
+  <strong>{x.payment_limit===null?t("Unlimited successful payments","আনলিমিটেড সফল পেমেন্ট"):t(`${x.payment_limit.toLocaleString()} successful payments`,`${x.payment_limit.toLocaleString("bn-BD")}টি সফল পেমেন্ট`)}</strong>
+  <small>{x.quota_period==="calendar"?t("Each calendar month · Dhaka time","প্রতি ক্যালেন্ডার মাস · ঢাকা সময়"):x.quota_period==="term"?t("For the subscription term","পুরো সাবস্ক্রিপশন মেয়াদে"):t(`Each ${x.period_days}-day allowance period`,`প্রতি ${x.period_days} দিনের ব্যবহার মেয়াদে`)}</small>
+  <ul><li>{t("Unlimited website, app & bot integrations","ইচ্ছেমতো website, app ও bot integration")}</li>{Object.entries(featureLabels).map(([key,labels])=><li key={key} className={!x.features[key as keyof typeof x.features]?"mp-excluded":""}>{x.features[key as keyof typeof x.features]?"✓":"—"} {labels[bn?1:0]}</li>)}</ul>
+  <dl className="mp-resources">{Object.entries(limitLabels).map(([key,label])=><div key={key}><dt>{label[bn?1:0]}</dt><dd>{x.limits[key as keyof typeof x.limits]??t("Unlimited","আনলিমিটেড")}</dd></div>)}</dl>
+  {preview?<span className="mp-cta">{t("Plan preview","প্ল্যান প্রিভিউ")}</span>:<Link prefetch={false} className="mp-cta" href={href}>{x.kind==="custom"?t("Contact sales","যোগাযোগ করুন"):x.kind==="free"?t("Start free","ফ্রি শুরু করুন"):t("Choose plan","প্ল্যান বেছে নিন")} ↗</Link>}
+ </article>})}</div>
+}

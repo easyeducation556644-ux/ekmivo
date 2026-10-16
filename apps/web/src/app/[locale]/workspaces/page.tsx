@@ -8,5 +8,6 @@ export default async function WorkspacesPage({params}:{params:Promise<{locale:st
  const [spaces,preferred,jar]=await Promise.all([workspacesFor(user.id),preferredWorkspaceFor(user.id),cookies()]);
  const stored=jar.get("ekmivo-theme")?.value;
  const theme=stored==="light"||stored==="dark"?stored:"system";
- return <WorkspacesV2 locale={locale} user={{id:user.id,name:user.name}} initialWorkspaces={spaces} initialDefault={preferred?.id??null} initialTheme={theme}/>;
+ const chosen=jar.get("ekmivo-selected-plan")?.value??"";
+ return <WorkspacesV2 locale={locale} user={{id:user.id,name:user.name}} initialWorkspaces={spaces} initialDefault={preferred?.id??null} initialTheme={theme} selectedPlan={/^[a-z][a-z0-9_-]{1,39}$/.test(chosen)?chosen:""}/>;
 }

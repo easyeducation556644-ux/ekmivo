@@ -60,6 +60,7 @@ func newHandlerWithRepository(repo *authz.Repository) http.Handler {
 }
 func newHandlerWithCheckout(repo *authz.Repository, pay *checkout.Service) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /v1/platform/workspaces/{workspaceID}/payment-usage", pay.HandleAdminPlanUsage)
 	mux.HandleFunc("POST /v1/public-sandbox/receiver/{receiverID}", pay.HandlePublicSandboxReceiver)
 	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/activity/{activityKind}", pay.HandleActivity)
 	mux.HandleFunc("POST /v1/public/checkout/{token}/notices/{noticeAction}", pay.HandleNotice)
@@ -90,6 +91,10 @@ func newHandlerWithCheckout(repo *authz.Repository, pay *checkout.Service) http.
 	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/exports/{exportID}", pay.HandleExports)
 	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/exports/{exportID}/{exportAction}", pay.HandleExports)
 	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/billing", pay.HandleBilling)
+	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/billing/free", func(w http.ResponseWriter, r *http.Request) {
+		r.SetPathValue("billingAction", "free")
+		pay.HandleBilling(w, r)
+	})
 	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/billing/{invoiceID}/{billingAction}", pay.HandleBilling)
 	for _, method := range []string{"GET", "POST", "PATCH"} {
 		mux.HandleFunc(method+" /v1/workspaces/{workspaceID}/documents/{document}", pay.HandleDocuments)

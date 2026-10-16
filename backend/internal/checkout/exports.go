@@ -36,6 +36,9 @@ func (s *Service) HandleExports(w http.ResponseWriter, r *http.Request) {
 	}
 	var raw []byte
 	if r.Method == "POST" {
+		if !s.planFeature(w, r, ws, realm, "exports") {
+			return
+		}
 		if !originAllowed(r) {
 			fail(w, 403, "ORIGIN_DENIED")
 			return

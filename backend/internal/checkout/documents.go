@@ -218,6 +218,15 @@ func (s *Service) HandleDocuments(w http.ResponseWriter, r *http.Request) {
 	w, finishActivity := s.observeAPI(w, r, ws, realm)
 	defer finishActivity()
 	id, action := r.PathValue("documentID"), r.PathValue("documentAction")
+	if mutation && id == "" && (res == "invoices" || res == "payment-links") {
+		feature := "invoices"
+		if res == "payment-links" {
+			feature = "payment_links"
+		}
+		if !s.planFeature(w, r, ws, realm, feature) {
+			return
+		}
+	}
 	if id != "" && !validDocumentID(res, id) {
 		fail(w, 404, "NOT_FOUND")
 		return
@@ -231,6 +240,9 @@ func (s *Service) HandleDocuments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if action == "export" {
+		if !s.planFeature(w, r, ws, realm, "exports") {
+			return
+		}
 		if role != "owner" && role != "admin" {
 			fail(w, 403, "ACCESS_DENIED")
 			return
@@ -325,8 +337,8 @@ func (s *Service) HandleDocuments(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if !mutation && res == "customers" {
-        s.supplementCustomerPayerNumbers(r,ws,realm,result,role)
-    }
+		s.supplementCustomerPayerNumbers(r, ws, realm, result, role)
+	}
 	attachDocumentTokens(s, ws, realm, result)
 	if role == "viewer" {
 		maskContacts(result)
@@ -613,34 +625,38 @@ func (s *Service) HandlePublicDocument(w http.ResponseWriter, r *http.Request) {
 		// identities, receiving numbers or unreleased parser rules.
 		if doc.Environment == "live" {
 			var sourceBytes []byte
-			err := s.pipelineScoped(r.Context(),doc.Workspace,doc.Environment,func(tx pgx.Tx)error{
-				return tx.QueryRow(r.Context(),"SELECT pg10_public_payment_sources($1::uuid,$2)",doc.Workspace,doc.Environment).Scan(&sourceBytes)
+			err := s.pipelineScoped(r.Context(), doc.Workspace, doc.Environment, func(tx pgx.Tx) error {
+				return tx.QueryRow(r.Context(), "SELECT pg10_public_payment_sources($1::uuid,$2)", doc.Workspace, doc.Environment).Scan(&sourceBytes)
 			})
-			if err!=nil {fail(w,503,"DOCUMENT_SOURCE_UNAVAILABLE");return}
-			var selection struct{
+			if err != nil {
+				fail(w, 503, "DOCUMENT_SOURCE_UNAVAILABLE")
+				return
+			}
+			var selection struct {
 				Configured []string `json:"configured_methods"`
 			}
-			if json.Unmarshal(sourceBytes,&selection)!=nil{fail(w,503,"INVALID_DOCUMENT_RESULT");return}
-			allowed:=s.liveMethods(sourceBytes)
-			methods:=[]string{}
-			for _,method:=range []string{"bkash","nagad","rocket"}{
-				if allowed[method]{methods=append(methods,method)}
+			if json.Unmarshal(sourceBytes, &selection) != nil {
+				fail(w, 503, "INVALID_DOCUMENT_RESULT")
+				return
 			}
-			data["configured_methods"]=selection.Configured
-			data["methods"]=methods
-		}else{
-			data["configured_methods"]=[]string{"bkash","nagad","rocket"}
-			data["methods"]=[]string{"bkash","nagad","rocket"}
+			allowed := s.liveMethods(sourceBytes)
+			methods := []string{}
+			for _, method := range []string{"bkash", "nagad", "rocket"} {
+				if allowed[method] {
+					methods = append(methods, method)
+				}
+			}
+			data["configured_methods"] = selection.Configured
+			data["methods"] = methods
+		} else {
+			data["configured_methods"] = []string{"bkash", "nagad", "rocket"}
+			data["methods"] = []string{"bkash", "nagad", "rocket"}
 		}
 		write(w, 200, data)
 		return
 	}
 	if !originAllowed(r) {
 		fail(w, 403, "ORIGIN_DENIED")
-		return
-	}
-	if !s.billingAllowsNew(r.Context(), doc.Workspace, doc.Environment) {
-		fail(w, 403, "SUBSCRIPTION_REQUIRED")
 		return
 	}
 	key := r.Header.Get("Idempotency-Key")
@@ -674,7 +690,9 @@ func (s *Service) HandlePublicDocument(w http.ResponseWriter, r *http.Request) {
 	fields, _ := json.Marshal(b.Fields)
 	key = "visit:" + digest(cap+"|"+key)
 	token := s.token(doc.Workspace, doc.Environment, key)
-	e = pool.QueryRow(r.Context(), "SELECT pg10_visit($1,$2,$3,$4,$5::jsonb)", digest(cap), key, digest(cap+string(fields)), digest(token), string(fields)).Scan(&raw)
+	e = s.creationScoped(r.Context(), doc.Workspace, doc.Environment, func(tx pgx.Tx) error {
+		return tx.QueryRow(r.Context(), "SELECT pg10_visit($1,$2,$3,$4,$5::jsonb)", digest(cap), key, digest(cap+string(fields)), digest(token), string(fields)).Scan(&raw)
+	})
 	if e != nil {
 		mapped(w, e)
 		return

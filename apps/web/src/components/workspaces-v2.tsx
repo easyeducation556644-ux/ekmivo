@@ -55,7 +55,7 @@ function WorkspaceHeaderControls({locale,initialTheme}:{locale:Locale;initialThe
   </button>
  </div>;
 }
-export function WorkspacesV2({locale,user,initialWorkspaces,initialDefault,initialTheme}:{locale:Locale;user:{id:string;name:string};initialWorkspaces:Workspace[];initialDefault:string|null;initialTheme:Theme}){
+export function WorkspacesV2({locale,user,initialWorkspaces,initialDefault,initialTheme,selectedPlan=""}:{locale:Locale;user:{id:string;name:string};initialWorkspaces:Workspace[];initialDefault:string|null;initialTheme:Theme;selectedPlan?:string}){
  const t=copy[locale];const router=useRouter();
  const [rows,setRows]=useState(initialWorkspaces),[defaultId,setDefaultId]=useState(initialDefault);
  const [createOpen,setCreateOpen]=useState(false),[selected,setSelected]=useState<string|null>(null);
@@ -135,7 +135,7 @@ export function WorkspacesV2({locale,user,initialWorkspaces,initialDefault,initi
      <span className="wk2-avatar" aria-hidden="true">{w.name.trim().charAt(0).toUpperCase()}</span>
      <div className="wk2-row-info"><div className="wk2-name"><strong>{w.name}</strong>{w.id===defaultId&&<span className="wk2-default">{t.default}</span>}</div><small>{meta(w)}</small></div>
      <div className="wk2-row-actions"><button type="button" className="wk2-button" onClick={()=>openManage(w.id)}>{t.manage}</button>
-      <Link href={`/${locale}/w/${w.id}/dashboard`} prefetch onMouseEnter={()=>router.prefetch(`/${locale}/w/${w.id}/dashboard`)} onFocus={()=>router.prefetch(`/${locale}/w/${w.id}/dashboard`)} onClick={()=>setNavigating(true)} className="wk2-button wk2-primary">{t.open}</Link></div>
+      <Link href={selectedPlan&&(w.mode==="commerce"||w.mode==="both")?`/${locale}/subscribe/${selectedPlan}?workspace=${w.id}`:`/${locale}/w/${w.id}/dashboard`} prefetch={false} onClick={()=>setNavigating(true)} className="wk2-button wk2-primary">{selectedPlan&&(w.mode==="commerce"||w.mode==="both")?(locale==="bn"?"প্ল্যান বেছে নিন":"Choose plan"):t.open}</Link></div>
     </div>)}
    </section>
   </div>

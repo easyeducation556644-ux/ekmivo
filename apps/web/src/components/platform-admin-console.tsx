@@ -12,6 +12,7 @@ import {publicSandboxConfig} from "../lib/server/public-sandbox";
 import {VerificationSettings,RoleControls} from "./admin-controls";
 import {AdminShell,type AdminLocale} from "./platform-admin-shell";
 import {AdminModal,AdminCopy} from "./platform-admin-widgets";
+import {AdminPaymentPlansPage} from "./admin-payment-plans-page";
 
 type RecordRow={id:string;cells:string[];href?:string};
 type RecordPage={columns:string[];rows:RecordRow[];next?:string};
@@ -165,10 +166,12 @@ export async function PlatformAdminConsole({locale,segments=[],query="",after=""
  let body:ReactNode;
  if(!key){body=<Overview locale={locale} isSuper={isSuper}/>;}
  else if((key==="workspaces"||key==="users")&&extra[0]){
- body=!isSuper?<><PageHead title={t}/><Denied locale={locale}/></>:extra[1]&&extra[1]!=="overview"?<><PageHead title={t}/><Offline locale={locale}/></>:<Details locale={locale} kind={key} id={extra[0]}/>;
+ body=!isSuper?<><PageHead title={t}/><Denied locale={locale}/></>:key==="workspaces"&&["products-plan","billing","usage-credits"].includes(extra[1])?<AdminPaymentPlansPage locale={locale} actor={admin.user.id} workspace={extra[0]}/>:extra[1]&&extra[1]!=="overview"?<><PageHead title={t}/><Offline locale={locale}/></>:<Details locale={locale} kind={key} id={extra[0]}/>;
  }else if(key==="workspaces"||key==="users"||key==="audit"){
  const page=isSuper?(key==="workspaces"?await workspaces(locale,q,after):key==="users"?await users(locale,q,after):await audit(locale,q)):null;
  body=<><PageHead title={t}/>{page?<><Search locale={locale} query={q}/><Records locale={locale} base={base} query={q} page={page}/></>:<Denied locale={locale}/>}</>;
+ }else if(key==="plans"||key==="billing"){
+ body=isSuper?<AdminPaymentPlansPage locale={locale} actor={admin.user.id}/>:<Denied locale={locale}/>;
  }else if(key==="staff"){
  const page=isSuper&&(!sub||sub==="staff")?await users(locale,q,after,true):null;
  let list:Array<{id:string;name:string;email:string;verified:boolean;role:string|null}>=[];

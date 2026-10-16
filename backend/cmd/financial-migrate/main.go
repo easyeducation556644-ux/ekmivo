@@ -291,6 +291,15 @@ func migratePG05Control(ctx context.Context, raw, filename string) error {
 }
 
 func main() {
+	if os.Getenv("PAYMENT_PLANS_ALLOW_MIGRATION") == "true" {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+		defer cancel()
+		if err := migrateManagedPlans(ctx); err != nil {
+			log.Fatal(err)
+		}
+		log.Print("Managed-plan migrations verified; no older migration path executed")
+		return
+	}
 	if os.Getenv("PG04_ALLOW_MIGRATION") != "true" {
 		log.Fatal("explicit PG04_ALLOW_MIGRATION=true is mandatory")
 	}
@@ -324,15 +333,15 @@ func main() {
 			log.Fatal("dashboard-only release requires explicit 0063, 0064 and 0065 authorization flags")
 		}
 		if os.Getenv("PG66_PAYMENT_SMS_EVIDENCE_ALLOW_MIGRATION") == "true" {
-        file := os.Getenv("PG66_PAYMENT_SMS_EVIDENCE_MIGRATION_FILE")
-        for _, target := range []realmDSN{{"sandbox", sa}, {"live", lv}} {
-            if err := migratePaymentSMSEvidence(ctx, target.environment, target.raw, file); err != nil {
-                log.Fatalf("0066 SMS evidence migration blocked in %s: %v", target.environment, err)
-            }
-        }
-    }
+			file := os.Getenv("PG66_PAYMENT_SMS_EVIDENCE_MIGRATION_FILE")
+			for _, target := range []realmDSN{{"sandbox", sa}, {"live", lv}} {
+				if err := migratePaymentSMSEvidence(ctx, target.environment, target.raw, file); err != nil {
+					log.Fatalf("0066 SMS evidence migration blocked in %s: %v", target.environment, err)
+				}
+			}
+		}
 
-	if err := migrateDashboardUpgrade(ctx, sa, lv, control); err != nil {
+		if err := migrateDashboardUpgrade(ctx, sa, lv, control); err != nil {
 			log.Fatal(err)
 		}
 		log.Print("Dashboard-only migrations 0063/0064 financial and 0065 control verified; no base migrations executed")

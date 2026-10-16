@@ -1,0 +1,7 @@
+control schema ready
+live schema ready
+sandbox schema ready
+admin operation read 42501
+admin operation save 22023
+admin operation save 40001
+PASS: admin authorization, validation, free activation/retry, immutable versions, optimistic edit conflict, private plans, resource cap, 12-way final-slot race, idempotent creation, cancellation, expiry release, verification after subscription expiry, consumption once, tenant isolation, override, paid price snapshots, proof mismatch, duplicate renewal, scheduled paid changes, restricted-role grants, stale snapshot rejection and archival
