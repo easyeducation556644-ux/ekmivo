@@ -10,12 +10,15 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/masharzy/ekmivo/backend/internal/authz"
 	"github.com/masharzy/ekmivo/backend/internal/checkout"
 	"github.com/masharzy/ekmivo/backend/internal/receiptnotice"
+	"github.com/masharzy/ekmivo/backend/internal/workerruntime"
 )
 
 type responseError struct {
@@ -401,5 +404,27 @@ func main() {
 		port = "8080"
 	}
 	log.Printf("ekmivo-api listening on :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, newHandlerWithCheckout(repo, pg05)))
+	runtimeContext, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	workerConfigs, workerErr := workerruntime.HostedConfigs(os.Getenv)
+	if workerErr != nil {
+		log.Printf("API hosted workers not started: %v", workerErr)
+	}
+	group := workerruntime.StartHosted(runtimeContext, workerConfigs)
+	server := &http.Server{Addr: ":" + port, Handler: newHandlerWithCheckout(repo, pg05), ReadHeaderTimeout: 10 * time.Second}
+	httpStopped := make(chan struct{})
+	go func() {
+		defer close(httpStopped)
+		<-runtimeContext.Done()
+		drain, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		_ = server.Shutdown(drain)
+	}()
+	err := server.ListenAndServe()
+	stop()
+	group.Wait()
+	<-httpStopped
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Fatal(err)
+	}
 }
