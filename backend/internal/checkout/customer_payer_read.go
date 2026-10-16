@@ -3,6 +3,7 @@ package checkout
 import (
 	"encoding/base64"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 
@@ -76,6 +77,9 @@ func (s *Service) supplementCustomerPayerNumbers(r *http.Request, ws, realm stri
 	err = s.pipelineScoped(r.Context(), ws, realm, func(tx pgx.Tx) error {
 		return tx.QueryRow(r.Context(), "SELECT pg66_customer_payer_evidence($1::uuid,$2,$3::jsonb)", ws, realm, string(key)).Scan(&raw)
 	})
+	if err != nil {
+		log.Printf("customer_payer_recovery stage=contact_lookup error=%v", err)
+	}
 	if err == nil {
 		var entries []struct {
 			ID     string `json:"id"`
@@ -132,6 +136,7 @@ func readEncryptedPayerPhone(secret []byte, b64, aad string) string {
 	}
 	plain, err := merchantwebhook.Decrypt(secret, cipher, aad)
 	if err != nil {
+		log.Printf("customer_payer_recovery stage=contact_decrypt error=%v", err)
 		return ""
 	}
 	var contact struct {
@@ -207,6 +212,9 @@ func (s *Service) recoverPayersFromVerifiedSMS(r *http.Request, ws, realm string
 		}
 		return nil
 	})
+	if err != nil {
+		log.Printf("customer_payer_recovery stage=sms_lookup error=%v", err)
+	}
 	if err != nil || len(paymentIDs) == 0 {
 		return
 	}
