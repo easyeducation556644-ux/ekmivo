@@ -13,6 +13,7 @@ import {VerificationSettings,RoleControls} from "./admin-controls";
 import {AdminShell,type AdminLocale} from "./platform-admin-shell";
 import {AdminModal,AdminCopy} from "./platform-admin-widgets";
 import {AdminPaymentPlansPage} from "./admin-payment-plans-page";
+import {AdminWorkspaceDetail,AdminUserDetail,AdminGlobalInventory,AdminHealthView,AdminSupportDetail} from "./platform-admin-inventory";
 
 type RecordRow={id:string;cells:string[];href?:string};
 type RecordPage={columns:string[];rows:RecordRow[];next?:string};
@@ -23,7 +24,7 @@ const names:Record<string,[string,string]>={
  plans:["Plans","প্ল্যান"],"gateway/providers":["Providers","প্রোভাইডার"],"gateway/devices":["Receipt devices","রিসিপ্ট ডিভাইস"],
  "gateway/webhooks":["Webhooks & jobs","ওয়েবহুক ও জব"],ai:["AI Bot","এআই বট"],
  api:["API & sandbox","এপিআই ও স্যান্ডবক্স"],health:["Platform health","প্ল্যাটফর্মের অবস্থা"],
- staff:["Staff & security","স্টাফ ও নিরাপত্তা"],audit:["Audit log","অডিট লগ"],settings:["Settings","সেটিংস"]
+ staff:["Staff & security","স্টাফ ও নিরাপত্তা"],audit:["Audit log","অডিট লগ"],support:["Support tickets","সাপোর্ট টিকিট"],privacy:["Privacy requests","গোপনীয়তার আবেদন"],settings:["Settings","সেটিংস"]
 };
 const tabs:Record<string,string[]>={
  payments:["Payments","Exceptions","Disputes","Refunds","Reconciliation"],
@@ -45,7 +46,10 @@ function PageHead({title,action,description}:{title:string;action?:ReactNode;des
 function Offline({locale,description}:{locale:AdminLocale;description?:string}){return <div className="pa-surface pa-not-connected"><p><span className="pa-muted-dot"/>{label(locale,"Not connected","সংযুক্ত নয়")}</p><span>{description||label(locale,"The platform backend does not provide this capability yet.","এই সুবিধাটি এখনো প্ল্যাটফর্মের backend-এ যুক্ত হয়নি।")}</span></div>;}
 function Denied({locale}:{locale:AdminLocale}){return <div className="pa-surface pa-not-connected"><p>{label(locale,"You don't have access to this information.","এই তথ্য দেখার অনুমতি নেই।")}</p></div>;}
 function PageTabs({locale,base,items,active}:{locale:AdminLocale;base:string;items:string[];active?:string}){return <nav className="pa-tabs" aria-label="Sections">{items.map((name,i)=>{const slug=name.toLowerCase().replaceAll(" & ","-").replaceAll(" ","-");return <Link key={slug} href={base+"/"+slug} aria-current={(active||items[0].toLowerCase().replaceAll(" & ","-").replaceAll(" ","-"))===slug?"page":undefined}>{name}</Link>;})}</nav>;}
-function Search({locale,query}:{locale:AdminLocale;query:string}){return <form className="pa-filter-bar" method="get"><label htmlFor="pa-list-search" className="pa-sr-only">Search</label><input id="pa-list-search" type="search" maxLength={80} name="q" defaultValue={query} placeholder={label(locale,"Search name, ID or email","নাম, আইডি বা ইমেইল খুঁজুন")}/><button className="pa-button pa-button-secondary" type="submit">{label(locale,"Search","খুঁজুন")}</button><button className="pa-button pa-button-secondary" type="button" disabled title="Audited export is not connected">Export CSV</button></form>;}
+function Search({locale,query,kind}:{locale:AdminLocale;query:string;kind?:string}){
+ const href=kind?"/"+locale+"/admin/exports?"+new URLSearchParams({kind,q:query}).toString():"";
+ return <form className="pa-filter-bar" method="get"><label htmlFor="pa-list-search" className="pa-sr-only">Search</label><input id="pa-list-search" type="search" maxLength={80} name="q" defaultValue={query} placeholder={label(locale,"Search name, ID or email","নাম, আইডি বা ইমেইল খুঁজুন")}/><button className="pa-button pa-button-secondary" type="submit">{label(locale,"Search","খুঁজুন")}</button>{href?<a href={href} className="pa-button pa-button-secondary">{label(locale,"Export CSV (up to 5,000)","CSV এক্সপোর্ট (সর্বোচ্চ ৫,০০০)")}</a>:null}</form>;
+}
 function Records({locale,page,base,query}:{locale:AdminLocale;page:RecordPage;base:string;query:string}){return <section className="pa-surface pa-table-card"><div className="pa-table-wrap"><table><thead><tr>{page.columns.map(c=><th key={c} scope="col">{c}</th>)}</tr></thead><tbody>
  {page.rows.map(row=><tr key={row.id}>{row.cells.map((cell,i)=><td key={i} className={i===0?"pa-primary-cell":""}>{i===0&&row.href?<Link href={row.href}>{cell}</Link>:cell}{i===0&&UUID.test(row.id)&&<AdminCopy value={row.id} label="Copy full ID"/>}</td>)}</tr>)}
  {!page.rows.length&&<tr><td className="pa-empty-row" colSpan={page.columns.length}>{label(locale,"No matching records","কোনো তথ্য পাওয়া যায়নি")}</td></tr>}
@@ -74,12 +78,12 @@ async function users(locale:AdminLocale,query:string,after:string,staffOnly=fals
  const p=r.slice(0,25);
  return {columns:["User","Email","Verified","MFA","Admin role","Created"],rows:p.map(v=>({id:String(v.id),href:"/"+locale+"/admin/users/"+v.id,cells:[String(v.display_name),String(v.email),v.email_verified_at?"Verified":"Unverified",v.has_mfa?"On":"Off",v.role?titleCase(String(v.role)):"—",formatDate(v.created_at,locale)]})),next:r.length>25?String(p[p.length-1].id):undefined};
 }
-async function audit(locale:AdminLocale,query:string):Promise<RecordPage>{
- const term="%"+query+"%";
- const r=await database()`SELECT a.actor_id,a.action,a.subject_id,a.occurred_at,u.display_name FROM platform_admin_audit a
+async function audit(locale:AdminLocale,query:string,after:string):Promise<RecordPage>{
+ const term="%"+query+"%",offset=/^\d{1,5}$/.test(after)?Math.min(Number(after),10000):0;
+ const r=await database()`SELECT a.actor_id,a.action,a.subject_id,a.description,a.occurred_at,u.display_name FROM platform_admin_audit a
  LEFT JOIN app_users u ON u.id=a.actor_id WHERE (${query}='' OR a.action ILIKE ${term} OR u.email ILIKE ${term})
- ORDER BY a.occurred_at DESC LIMIT 25`;
- return {columns:["Time","Actor","Action","Target"],rows:r.map((v,i)=>({id:"audit-"+i,cells:[formatDate(v.occurred_at,locale),v.display_name?String(v.display_name):"—",titleCase(String(v.action)),v.subject_id?short(String(v.subject_id)):"—"]}))};
+ ORDER BY a.occurred_at DESC,a.id DESC LIMIT 26 OFFSET ${offset}`;
+ return {columns:["Time","Actor","Action","Target","Reason / details"],rows:r.slice(0,25).map((v,i)=>({id:"audit-"+i,cells:[formatDate(v.occurred_at,locale),v.display_name?String(v.display_name):"—",titleCase(String(v.action)),v.subject_id?short(String(v.subject_id)):"—",String(v.description||"—")]})),next:r.length>25?String(offset+25):undefined};
 }
 async function Details({locale,kind,id}:{locale:AdminLocale;kind:"users"|"workspaces";id:string}){
  if(!UUID.test(id))notFound();
@@ -137,14 +141,19 @@ function OfflineList({locale,kind,sub}:{locale:AdminLocale;kind:string;sub:strin
 function Stat({title,value,unavailable=false}:{title:string;value:string|number;unavailable?:boolean}){return <div className="pa-stat"><span>{title}</span><strong>{value}</strong>{unavailable&&<small>Not connected</small>}</div>;}
 async function Overview({locale,isSuper}:{locale:AdminLocale;isSuper:boolean}){
  const [r,activities]=await Promise.all([
- database()`SELECT (SELECT count(*) FROM workspaces)::int AS workspaces,(SELECT count(*) FROM app_users)::int AS users,(SELECT count(*) FROM workspaces WHERE created_at>=now()-interval '7 days')::int AS recent`,
+ database()`SELECT (SELECT count(*) FROM workspaces)::int AS workspaces,(SELECT count(*) FROM app_users)::int AS users,(SELECT count(*) FROM workspaces WHERE created_at>=now()-interval '7 days')::int AS recent,
+ (SELECT count(*) FROM workspace_product_access WHERE product='payments' AND enabled)::int AS payments_enabled,
+ (SELECT count(*) FROM workspace_product_access WHERE product='ai' AND enabled)::int AS ai_enabled,
+ (SELECT count(*) FROM pg13_support WHERE status IN ('submitted','reviewing'))::int AS open_support,
+ (SELECT count(*) FROM workspace_environments WHERE environment='live' AND status='suspended')::int AS suspended_live,
+ (SELECT count(*) FROM pg13_platform_invoices WHERE status='issued' AND created_at<now()-interval '7 days')::int AS older_invoices`,
  isSuper?database()`SELECT a.action,a.occurred_at,u.display_name FROM platform_admin_audit a LEFT JOIN app_users u ON u.id=a.actor_id ORDER BY a.occurred_at DESC LIMIT 5`:Promise.resolve([])
  ]);
  const c=r[0];
  return <><PageHead title={label(locale,"Overview","ওভারভিউ")} action={<span className="pa-date-label">{label(locale,"Last 7 days","শেষ ৭ দিন")}</span>}/>
  <section className="pa-surface pa-stats-strip">
- <Stat title="Active workspaces" value="—" unavailable/><Stat title="New workspaces" value={Number(c.recent)}/><Stat title="Verified volume" value="—" unavailable/><Stat title="Payment success rate" value="—" unavailable/><Stat title="MRR" value="—" unavailable/><Stat title="Credits consumed" value="—" unavailable/></section>
- <div className="pa-overview-grid"><section className="pa-surface pa-chart-panel"><h2>Verified volume</h2><Offline locale={locale}/></section><section className="pa-surface pa-chart-panel"><h2>Needs attention</h2>{["Receipt exceptions","Open disputes","Failed webhooks","Devices offline","Past-due subscriptions","Workspaces near credit limit"].map(item=><div className="pa-attention-row" key={item}><span>{item}</span><span>—</span></div>)}</section></div>
+ <Stat title="Total workspaces" value={Number(c.workspaces)}/><Stat title="New (7 days)" value={Number(c.recent)}/><Stat title="Total users" value={Number(c.users)}/><Stat title="Payment workspaces" value={Number(c.payments_enabled)}/><Stat title="AI Bot workspaces" value={Number(c.ai_enabled)}/><Stat title="Open support tickets" value={Number(c.open_support)}/></section>
+ <div className="pa-overview-grid"><section className="pa-surface pa-chart-panel"><h2>Verified volume</h2><Offline locale={locale}/></section><section className="pa-surface pa-chart-panel"><div className="pa-split-head"><h2>Needs attention</h2><Link href={"/"+locale+"/admin/support"}>Support →</Link></div>{[["Open support tickets",Number(c.open_support)],["Suspended live environments",Number(c.suspended_live)],["Unpaid invoices older than 7 days",Number(c.older_invoices)]].map(([item,count])=><div className="pa-attention-row" key={item}><span>{item}</span><strong>{count}</strong></div>)}</section></div>
  <div className="pa-overview-grid"><section className="pa-surface pa-chart-panel"><h2>Signups & activation</h2><Offline locale={locale}/></section><section className="pa-surface pa-chart-panel"><h2>Top workspaces by volume</h2><Offline locale={locale}/></section></div>
  <div className="pa-overview-grid"><section className="pa-surface pa-chart-panel"><div className="pa-split-head"><h2>Recent admin activity</h2><Link href={"/"+locale+"/admin/audit"}>View all →</Link></div>{!isSuper?<p className="pa-subtle">Access restricted</p>:!activities.length?<p className="pa-subtle">No activity yet.</p>:activities.map((v,i)=><div className="pa-attention-row" key={i}><span>{titleCase(String(v.action))} <small>{v.display_name?String(v.display_name):""}</small></span><span>{formatDate(v.occurred_at,locale)}</span></div>)}</section><section className="pa-surface pa-chart-panel"><h2>System status</h2>{["API","Checkout","Webhooks","Workers"].map(n=><div className="pa-attention-row" key={n}><span>{n}</span><span>—</span></div>)}<p className="pa-subtle">Not connected</p></section></div>
  </>;
@@ -166,29 +175,35 @@ export async function PlatformAdminConsole({locale,segments=[],query="",after=""
  let body:ReactNode;
  if(!key){body=<Overview locale={locale} isSuper={isSuper}/>;}
  else if((key==="workspaces"||key==="users")&&extra[0]){
- body=!isSuper?<><PageHead title={t}/><Denied locale={locale}/></>:key==="workspaces"&&["products-plan","billing","usage-credits"].includes(extra[1])?<AdminPaymentPlansPage locale={locale} actor={admin.user.id} workspace={extra[0]}/>:extra[1]&&extra[1]!=="overview"?<><PageHead title={t}/><Offline locale={locale}/></>:<Details locale={locale} kind={key} id={extra[0]}/>;
+ body=!isSuper?<><PageHead title={t}/><Denied locale={locale}/></>:key==="workspaces"&&extra[1]==="products-plan"?<AdminPaymentPlansPage locale={locale} actor={admin.user.id} workspace={extra[0]}/>:key==="workspaces"?<><AdminWorkspaceDetail locale={locale} id={extra[0]} sub={extra[1]||""}/>{extra[1]==="billing"&&<AdminPaymentPlansPage locale={locale} actor={admin.user.id} workspace={extra[0]}/>}</>:!extra[1]?<AdminUserDetail locale={locale} id={extra[0]}/>:notFound();
  }else if(key==="workspaces"||key==="users"||key==="audit"){
- const page=isSuper?(key==="workspaces"?await workspaces(locale,q,after):key==="users"?await users(locale,q,after):await audit(locale,q)):null;
- body=<><PageHead title={t}/>{page?<><Search locale={locale} query={q}/><Records locale={locale} base={base} query={q} page={page}/></>:<Denied locale={locale}/>}</>;
- }else if(key==="plans"||key==="billing"){
+ const page=isSuper?(key==="workspaces"?await workspaces(locale,q,after):key==="users"?await users(locale,q,after):await audit(locale,q,after)):null;
+ body=<><PageHead title={t}/>{page?<><Search locale={locale} query={q} kind={key}/><Records locale={locale} base={base} query={q} page={page}/></>:<Denied locale={locale}/>}</>;
+ }else if(key==="plans"){
  body=isSuper?<AdminPaymentPlansPage locale={locale} actor={admin.user.id}/>:<Denied locale={locale}/>;
  }else if(key==="staff"){
  const page=isSuper&&(!sub||sub==="staff")?await users(locale,q,after,true):null;
  let list:Array<{id:string;name:string;email:string;verified:boolean;role:string|null}>=[];
- if(isSuper&&(!sub||sub==="staff")){const r=await database()`SELECT u.id,u.display_name,u.email,u.email_verified_at,p.role FROM app_users u LEFT JOIN platform_administrators p ON p.user_id=u.id ORDER BY u.created_at DESC LIMIT 80`;list=r.map(v=>({id:String(v.id),name:String(v.display_name),email:String(v.email),verified:!!v.email_verified_at,role:v.role?String(v.role):null}));}
- body=<><PageHead title={t} action={isSuper&&page?<AdminModal title="Staff roles" label="Manage roles"><RoleControls locale={locale} users={list}/></AdminModal>:undefined}/><PageTabs locale={locale} base={base} items={tabs[key]} active={sub}/>{!isSuper?<Denied locale={locale}/>:page?<><Search locale={locale} query={q}/><Records locale={locale} base={base} query={q} page={page}/></>:<Offline locale={locale}/>}</>;
+ if(isSuper&&(!sub||sub==="staff"||sub==="roles")){const r=await database()`SELECT u.id,u.display_name,u.email,u.email_verified_at,p.role FROM app_users u LEFT JOIN platform_administrators p ON p.user_id=u.id ORDER BY u.created_at DESC LIMIT 80`;list=r.map(v=>({id:String(v.id),name:String(v.display_name),email:String(v.email),verified:!!v.email_verified_at,role:v.role?String(v.role):null}));}
+ const staffInventory=isSuper?await AdminGlobalInventory({locale,kind:"staff",sub,query:q}):null;
+ body=<><PageHead title={t} action={isSuper&&(page||sub==="roles")?<AdminModal title="Staff roles" label="Manage roles"><RoleControls locale={locale} users={list}/></AdminModal>:undefined}/><PageTabs locale={locale} base={base} items={tabs[key]} active={sub}/>{!isSuper?<Denied locale={locale}/>:page?<><Search locale={locale} query={q} kind="staff"/><Records locale={locale} base={base} query={q} page={page}/></>:staffInventory||<Offline locale={locale}/>}</>;
  }else if(key==="settings"){
  const settings=isSuper?await platformSettings():null;
  body=<><PageHead title={t}/><PageTabs locale={locale} base={base} items={tabs[key]} active={sub}/>{!isSuper?<Denied locale={locale}/>:(!sub||sub==="authentication-email")&&settings?<section className="pa-surface pa-settings-grid"><div><h2>Email verification</h2><p>{settings.emailVerification?"Required":"Off"}</p><span className="pa-status-text"><span className={"pa-status-dot "+(mailReady()?"green":"grey")}/>Resend: {mailReady()?"Connected":"Not connected"}</span></div><AdminModal label="Edit settings" title="Authentication & email"><VerificationSettings locale={locale} enabled={settings.emailVerification} providerReady={mailReady()}/></AdminModal></section>:<Offline locale={locale}/>}</>;
+ }else if(key==="support"&&extra[0]){
+ body=isSuper?<AdminSupportDetail locale={locale} id={extra[0]}/>:<Denied locale={locale}/>;
+ }else if(key==="health"){
+ body=<><PageHead title={t}/>{isSuper?<AdminHealthView locale={locale}/>:<Denied locale={locale}/>}</>;
  }else if(key==="api"){
  let config:Awaited<ReturnType<typeof publicSandboxConfig>>=null;
  if(isSuper&&sub==="sandbox"){try{config=await publicSandboxConfig();}catch{config=null;}}
  body=<><PageHead title={t}/><PageTabs locale={locale} base={base} items={tabs[key]} active={sub}/>{!isSuper?<Denied locale={locale}/>:sub==="sandbox"&&config?<section className="pa-surface pa-description"><h2>Public sandbox</h2><p className="pa-subtle">Test data only. Never use real customer data.</p><dl><div className="pa-description-row"><dt>Shared test key</dt><dd className="pa-mono">{config.testKey.slice(0,12)+"••••"+config.testKey.slice(-4)}</dd></div><div className="pa-description-row"><dt>Workspace</dt><dd>{short(config.workspaceId)}<AdminCopy value={config.workspaceId} label="Copy workspace ID"/></dd></div><div className="pa-description-row"><dt>Sandbox API URL</dt><dd>{config.apiOrigin||"—"}</dd></div><div className="pa-description-row"><dt>Status</dt><dd>{config.enabled?"Enabled":"Disabled"}</dd></div></dl><div className="pa-inline-actions"><button className="pa-button pa-button-secondary" disabled>Check service</button><button className="pa-button pa-button-secondary" disabled>Rotate key</button><button className="pa-button pa-button-secondary" disabled>Revoke key</button></div><p className="pa-subtle">Audited step-up operations not connected.</p></section>:<Offline locale={locale}/>}</>;
  }else{
  const op=offlineActions[key];
- body=<><PageHead title={t} action={op?<button type="button" disabled className="pa-button pa-button-primary">{op}</button>:undefined}/>
+ const inventory=isSuper?await AdminGlobalInventory({locale,kind:key,sub,query:q}):null;
+ body=<><PageHead title={t} action={op&&!inventory?<button type="button" disabled className="pa-button pa-button-secondary">{op}</button>:undefined}/>
  {tabs[key]&&<PageTabs locale={locale} base={base} items={tabs[key]} active={sub}/>}
- {key==="ai"?<Offline locale={locale} description="AI Bot administrative metrics are still in development."/>:<OfflineList locale={locale} kind={key} sub={sub}/>}</>;
+ {!isSuper?<Denied locale={locale}/>:inventory||<OfflineList locale={locale} kind={key} sub={sub}/>}</>;
  }
  return <AdminShell locale={locale} role={admin.role} name={user.name} theme={theme} production={process.env.NODE_ENV==="production"}>{body}</AdminShell>;
 }

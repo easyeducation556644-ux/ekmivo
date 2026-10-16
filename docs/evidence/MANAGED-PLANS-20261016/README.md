@@ -40,3 +40,9 @@ No production migration, deployment, load capacity or revenue correctness is inf
 ## Remote review checkpoint
 
 Source commit `9255e02c1977bdf89632b8081bac737bafbcd949` is pushed in draft [PR #70](https://github.com/masharzy/ekmivo/pull/70). Vercel preview succeeded. [Foundation CI run 38892196859](https://github.com/masharzy/ekmivo/actions/runs/38892196859) did **not execute any job steps** (all four jobs had zero steps): GitHub's annotation says recent account payments failed or its spending limit must be increased. These are not passing CI results and are not test failures observed in executed source. Local/Neon verification above remains separately evidenced. PR is not merged; production migrations are not applied.
+
+## Owner-authorized PR integration — 2026-10-16
+
+Owner explicitly requested merging #69 and #70. Integrated #69 head `4bf3ff0fd00a63ecca979719429d657b34bf6f93` into #70, resolving three conflicts while preserving fresh MFA, compact mobile header, global billing/subscription/invoice/revenue inventory, workspace product/environment operations and payment plan management. Workspace Billing retains invoices and adds subscription management; Payment plans has its own workspace tab. Infinite free access is safely formatted in legacy inventory views.
+
+Combined final Next production build and TypeScript PASS. Targeted combined-admin ESLint exits 0 with five unused-variable warnings. Twelve authenticated built-server read routes PASS against the isolated Neon branch (including both workspace billing and plan routes); `merge-smoke.txt` records them. No production mutations, new financial schema rollout, real admin mutations or live payment acceptance is inferred. #69 CI also has zero executed steps due to the same account-billing annotation. No Docker run.
