@@ -1,5 +1,13 @@
 # API-hosted payment workers — 2026-10-16
 
+## Pairing projection repair
+
+Production pairing POST reported `PHONE_PROJECTION_STALE`; authoritative workspace access version was 5 while Live financial registry remained active at version 3. Device listing can still succeed because GET does not create authorization-bound enrollment. Queue handlers do not run the separate `cmd/financial-sync` coordinator; hosting River alone omitted this required background process.
+
+API now optionally hosts the existing `financial.ProjectionCoordinator.SyncAll` immediately and every 20 seconds, with bounded connection pools/timeouts, retry and graceful shutdown. Enable `API_BACKGROUND_PROJECTION_ENABLED=true`, using existing restricted control projection credentials plus `PG04_PROVISIONER_SANDBOX_URL` / `PG04_PROVISIONER_LIVE_URL` dedicated provisioner credentials. No schema change, elevated worker grants, fake entitlement version or disabled phone authorization check. Provisioners cannot read finance tables; preflight uses role/function privilege/database checks and the existing SQL function enforces physical realm and monotonic versions.
+
+Full `go test ./...` PASS (workerruntime 15.456s). Isolated branch `br-still-fog-b38to82q`: actual fixture registry versions deliberately lowered in both realms, hosted coordinator restored authoritative versions/status, then cancelled cleanly. Configuration tests reject owner/cross-realm/missing credentials without disclosure. Production activation and final version checks must be recorded separately after deployment.
+
 > **Production activated — 2026-10-16 14:46 UTC:** Owner explicitly authorized the restricted credential configuration after clarification. PR #71 is merged (`207bcc64fed188308ca666a399769a83eeb5de74`). Existing Render API deploy `dep-db93h2jl550s73fo1a5g` is live with both hosted realm workers enabled. No separate paid service. Earlier credential-blocked notes below are historical and superseded by this activation record.
 
 Owner requested running the existing background work inside the current API service temporarily, with no additional paid service. The financial databases, credentials, queues, leases, signed delivery, retries and tenant checks remain independent per realm.

@@ -411,6 +411,11 @@ func main() {
 		log.Printf("API hosted workers not started: %v", workerErr)
 	}
 	group := workerruntime.StartHosted(runtimeContext, workerConfigs)
+	projectionConfig, projectionErr := workerruntime.HostedProjectionConfig(os.Getenv)
+	if projectionErr != nil {
+		log.Printf("API workspace projection not started: %v", projectionErr)
+	}
+	projectionGroup := workerruntime.StartHostedProjection(runtimeContext, projectionConfig)
 	server := &http.Server{Addr: ":" + port, Handler: newHandlerWithCheckout(repo, pg05), ReadHeaderTimeout: 10 * time.Second}
 	httpStopped := make(chan struct{})
 	go func() {
@@ -423,6 +428,7 @@ func main() {
 	err := server.ListenAndServe()
 	stop()
 	group.Wait()
+	projectionGroup.Wait()
 	<-httpStopped
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)

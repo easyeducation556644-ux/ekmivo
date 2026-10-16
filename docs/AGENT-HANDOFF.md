@@ -220,3 +220,5 @@ Create Payment may accept an optional per-payment `webhook_url` without dashboar
 ## Production migration rollout — 2026-10-15
 
 After explicit owner approval (push + migrations), existing financial-migrate runner with `EKMIVO_DASHBOARD_UPGRADE_ONLY=true` successfully applied only 0063/0064 to production Neon Sandbox/Live financial databases and 0065 to the control database at 2026-10-15 14:11 UTC. Runner confirmed no base migrations executed. Catalog probes confirm both financial migrations and the Team role fix. Before/after counts unchanged: Sandbox intents 15/payments 2/endpoints 1; Live intents 21/payments 3/endpoints 0. Runtime rollout and actual payment/browser E2E remain separate gates.
+> **2026-10-16 pairing repair:** `PHONE_PROJECTION_STALE` traced to control version 5 vs Live registry version 3. River hosting omitted the separate authoritative projection coordinator. API-hosted coordinator added with separate restricted provisioners; full Go suite and real two-realm stale-projection regression PASS on isolated Neon. Production activation evidence: `docs/evidence/API-HOSTED-WORKERS-20261016/README.md` (do not infer deployment from source tests).
+
