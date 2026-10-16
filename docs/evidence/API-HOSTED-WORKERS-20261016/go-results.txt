@@ -1,0 +1,13 @@
+ok  	github.com/masharzy/ekmivo/backend/cmd/api	3.089s
+ok  	github.com/masharzy/ekmivo/backend/cmd/financial-migrate	(cached)
+?   	github.com/masharzy/ekmivo/backend/cmd/financial-sync	[no test files]
+?   	github.com/masharzy/ekmivo/backend/cmd/privacy-objects	[no test files]
+ok  	github.com/masharzy/ekmivo/backend/cmd/webhook-receiver-example	(cached)
+ok  	github.com/masharzy/ekmivo/backend/cmd/worker	1.840s
+ok  	github.com/masharzy/ekmivo/backend/internal/authz	(cached)
+ok  	github.com/masharzy/ekmivo/backend/internal/checkout	(cached)
+ok  	github.com/masharzy/ekmivo/backend/internal/deviceevidence	(cached)
+ok  	github.com/masharzy/ekmivo/backend/internal/financial	(cached)
+ok  	github.com/masharzy/ekmivo/backend/internal/merchantwebhook	(cached)
+ok  	github.com/masharzy/ekmivo/backend/internal/receiptnotice	(cached)
+ok  	github.com/masharzy/ekmivo/backend/internal/workerruntime	5.869s
