@@ -31,7 +31,7 @@ export function PaymentMethodManagement({locale,workspaceId,environment,canManag
   }catch(e){if(!signal?.aborted)setError(e instanceof Error?e.message:t("Unable to load payment methods.","পেমেন্ট মাধ্যমের তথ্য পাওয়া যায়নি।"))}
   finally{if(!signal?.aborted)setLoading(false)}
  },[base,environment,t]);
- useEffect(()=>{const controller=new AbortController();void load(controller.signal);return()=>controller.abort()},[load]);
+ useEffect(()=>{const controller=new AbortController();void Promise.resolve().then(()=>{if(!controller.signal.aborted)void load(controller.signal)});return()=>controller.abort()},[load]);
  async function post(path:string,body:unknown){
   setBusy(true);setError("");
   try{

@@ -39,7 +39,7 @@ All disconnected areas use dashes, explicit Not connected text, disabled writes 
 
 ## TODO and incomplete acceptance criteria
 
-1. Build/TypeScript/lint/production compile and signed-in browser regression were not run. No CI success, screenshot audit, Neon DB migration, live transaction test or deployed preview is claimed.
+1. Updated 2026-10-16: production webpack build and TypeScript passed; full lint has 0 errors and 32 warnings. Fourteen automated authorization/render tests, existing MFA cryptographic smoke tests, eight read-only Neon control SQL EXPLAIN probes and sixteen built-server HTTP checks passed. Browser testing was excluded by owner request. No screenshot audit, migration, live transaction or signed-in production acceptance is claimed.
 2. Sensitive changes still use existing super_admin + session MFA. NEW SPEC'S fresh under-10-minute step-up, reason >=10 chars, before/after audit diff, IP, request ID and role-action controls are NOT implemented and require backend and database design before production use.
 3. Enrollment currently shows a manually copyable one-time setup key, not the requested authenticator QR. Enrollment does not automatically show 10 recovery codes with copy/download and required saved acknowledgment. The existing recovery rotation now generates 10 codes when manually invoked on My security.
 4. Existing server 15-minute throttling is preserved, but the inline live countdown, idle-timeout warning and full session policy controls are not built.
@@ -52,7 +52,7 @@ All disconnected areas use dashes, explicit Not connected text, disabled writes 
 11. Product-level active workspace statuses are not asserted without a source; the Overview new-workspace count is real, active-workspace KPI is Not connected.
 12. Admin entry point default English must be reconciled with existing locale routing.
 13. Confirm exact owner-approved reference HTML availability (ekmivo-dashboard-v2.html, ekmivo-workspaces.html, ekmivo-dashboard-pages.html); implementation used existing dashboard-v2 CSS tokens in repo. Full pixel-perfect parity is not verified.
-14. Run from apps/web: npx tsc --noEmit; npm run lint; npm run build. Run authorized real account + permissions and 360/768/1024 desktop browser tests, then review before merge.
+14. Automated build/lint/TypeScript completed. Real-account, responsive, keyboard and full EN/BN visual acceptance remains manual pending; owner requested no browser testing in this PR review.
 
 ## Owner questions
 
@@ -65,3 +65,14 @@ All disconnected areas use dashes, explicit Not connected text, disabled writes 
 ## Guardrails
 
 No backend financial or receipt verification code altered. No database migrations or secrets written. No claim of successful deploy or payment verification. No raw public sandbox test key shown in the new console. Unconnected actions remain disabled until server-side permission, fresh MFA and audit behavior exist.
+
+## Merge review evidence — 2026-10-16
+
+- Integrated current main including PR65; resolved stylesheet imports retaining merchant and admin styles.
+- Authorization now uses the role returned by final verified-admin check, including demotion between lookups; regression test covers it.
+- Fixed five inherited React effect lint errors in payment methods, payment requests and workspace draft synchronization, retaining cleanup and per-user draft isolation.
+- Commands: `node tools/testing/platform-admin-automated.test.mjs` (14 passed), `node apps/web/scripts/pg01-mfa-smoke.mjs` (passed), production `next build --webpack` (passed), full ESLint (0 errors, 32 warnings), `node tools/testing/platform-admin-http-smoke.mjs` against local built server (16 passed).
+- SQL: all eight console list/detail SQL templates compile against existing Neon control schema via read-only EXPLAIN. No migration or database writes.
+- React checklist reviewed: server authorization before reads, parameterized filters, no secret serialization, effect cleanup and stable per-user draft keys.
+- GitHub Actions billing/spending limit previously prevented jobs from starting; local passing checks are not represented as CI passes. No Docker or browser tests.
+- Pending product/security enhancements listed above remain open; existing super-admin plus session MFA checks remain required.

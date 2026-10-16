@@ -160,7 +160,7 @@ export async function PlatformAdminConsole({locale,segments=[],query="",after=""
  if(!Object.prototype.hasOwnProperty.call(names,key))notFound();
  const extra=segments[0]==="gateway"?segments.slice(2):segments.slice(1);
  const sub=extra[0]||"",base="/"+locale+"/admin"+(key?"/"+key:"");
- const t=names[key][locale==="bn"?1:0],isSuper=role==="super_admin",q=query.trim().slice(0,80);
+ const t=names[key][locale==="bn"?1:0],isSuper=admin.role==="super_admin",q=query.trim().slice(0,80);
  const cookie=await cookies();const rawTheme=cookie.get("ekmivo-theme")?.value;const theme=rawTheme==="light"||rawTheme==="dark"?rawTheme:"system";
  let body:ReactNode;
  if(!key){body=<Overview locale={locale} isSuper={isSuper}/>;}
@@ -187,5 +187,5 @@ export async function PlatformAdminConsole({locale,segments=[],query="",after=""
  {tabs[key]&&<PageTabs locale={locale} base={base} items={tabs[key]} active={sub}/>}
  {key==="ai"?<Offline locale={locale} description="AI Bot administrative metrics are still in development."/>:<OfflineList locale={locale} kind={key} sub={sub}/>}</>;
  }
- return <AdminShell locale={locale} role={role} name={user.name} theme={theme} production={process.env.NODE_ENV==="production"}>{body}</AdminShell>;
+ return <AdminShell locale={locale} role={admin.role} name={user.name} theme={theme} production={process.env.NODE_ENV==="production"}>{body}</AdminShell>;
 }
