@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { database } from "../lib/server/db";
 import { mailReady } from "../lib/server/email";
-import { requireSuperAdmin, type PlatformRole } from "../lib/server/platform-admin";
+import { requireFreshSuperAdmin, type PlatformRole } from "../lib/server/platform-admin";
 import { asText, safeLocale } from "../lib/server/validation";
 
 export type AdminActionState={status:"idle"|"error"|"success";message:string};
@@ -13,18 +13,24 @@ const emailLabels={
 
 export async function setEmailVerificationAction(localeParam:string,_previous:AdminActionState,form:FormData):Promise<AdminActionState>{
  const locale=safeLocale(localeParam),t=emailLabels[locale];
- const admin=await requireSuperAdmin();
+ const admin=await requireFreshSuperAdmin();
  if(!admin)return {status:"error",message:t.denied};
- const value=asText(form.get("enabled"));
- if(value!=="on"&&value!=="off")return {status:"error",message:t.bad};
+ const value=asText(form.get("enabled")),reason=asText(form.get("reason")).trim(),confirm=asText(form.get("confirm"));
+ if(confirm!=="CHANGE"||reason.length<10||reason.length>500||value!=="on"&&value!=="off")return {status:"error",message:t.bad};
  if(value==="on"&&!mailReady())return {status:"error",message:t.provider};
  try{
-  await database().begin(async tx=>{
+  const changed=await database().begin(async tx=>{
+   const freshRole=await tx`SELECT 1 FROM platform_administrators WHERE user_id=${admin.user.id}::uuid AND role='super_admin' FOR UPDATE`;
+   if(!freshRole.length)return false;
+   const previous=await tx`SELECT email_verification_enabled FROM platform_auth_settings WHERE singleton=true FOR UPDATE`;
+   if(!previous.length)return false;
    await tx`UPDATE platform_auth_settings SET email_verification_enabled=${value==="on"},
    updated_at=now(),updated_by=${admin.user.id}::uuid WHERE singleton=true`;
    await tx`INSERT INTO platform_admin_audit(actor_id,action,description)
-   VALUES (${admin.user.id}::uuid,'auth.verification_config',${"Email verification "+value})`;
+   VALUES (${admin.user.id}::uuid,'auth.verification_config',${"Email verification "+String(previous[0].email_verification_enabled===true)+" -> "+String(value==="on")+" | "+reason})`;
+   return true;
   });
+  if(!changed)return {status:"error",message:t.denied};
   revalidatePath(`/${locale}/admin`);
   return {status:"success",message:t.saved};
  }catch(e){console.error("[admin settings]",e instanceof Error?e.name:"unknown");return {status:"error",message:t.failed};}
@@ -32,11 +38,11 @@ export async function setEmailVerificationAction(localeParam:string,_previous:Ad
 
 export async function setPlatformRoleAction(localeParam:string,_previous:AdminActionState,form:FormData):Promise<AdminActionState>{
  const locale=safeLocale(localeParam),t=emailLabels[locale];
- const admin=await requireSuperAdmin();
+ const admin=await requireFreshSuperAdmin();
  if(!admin)return {status:"error",message:t.denied};
- const id=asText(form.get("userId")),role=asText(form.get("role"));
+ const id=asText(form.get("userId")),role=asText(form.get("role")),reason=asText(form.get("reason")).trim(),confirm=asText(form.get("confirm"));
  const validRoles=["super_admin","admin","support","analyst","remove"];
- if(!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)||!validRoles.includes(role))
+ if(confirm!=="CHANGE"||reason.length<10||reason.length>500||!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)||!validRoles.includes(role))
   return {status:"error",message:t.user};
  if(id===admin.user.id)return {status:"error",message:t.self};
  try{
@@ -44,6 +50,8 @@ export async function setPlatformRoleAction(localeParam:string,_previous:AdminAc
    await tx`SELECT pg_advisory_xact_lock(5101482)`;
    const actor=await tx`SELECT role FROM platform_administrators WHERE user_id=${admin.user.id}::uuid FOR UPDATE`;
    if(!actor.length||actor[0].role!=="super_admin")return false;
+   const previous=await tx`SELECT role FROM platform_administrators WHERE user_id=${id}::uuid FOR UPDATE`;
+   const before=previous.length?String(previous[0].role):"none";
    const target=await tx`SELECT id,email_verified_at,disabled_at FROM app_users WHERE id=${id}::uuid FOR UPDATE`;
    if(!target.length||!target[0].email_verified_at||target[0].disabled_at)return false;
    if(role==="remove"){
@@ -54,7 +62,7 @@ export async function setPlatformRoleAction(localeParam:string,_previous:AdminAc
      ON CONFLICT (user_id) DO UPDATE SET role=EXCLUDED.role,granted_by=EXCLUDED.granted_by`;
    }
    await tx`INSERT INTO platform_admin_audit(actor_id,action,subject_id,description)
-    VALUES (${admin.user.id}::uuid,'admin.role_changed',${id}::uuid,${"Role changed to "+role})`;
+    VALUES (${admin.user.id}::uuid,'admin.role_changed',${id}::uuid,${"Role "+before+" -> "+role+" | "+reason})`;
    return true;
   });
   if(!result)return {status:"error",message:t.user};
