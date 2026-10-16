@@ -194,18 +194,18 @@ func Run(ctx context.Context, cfg Config) error {
 				river.AddWorker(workers, &checkout.InvoiceNoticeWorker{Pool: pool, Control: control, Realm: realm, Key: key, TokenKey: []byte(os.Getenv("PG05_TOKEN_SECRET")), SMTP: noticeSMTP})
 				queues["invoice_notice_"+realm] = river.QueueConfig{MaxWorkers: 1}
 				periodic = append(periodic, river.NewPeriodicJob(river.PeriodicInterval(10*time.Second), func() (river.JobArgs, *river.InsertOpts) {
-					return checkout.InvoiceNoticeArgs{Environment: realm}, &river.InsertOpts{Queue: "invoice_notice_" + realm, MaxAttempts: 3, UniqueOpts: river.UniqueOpts{ByArgs: true}}
+					return checkout.InvoiceNoticeArgs{Environment: realm}, &river.InsertOpts{Queue: "invoice_notice_" + realm, MaxAttempts: 3, UniqueOpts: sweepUniqueness(10 * time.Second)}
 				}, &river.PeriodicJobOpts{RunOnStart: true}))
 			}
 			river.AddWorker(workers, &checkout.MaintenanceWorker{Pool: pool, Control: control, Realm: realm, TokenKey: []byte(os.Getenv("PG05_TOKEN_SECRET"))})
 			queues["maintenance_"+realm] = river.QueueConfig{MaxWorkers: 1}
 			periodic = append(periodic, river.NewPeriodicJob(river.PeriodicInterval(time.Minute), func() (river.JobArgs, *river.InsertOpts) {
-				return checkout.MaintenanceArgs{Environment: realm}, &river.InsertOpts{Queue: "maintenance_" + realm, MaxAttempts: 3, UniqueOpts: river.UniqueOpts{ByArgs: true}}
+				return checkout.MaintenanceArgs{Environment: realm}, &river.InsertOpts{Queue: "maintenance_" + realm, MaxAttempts: 3, UniqueOpts: sweepUniqueness(time.Minute)}
 			}, &river.PeriodicJobOpts{RunOnStart: true}))
 			river.AddWorker(workers, &checkout.ExportWorker{Pool: pool, Control: control, Realm: realm, Key: key})
 			queues["export_"+realm] = river.QueueConfig{MaxWorkers: 1}
 			periodic = append(periodic, river.NewPeriodicJob(river.PeriodicInterval(5*time.Second), func() (river.JobArgs, *river.InsertOpts) {
-				return checkout.ExportArgs{Environment: realm}, &river.InsertOpts{Queue: "export_" + realm, MaxAttempts: 3, UniqueOpts: river.UniqueOpts{ByArgs: true}}
+				return checkout.ExportArgs{Environment: realm}, &river.InsertOpts{Queue: "export_" + realm, MaxAttempts: 3, UniqueOpts: sweepUniqueness(5 * time.Second)}
 			}, &river.PeriodicJobOpts{RunOnStart: true}))
 		}
 		river.AddWorker(workers, pipeline)
@@ -213,11 +213,11 @@ func Run(ctx context.Context, cfg Config) error {
 			river.AddWorker(workers, &financial.NoticeWorker{Pipeline: pipeline})
 			queues["notice_"+realm] = river.QueueConfig{MaxWorkers: 1}
 			periodic = append(periodic, river.NewPeriodicJob(river.PeriodicInterval(10*time.Second), func() (river.JobArgs, *river.InsertOpts) {
-				return financial.NoticeArgs{Environment: realm}, &river.InsertOpts{Queue: "notice_" + realm, MaxAttempts: 3, UniqueOpts: river.UniqueOpts{ByArgs: true}}
+				return financial.NoticeArgs{Environment: realm}, &river.InsertOpts{Queue: "notice_" + realm, MaxAttempts: 3, UniqueOpts: sweepUniqueness(10 * time.Second)}
 			}, &river.PeriodicJobOpts{RunOnStart: true}))
 		}
 		periodic = append(periodic, river.NewPeriodicJob(river.PeriodicInterval(2*time.Second), func() (river.JobArgs, *river.InsertOpts) {
-			return financial.PipelineArgs{Environment: realm}, &river.InsertOpts{Queue: "financial_" + realm, MaxAttempts: 3, UniqueOpts: river.UniqueOpts{ByArgs: true}}
+			return financial.PipelineArgs{Environment: realm}, &river.InsertOpts{Queue: "financial_" + realm, MaxAttempts: 3, UniqueOpts: sweepUniqueness(2 * time.Second)}
 		}, &river.PeriodicJobOpts{RunOnStart: true}))
 	}
 	client, err := river.NewClient(riverpgxv5.New(pool), &river.Config{
@@ -256,4 +256,9 @@ func workerPool(ctx context.Context, dsn string, max int32) (*pgxpool.Pool, erro
 	config.MinConns = 0
 	config.MaxConnIdleTime = time.Minute
 	return pgxpool.NewWithConfig(ctx, config)
+}
+
+// Completed sweeps must not suppress future runs of the same periodic job.
+func sweepUniqueness(period time.Duration) river.UniqueOpts {
+	return river.UniqueOpts{ByArgs: true, ByPeriod: period}
 }

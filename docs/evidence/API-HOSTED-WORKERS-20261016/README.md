@@ -42,3 +42,9 @@ Automatic approval review rejected updating the production Render service enviro
 - `/readyz` returns HTTP 200 with `status=operationally_ready` and `release_verified=false`. The financial release gate is not falsely promoted to real-provider verification. Initial post-start error log query returned no errors.
 - Preserved counts: Sandbox intents/payments/allocations 16/2/2; Live 21/3/3; one existing active subscription and no new platform invoice. No synthetic production financial payment or public pricing plan was inserted.
 - Evidence: `production-workers.json`, `production-readiness.txt`. Real callback/provider/paid renewal acceptance remains in the consolidated manual ledger. Free Render sleep/stop pauses API and its workers; persistent River jobs resume on startup.
+
+## Recurring-sweep regression found during observation
+
+Initial health correctly became green, then expired. Read-only production queue inspection showed exactly one completed row per periodic kind in each realm. The pre-existing worker used `UniqueOpts{ByArgs:true}`: River 0.26 includes completed jobs in its default uniqueness states, so subsequent identical sweeps were suppressed until cleanup. This was not a credential error and no health flag was forced.
+
+All five recurring sweep factories now add `ByPeriod` equal to their actual interval (critical 2s, export 5s, maintenance 1m, optional notice/invoice notice 10s). Duplicate insertion within one period remains suppressed while completed jobs cannot block later periods. A new actual isolated-Neon transaction regression completes one sweep, crosses the period and inserts its successor through River, then rolls back; PASS. Full Go suite PASS. Final production sustained observation is recorded after deploying this correction; initial startup-only evidence above does not by itself prove recurring health.

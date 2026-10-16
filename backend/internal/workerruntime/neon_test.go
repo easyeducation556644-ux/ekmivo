@@ -2,6 +2,11 @@ package workerruntime
 
 import (
 	"context"
+	"fmt"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/masharzy/ekmivo/backend/internal/financial"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"net/url"
 	"os"
 	"testing"
@@ -59,5 +64,54 @@ func TestNeonTwoRealmRuntimeLifecycle(t *testing.T) {
 		case <-time.After(20 * time.Second):
 			t.Fatal("worker shutdown did not drain")
 		}
+	}
+}
+
+// Regression: default ByArgs uniqueness includes completed jobs forever. Each
+// sweep must deduplicate within its interval and run again after that interval.
+func TestNeonCompletedSweepDoesNotSuppressNextPeriod(t *testing.T) {
+	host := os.Getenv("WORKER_RUNTIME_TEST_HOST")
+	if host == "" {
+		t.Skip("explicit isolated Neon test branch required")
+	}
+	dsn := os.Getenv("WORKER_RUNTIME_TEST_SANDBOX_URL")
+	u, e := url.Parse(dsn)
+	if e != nil || u.Hostname() != host {
+		t.Fatal("isolated branch required")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	pool, e := pgxpool.New(ctx, dsn)
+	if e != nil {
+		t.Fatal("pool initialization failed")
+	}
+	defer pool.Close()
+	client, e := river.NewClient(riverpgxv5.New(pool), &river.Config{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	tx, e := pool.Begin(ctx)
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer tx.Rollback(context.Background())
+	args := financial.AuditArgs{Environment: "sandbox", OutboxID: fmt.Sprintf("sweep-regression-%d", time.Now().UnixNano())}
+	opts := &river.InsertOpts{Queue: "financial_sandbox", UniqueOpts: sweepUniqueness(time.Second)}
+	first, e := client.InsertTx(ctx, tx, args, opts)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e = tx.Exec(ctx, "UPDATE river_job SET state='completed',finalized_at=now() WHERE id=$1", first.Job.ID); e != nil {
+		t.Fatal(e)
+	}
+	// Waiting past a full interval also covers a period boundary crossed during
+	// insertion; no production queue or real receipt is involved.
+	time.Sleep(1100 * time.Millisecond)
+	next, e := client.InsertTx(ctx, tx, args, opts)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if next.Job.ID == first.Job.ID || next.UniqueSkippedAsDuplicate {
+		t.Fatal("completed sweep suppressed next period")
 	}
 }
