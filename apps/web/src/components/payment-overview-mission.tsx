@@ -1,4 +1,5 @@
 "use client";
+import {useDashboardInitialData} from "./dashboard-initial-data";
 import Link from "next/link";
 import {DashboardIcon} from "./dashboard-icon";
 import {useCallback,useEffect,useRef,useState} from "react";
@@ -54,15 +55,26 @@ export function PaymentOverviewMission({locale,workspaceId,environment,canManage
  const root="/w/"+workspaceId+"/payments/";
  const go=(section:string)=>root+section;
  const api="/api/go/workspaces/"+workspaceId;
- const [snapshot,setSnapshot]=useState<Snapshot|null>(null);
- const [loading,setLoading]=useState(true);
+ const billingSeed=useDashboardInitialData<Billing>("billing");
+ const settingsSeed=useDashboardInitialData<Settings>("settings");
+ const phonesSeed=useDashboardInitialData<{items:Phone[];accounts:Account[]}>("phones");
+ const gatewaysSeed=useDashboardInitialData<Page<Account>>("gateways");
+ const linksSeed=useDashboardInitialData<Page<LinkRow>>("links");
+ const intentsSeed=useDashboardInitialData<{data:Intent[]}>("intents");
+ const overviewSeed=useDashboardInitialData<Page<Overview>>("overview");
+ const paymentsSeed=useDashboardInitialData<Page<Payment>>("payments");
+ const refundsSeed=useDashboardInitialData<Page<Refund>>("refunds");
+ const initialSnapshot:Snapshot|null=billingSeed?{billing:{value:billingSeed?.data??null,error:billingSeed?.error||null},settings:{value:settingsSeed?.data??null,error:settingsSeed?.error||null},phones:{value:phonesSeed?.data??null,error:phonesSeed?.error||null},gateways:{value:gatewaysSeed?.data??null,error:gatewaysSeed?.error||null},links:{value:linksSeed?.data??null,error:linksSeed?.error||null},intents:{value:intentsSeed?.data??null,error:intentsSeed?.error||null},overview:{value:overviewSeed?.data??null,error:overviewSeed?.error||null},payments:{value:paymentsSeed?.data??null,error:paymentsSeed?.error||null},refunds:{value:refundsSeed?.data??null,error:refundsSeed?.error||null}}:null;
+ const [snapshot,setSnapshot]=useState<Snapshot|null>(initialSnapshot);
+ const [loading,setLoading]=useState(!initialSnapshot);
  const [refresh,setRefresh]=useState(0);
  const setupDialog=useRef<HTMLDialogElement|null>(null);
  const [showSteps,setShowSteps]=useState(false);
- const [now,setNow]=useState(0);
+ const [now,setNow]=useState(billingSeed?.at??0);
  const update=useCallback(()=>setRefresh(n=>n+1),[]);
  useEffect(()=>{const dialog=setupDialog.current;if(!dialog)return;if(showSteps&&!dialog.open)dialog.showModal();else if(!showSteps&&dialog.open)dialog.close()},[showSteps]);
  useEffect(()=>{
+  if(billingSeed&&refresh===0)return;
   const abort=new AbortController();
   void Promise.resolve().then(()=>{if(!abort.signal.aborted)setLoading(true)});
   const qs="?environment="+encodeURIComponent(environment);
@@ -85,7 +97,7 @@ export function PaymentOverviewMission({locale,workspaceId,environment,canManage
   };
   void load();
   return()=>abort.abort();
- },[api,environment,refresh]);
+ },[api,environment,refresh,billingSeed]);
  useEffect(()=>{
   const refreshOnFocus=()=>{if(document.visibilityState==="visible")update()};
   window.addEventListener("focus",refreshOnFocus);

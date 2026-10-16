@@ -1,4 +1,5 @@
 "use client";
+import {useDashboardInitialData} from "./dashboard-initial-data";
 
 import {useCallback,useEffect,useMemo,useRef,useState} from "react";
 import type {FormEvent} from "react";
@@ -91,20 +92,24 @@ function exportReport(report:Report,period:Filters,scope:"all"|"summary"="all"){
 }
 export function PaymentReports({locale,workspaceId,environment,canReveal}:{locale:Locale;workspaceId:string;environment:string;canReveal:boolean}){
  const bn=locale==="bn",t=useCallback((en:string,bengali:string)=>bn?bengali:en,[bn]);
- const [draft,setDraft]=useState<Filters>(defaults);
+ const seed=useDashboardInitialData<Report>("report");
+ const initialLoad=useRef(Boolean(seed));
+ const accountSeed=useDashboardInitialData<{receiving?:{items:AccountOption[]}}>("integrations");
+ const initialFilters=defaults();
+ const [draft,setDraft]=useState<Filters>(initialFilters);
  const exportDialog=useRef<HTMLDialogElement|null>(null);
  const [exportFormat,setExportFormat]=useState<"csv"|"pdf">("csv");
  const [exportScope,setExportScope]=useState<"all"|"summary">("all");
- const [applied,setApplied]=useState<Filters>(defaults);
+ const [applied,setApplied]=useState<Filters>(initialFilters);
  const [preset,setPreset]=useState<Preset>("30");
  const [section,setSection]=useState<Section>("summary");
  const [compare,setCompare]=useState(false);
  const [previous,setPrevious]=useState<CompareSnapshot|null>(null);
  const [compareLoading,setCompareLoading]=useState(false);
  const [compareError,setCompareError]=useState("");
- const [response,setResponse]=useState<ViewState|null>(null);
- const [loading,setLoading]=useState(true),[error,setError]=useState(""),[refresh,setRefresh]=useState(0);
- const [accounts,setAccounts]=useState<AccountOption[]>([]),[accountError,setAccountError]=useState(false);
+ const [response,setResponse]=useState<ViewState|null>(seed?.data&&validateReport(seed.data)?{report:seed.data,filters:initialFilters}:null);
+ const [loading,setLoading]=useState(!seed),[error,setError]=useState(seed?.error??""),[refresh,setRefresh]=useState(0);
+ const [accounts,setAccounts]=useState<AccountOption[]>(accountSeed?.data?.receiving?.items??[]),[accountError,setAccountError]=useState(false);
  const root="/w/"+workspaceId+"/payments/";
  const applies=draft.from===applied.from&&draft.to===applied.to&&draft.account===applied.account;
  const pending=useMemo(()=>dateRange(draft),[draft]);
@@ -112,17 +117,19 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
  const refundLabels:Record<string,string>={requested:t("Requested","অনুরোধ"),reviewing:t("In review","পর্যালোচনায়"),approved:t("Approved","অনুমোদিত"),rejected:t("Rejected","প্রত্যাখ্যাত"),seller_reported_returned:t("Seller reported returned","বিক্রেতার ফেরত রিপোর্ট"),cancelled:t("Cancelled","বাতিল")};
 
  useEffect(()=>{
+  if(accountSeed)return;
   const controller=new AbortController();
   void fetch("/api/go/workspaces/"+workspaceId+"/integrations?environment="+encodeURIComponent(environment),{cache:"no-store",signal:controller.signal,credentials:"same-origin"})
    .then(async r=>{if(!r.ok)throw Error(String(r.status));return r.json()})
    .then(data=>{if(controller.signal.aborted)return;const rows=data?.receiving?.items;if(!Array.isArray(rows))throw Error("INVALID_ACCOUNTS");setAccounts(rows.filter((x:unknown)=>isRow(x)&&typeof x.id==="string"&&typeof x.method==="string"&&typeof x.display_suffix==="string"));setAccountError(false)})
    .catch(()=>{if(!controller.signal.aborted)setAccountError(true)});
   return()=>controller.abort();
- },[workspaceId,environment]);
+ },[workspaceId,environment,accountSeed]);
 
  useEffect(()=>{
   const controller=new AbortController();
   const range=dateRange(applied);
+  if(initialLoad.current){initialLoad.current=false;return;}
   const run=async()=>{
    setLoading(true);setError("");
    if(!range){setError(t("Select a valid date range, up to 366 days.","সর্বোচ্চ ৩৬৬ দিনের সঠিক তারিখ দিন।"));setLoading(false);return}

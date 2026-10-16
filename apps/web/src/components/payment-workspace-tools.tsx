@@ -1,4 +1,5 @@
 "use client";
+import {useDashboardInitialData} from "./dashboard-initial-data";
 import {useCallback,useEffect,useMemo,useRef,useState} from "react";
 import {useRouter} from "next/navigation";
 import {registerDraft} from "../lib/client/draft-navigation";
@@ -36,12 +37,14 @@ export function PaymentWorkspaceTools({locale,workspaceId,environment,resource,c
  const router=useRouter(),bn=locale==="bn";
  const t=useCallback((en:string,bengali:string)=>bn?bengali:en,[bn]);
  const base="/api/go/workspaces/"+workspaceId+"/workspace-tools";
- const [members,setMembers]=useState<Member[]>([]),[invites,setInvites]=useState<Invitation[]>([]),[tickets,setTickets]=useState<Ticket[]>([]);
- const [body,setBody]=useState<Settings>(defaults),[version,setVersion]=useState(0),[saved,setSaved]=useState<Settings>(defaults);
- const [grants,setGrants]=useState<Record<string,Record<string,boolean>>>({});
+ const seed=useDashboardInitialData<ApiData>("workspace");
+ const initialSettings={...defaults,...seed?.data?.body};
+ const [members,setMembers]=useState<Member[]>(seed?.data?.members??[]),[invites,setInvites]=useState<Invitation[]>(seed?.data?.invitations??[]),[tickets,setTickets]=useState<Ticket[]>(seed?.data?.items??[]);
+ const [body,setBody]=useState<Settings>(initialSettings),[version,setVersion]=useState(seed?.data?.version??0),[saved,setSaved]=useState<Settings>(initialSettings);
+ const [grants,setGrants]=useState<Record<string,Record<string,boolean>>>(seed?.data?.grants??{});
  const [grantDrafts,setGrantDrafts]=useState<Record<string,Record<string,boolean>>>({});
  const [roleDrafts,setRoleDrafts]=useState<Record<string,string>>({});
- const [loaded,setLoaded]=useState(false),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
+ const [loaded,setLoaded]=useState(Boolean(seed?.data)),[loading,setLoading]=useState(!seed),[busy,setBusy]=useState(false),[error,setError]=useState(seed?.error??""),[notice,setNotice]=useState("");
  const [email,setEmail]=useState(""),[role,setRole]=useState("viewer"),[password,setPassword]=useState("");
  const [secretLink,setSecretLink]=useState(""),[subject,setSubject]=useState(""),[issue,setIssue]=useState(""),[find,setFind]=useState("");
  const dirty=useMemo(()=>JSON.stringify(body)!==JSON.stringify(saved),[body,saved]);
@@ -68,7 +71,7 @@ export function PaymentWorkspaceTools({locale,workspaceId,environment,resource,c
   }catch(e){if(!signal?.aborted)setError(t("Unable to load workspace data. Check the connection and retry.","ওয়ার্কস্পেসের তথ্য পাওয়া যায়নি। সংযোগ দেখে আবার চেষ্টা করুন।")+" ("+(e instanceof Error?e.message:"UNKNOWN")+")")}
   finally{if(!signal?.aborted)setLoading(false)}
  },[base,resource,environment,t]);
- useEffect(()=>{const c=new AbortController();void Promise.resolve().then(()=>{if(!c.signal.aborted)return load(c.signal)});return()=>c.abort()},[load]);
+ useEffect(()=>{if(seed)return;const c=new AbortController();void Promise.resolve().then(()=>{if(!c.signal.aborted)return load(c.signal)});return()=>c.abort()},[load,seed]);
  const refresh=()=>{if(resource==="settings"&&dirty&&!window.confirm(t("Discard unsaved settings and reload?","সংরক্ষণ না করা সেটিংস বাদ দিয়ে আবার লোড করবেন?")))return;void load()};
  async function command(action:string,data:Record<string,unknown>,target?:string){
   if(busy)return false;

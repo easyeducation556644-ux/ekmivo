@@ -1,4 +1,5 @@
 "use client";
+import {useDashboardInitialData} from "./dashboard-initial-data";
 import Link from "next/link";
 import {useCallback,useEffect,useMemo,useRef,useState} from "react";
 import {DashboardConfirmDialog} from "./dashboard-confirm-dialog";
@@ -15,11 +16,12 @@ export function PaymentPhoneManagement(props:Props){
 function ScopedDevices({locale,workspaceId,environment,canManage,detailId}:Props){
  const bn=locale==="bn",t=useCallback((en:string,bg:string)=>bn?bg:en,[bn]);
  const base=`/api/go/workspaces/${workspaceId}/phones`,methods=`/w/${workspaceId}/payments/gateways?env=${environment}`;
- const [phones,setPhones]=useState<Phone[]>([]),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
+ const seed=useDashboardInitialData<{items:Phone[]}>("phones");
+ const [phones,setPhones]=useState<Phone[]>(seed?.data?.items??[]),[loading,setLoading]=useState(!seed),[busy,setBusy]=useState(false),[error,setError]=useState(seed?.error??""),[notice,setNotice]=useState("");
  const [selected,setSelected]=useState<string|null>(detailId||null),[createOpen,setCreateOpen]=useState(false),[name,setName]=useState("");
  const [pendingDisconnect,setPendingDisconnect]=useState<Phone|null>(null);
  const [reconnectAfterDisconnect,setReconnectAfterDisconnect]=useState(false);
- const [pairId,setPairId]=useState<string|null>(null),[token,setToken]=useState(""),[expiry,setExpiry]=useState(0),[now,setNow]=useState(0),[offline,setOffline]=useState(false);
+ const [pairId,setPairId]=useState<string|null>(null),[token,setToken]=useState(""),[expiry,setExpiry]=useState(0),[now,setNow]=useState(seed?.at??0),[offline,setOffline]=useState(false);
  const nameRef=useRef<HTMLInputElement>(null),pairRef=useRef<HTMLDialogElement>(null),detailsRef=useRef<HTMLDialogElement>(null),createDialog=useRef<HTMLDialogElement>(null),request=useRef(0);
  const labels=Object.fromEntries(["online","delayed","offline","permission","pairing","expired","waiting","revoked"].map(key=>[key,merchantStatusLabel("phone",key,locale)])) as Record<string,string>;
  const safeError=useCallback((code:string)=>code==="FORBIDDEN"?t("Only workspace owners and admins can manage these phones.","শুধু ওয়ার্কস্পেসের মালিক ও অ্যাডমিন ফোন পরিচালনা করতে পারবেন।"):code==="PHONE_PROJECTION_STALE"?t("Workspace access is still syncing. Keep your existing phone and retry shortly.","ওয়ার্কস্পেসের অনুমতি সিঙ্ক হচ্ছে। আগের ফোনটি রাখুন; একটু পরে আবার চেষ্টা করুন।"):t("Could not confirm this action. Refresh the phone list before trying again.","কাজটি নিশ্চিত হয়নি। আবার চেষ্টা করার আগে ফোনের তালিকা রিফ্রেশ করুন।"),[t]);
@@ -29,7 +31,7 @@ function ScopedDevices({locale,workspaceId,environment,canManage,detailId}:Props
   catch(e){if(!signal?.aborted&&generation===request.current)setError(safeError(e instanceof Error?e.message:"UNKNOWN"));}
   finally{if(!signal?.aborted&&generation===request.current)setLoading(false);}
  },[base,environment,safeError]);
- useEffect(()=>{const c=new AbortController();void Promise.resolve().then(()=>refresh(false,c.signal));return()=>c.abort()},[refresh]);
+ useEffect(()=>{if(seed)return;const c=new AbortController();void Promise.resolve().then(()=>refresh(false,c.signal));return()=>c.abort()},[refresh,seed]);
  useEffect(()=>{const tick=window.setInterval(()=>setNow(Date.now()),1000);const poll=window.setInterval(()=>{if(document.visibilityState==="visible"&&navigator.onLine)void refresh(true)},token?2500:15000);const online=()=>{setOffline(false);void refresh(true)};const disconnected=()=>setOffline(true);window.addEventListener("online",online);window.addEventListener("offline",disconnected);return()=>{clearInterval(tick);clearInterval(poll);window.removeEventListener("online",online);window.removeEventListener("offline",disconnected)}},[refresh,token]);
  const pairingPhone=phones.find(p=>p.id===pairId),complete=!!pairingPhone?.claimed_at,expired=!!pairId&&!complete&&expiry>0&&now>=expiry;
  const showCode=!!token&&!complete&&!expired;

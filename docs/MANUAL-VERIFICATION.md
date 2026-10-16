@@ -648,3 +648,7 @@ Manual pending: finish the 11-page EN/BN × Light/Dark/System × 360/768/desktop
 ## Dashboard V2 / PR #61 — 2026-10-15
 
 Manual pending: authorized Sandbox/Live workspace data reconciliation; EN/BN and Light/Dark/System at 320/768/1024/desktop; modal focus/keyboard/escape and create=1 navigation; payment/SMS details and roles; customer CSV import/export; invoice cancellation; payment-link create/edit/publish/archive and redirect/expiry validation; seller-managed refund decision; method enable/disable; phone pairing/disconnect. Use owner-controlled test accounts/devices and Sandbox for mutating scenarios. Source/build verification is recorded in `docs/evidence/DASHBOARD-V2-UI-HANDOFF.md`; it does not prove real-provider or production financial acceptance.
+
+## Customer and navigation correction — 2026-10-16 (manual pending)
+
+Use the existing authorized owner session and verified payer customer in the Neon-backed preview. Confirm full number in list/details; confirm viewer/editor do not gain recovery access. Navigate Payments → Customers and other payment menus with a slow source: old page stays until data or explicit error is ready, top progress line is visible, no page skeleton flash. Check full-width workspace picker on desktop/mobile and light/dark; retain draft guards and filter resets. No new payment or financial mutation is required. Automated evidence: `docs/evidence/CUSTOMERS-NAVIGATION-20261016.md`.

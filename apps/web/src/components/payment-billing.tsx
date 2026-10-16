@@ -1,4 +1,5 @@
 "use client";
+import {useDashboardInitialData} from "./dashboard-initial-data";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {useRouter} from "next/navigation";
 type Plan={id:string;name:string;amount_minor:number;period_days:number;grace_days?:number};
@@ -11,9 +12,10 @@ function formatDate(value:string|undefined,locale:"bn"|"en"){
 }
 export function PaymentBilling({locale,workspaceId,canManage}:{locale:"en"|"bn";workspaceId:string;canManage:boolean}){
  const router=useRouter(),bn=locale==="bn",t=useCallback((en:string,bengali:string)=>bn?bengali:en,[bn]),base="/api/go/workspaces/"+workspaceId+"/billing";
- const [plans,setPlans]=useState<Plan[]>([]),[invoices,setInvoices]=useState<Invoice[]>([]),[subscription,setSubscription]=useState<Subscription|null>(null);
- const [loaded,setLoaded]=useState(false),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState(""),[operation,setOperation]=useState("");
- const [clock,setClock]=useState(0);
+ const seed=useDashboardInitialData<BillingData>("billing");
+ const [plans,setPlans]=useState<Plan[]>(seed?.data?.plans??[]),[invoices,setInvoices]=useState<Invoice[]>(seed?.data?.invoices??[]),[subscription,setSubscription]=useState<Subscription|null>(seed?.data?.subscription??null);
+ const [loaded,setLoaded]=useState(Boolean(seed?.data)),[loading,setLoading]=useState(!seed),[busy,setBusy]=useState(false),[error,setError]=useState(seed?.error??""),[notice,setNotice]=useState(""),[operation,setOperation]=useState("");
+ const [clock,setClock]=useState(seed?.at??0);
  const idempotency=useRef<{plan:string;key:string}|null>(null);
  const money=(minor:number)=>new Intl.NumberFormat(bn?"bn-BD":"en-BD",{style:"currency",currency:"BDT",maximumFractionDigits:2}).format(minor/100);
  const load=useCallback(async(signal?:AbortSignal)=>{
@@ -28,7 +30,7 @@ export function PaymentBilling({locale,workspaceId,canManage}:{locale:"en"|"bn";
   }catch(e){if(!signal?.aborted)setError(t("Unable to load billing. No payment was changed.","বিলিং পাওয়া যাচ্ছে না। কোনো পেমেন্ট পরিবর্তন হয়নি।")+" ("+(e instanceof Error?e.message:"UNKNOWN")+")")}
   finally{if(!signal?.aborted)setLoading(false)}
  },[base,t]);
- useEffect(()=>{const c=new AbortController();const start=setTimeout(()=>void load(c.signal),0);const tick=setInterval(()=>setClock(Date.now()),60000);return()=>{clearTimeout(start);clearInterval(tick);c.abort()}},[load]);
+ useEffect(()=>{const c=new AbortController();const start=seed?undefined:setTimeout(()=>void load(c.signal),0);const tick=setInterval(()=>setClock(Date.now()),60000);return()=>{clearTimeout(start);clearInterval(tick);c.abort()}},[load,seed]);
  async function issue(plan:string){
   if(!canManage||busy)return;
   setBusy(true);setOperation(plan);setError("");setNotice("");

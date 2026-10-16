@@ -1,4 +1,5 @@
 "use client";
+import {useDashboardInitialData} from "./dashboard-initial-data";
 import Link from "next/link";
 import {PaymentRequestDetail} from "./payment-request-detail";
 import {merchantStatusLabel} from "../lib/dashboard-status-labels";
@@ -46,16 +47,18 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
  useEffect(()=>{const id=new URLSearchParams(location.search).get("request");if(id&&uuid.test(id))void Promise.resolve().then(()=>setSelected(id));},[]);
  function selectDetail(id:string){setSelected(id);const url=new URL(location.href);if(id)url.searchParams.set("request",id);else url.searchParams.delete("request");history.replaceState(history.state,"",url);}
 
- const [data,setData]=useState<Intent[]>([]);
- const [sources,setSources]=useState<Source[]>([]);
- const [sourceLoad,setSourceLoad]=useState<"loading"|"ready"|"error">("loading");
+ const seed=useDashboardInitialData<{data:Intent[]}>("requests");
+ const sourcesSeed=useDashboardInitialData<{data:Source[];items:{id:string;reference:string;status:string;amount_minor:number;paid_minor:number;created_at:string;body:{items:Source["items"]}}[]}>("sources");
+ const [data,setData]=useState<Intent[]>(seed?.data?.data??[]);
+ const [sources,setSources]=useState<Source[]>(environment==="live"?(sourcesSeed?.data?.items??[]).filter(x=>x.status==="issued"&&x.amount_minor>x.paid_minor).map(x=>({id:x.id,source_kind:"invoice",source_reference:x.reference,amount_minor:x.amount_minor-x.paid_minor,issued_at:x.created_at,items:x.body.items})):sourcesSeed?.data?.data??[]);
+ const [sourceLoad,setSourceLoad]=useState<"loading"|"ready"|"error">(sourcesSeed?(sourcesSeed.error?"error":"ready"):"loading");
  const [sourceDraft,setSourceDraft]=useState<SourceDraft>(initialSource);
  const [extraLines,setExtraLines]=useState<SourceLine[]>([]);
  const [sourceBase,setSourceBase]=useState<{draft:SourceDraft;lines:SourceLine[]}>({draft:initialSource,lines:[]});
  const [sourceBusy,setSourceBusy]=useState(false);
  const [sourceError,setSourceError]=useState("");
- const [load,setLoad]=useState<LoadState>("loading");
- const [error,setError]=useState("");
+ const [load,setLoad]=useState<LoadState>(seed?(seed.error?"error":"ready"):"loading");
+ const [error,setError]=useState(seed?.error??"");
  const [fields,setFields]=useState<Fields>(empty);
  const [draftBase,setDraftBase]=useState<Fields>(empty);
  const [expanded,setExpanded]=useState(false);
@@ -142,8 +145,8 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
    setSourceLoad("ready");setSourceError("");
   }catch{setSourceLoad("error");setSourceError(bn?"নথি লোড হয়নি। আবার চেষ্টা করুন।":"Document sources unavailable. Retry.");}
  },[sourcesApi,environment,bn]);
- useEffect(()=>{void Promise.resolve().then(()=>refresh())},[refresh]);
- useEffect(()=>{void Promise.resolve().then(()=>refreshSources())},[refreshSources]);
+ useEffect(()=>{if(seed)return;void Promise.resolve().then(()=>refresh())},[refresh,seed]);
+ useEffect(()=>{if(sourcesSeed)return;void Promise.resolve().then(()=>refreshSources())},[refreshSources,sourcesSeed]);
  const edit=(field:keyof Fields,value:string)=>{
   setFields(f=>({...f,[field]:value}));
   keyRef.current="";

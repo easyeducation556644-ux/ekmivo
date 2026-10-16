@@ -1,4 +1,5 @@
 "use client";
+import {useDashboardInitialData} from "./dashboard-initial-data";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {PaymentLoadingSkeleton} from "./payment-loading-skeleton";
 type Row={id:string;payment_id:string|null;source_observation_id?:string|null;source_intent_id?:string|null;amount_minor:number;status:string;version:number;reason:string;created_at?:string;updated_at?:string;seller_note?:string;seller_reference?:string;customer?:{name:string;email:string;phone:string}};
@@ -8,8 +9,10 @@ const statusMap:Record<string,[string,string]>={requested:["Requested","অন�
 export function PaymentRefunds({locale,workspaceId,environment,canManage,detailId}:{locale:"en"|"bn";workspaceId:string;environment:string;canManage:boolean;detailId?:string}){
  const bn=locale==="bn",t=(en:string,be:string)=>bn?be:en;
  const base="/api/go/workspaces/"+workspaceId+"/refunds";
- const [items,setItems]=useState<Row[]>([]),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
- const [status,setStatus]=useState(""),[cursor,setCursor]=useState(""),[next,setNext]=useState<string|null>(null),[nonce,setNonce]=useState(0);
+ const seed=useDashboardInitialData<{items:Row[];next_cursor?:string}>("refunds");
+ const initialLoad=useRef(Boolean(seed));
+ const [items,setItems]=useState<Row[]>(seed?.data?.items??[]),[loading,setLoading]=useState(!seed),[busy,setBusy]=useState(false),[error,setError]=useState(seed?.error??""),[notice,setNotice]=useState("");
+ const [status,setStatus]=useState(""),[cursor,setCursor]=useState(""),[next,setNext]=useState<string|null>(seed?.data?.next_cursor??null),[nonce,setNonce]=useState(0);
  const detailsDialog=useRef<HTMLDialogElement|null>(null),decisionDialog=useRef<HTMLDialogElement|null>(null);
  const [viewing,setViewing]=useState<Row|null>(null);
  const [selected,setSelected]=useState<Row|null>(null),[action,setAction]=useState<Action>("review"),[note,setNote]=useState(""),[reference,setReference]=useState(""),[confirmed,setConfirmed]=useState(false);
@@ -27,7 +30,7 @@ export function PaymentRefunds({locale,workspaceId,environment,canManage,detailI
   }catch(e){if(!signal.aborted)setError(t("Refund records are unavailable. Retry.","রিফান্ডের তথ্য পাওয়া যায়নি। আবার চেষ্টা করুন।")+" ("+(e instanceof Error?e.message:"")+")")}
   finally{if(!signal.aborted)setLoading(false)}
  },[base,detailId,environment,status,cursor,bn]);
- useEffect(()=>{const c=new AbortController();void Promise.resolve().then(()=>{if(!c.signal.aborted)void load(c.signal)});return()=>c.abort()},[load,nonce]);
+ useEffect(()=>{if(initialLoad.current){initialLoad.current=false;return;}const c=new AbortController();void Promise.resolve().then(()=>{if(!c.signal.aborted)void load(c.signal)});return()=>c.abort()},[load,nonce]);
  useEffect(()=>{const d=detailsDialog.current;if(!d)return;if(viewing&&!d.open)d.showModal();else if(!viewing&&d.open)d.close()},[viewing]);
  useEffect(()=>{const d=decisionDialog.current;if(!d)return;if(selected&&!d.open)d.showModal();else if(!selected&&d.open)d.close()},[selected]);
  useEffect(()=>{if(!selected)return;const onEscape=(e:KeyboardEvent)=>{if(e.key==="Escape"&&!busy)setSelected(null)};window.addEventListener("keydown",onEscape);return()=>window.removeEventListener("keydown",onEscape)},[selected,busy]);

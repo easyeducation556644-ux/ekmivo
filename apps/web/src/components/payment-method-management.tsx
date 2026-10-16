@@ -1,4 +1,5 @@
 "use client";
+import {useDashboardInitialData} from "./dashboard-initial-data";
 import Link from "next/link";
 import {DashboardConfirmDialog} from "./dashboard-confirm-dialog";
 import {useCallback,useEffect,useRef,useState} from "react";
@@ -10,7 +11,8 @@ const methodName:Record<string,string>={bkash:"bKash",nagad:"Nagad",rocket:"Rock
 export function PaymentMethodManagement({locale,workspaceId,environment,canManage}:{locale:Locale;workspaceId:string;environment:PaymentEnvironment;canManage:boolean}){
  const bn=locale==="bn",t=useCallback((en:string,bd:string)=>bn?bd:en,[bn]);
  const base="/api/go/workspaces/"+workspaceId,deviceHref="/"+locale+"/w/"+workspaceId+"/payments/devices?env="+environment;
- const [accounts,setAccounts]=useState<Account[]>([]),[phones,setPhones]=useState<Phone[]>([]),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
+ const seed=useDashboardInitialData<{accounts:Account[];items:Phone[]}>("phones");
+ const [accounts,setAccounts]=useState<Account[]>(seed?.data?.accounts??[]),[phones,setPhones]=useState<Phone[]>(seed?.data?.items??[]),[loading,setLoading]=useState(!seed),[busy,setBusy]=useState(false),[error,setError]=useState(seed?.error??""),[notice,setNotice]=useState("");
  const createDialog=useRef<HTMLDialogElement>(null),editDialog=useRef<HTMLDialogElement>(null),detailsDialog=useRef<HTMLDialogElement>(null);
  const [method,setMethod]=useState("bkash"),[number,setNumber]=useState(""),[label,setLabel]=useState("");
  const [selected,setSelected]=useState<string|null>(null),[edited,setEdited]=useState<string|null>(null),[newLabel,setNewLabel]=useState(""),[newNumber,setNewNumber]=useState("");
@@ -31,7 +33,7 @@ export function PaymentMethodManagement({locale,workspaceId,environment,canManag
   }catch(e){if(!signal?.aborted)setError(e instanceof Error?e.message:t("Unable to load payment methods.","পেমেন্ট মাধ্যমের তথ্য পাওয়া যায়নি।"))}
   finally{if(!signal?.aborted)setLoading(false)}
  },[base,environment,t]);
- useEffect(()=>{const controller=new AbortController();void Promise.resolve().then(()=>{if(!controller.signal.aborted)void load(controller.signal)});return()=>controller.abort()},[load]);
+ useEffect(()=>{if(seed)return;const controller=new AbortController();void Promise.resolve().then(()=>{if(!controller.signal.aborted)void load(controller.signal)});return()=>controller.abort()},[load,seed]);
  async function post(path:string,body:unknown){
   setBusy(true);setError("");
   try{

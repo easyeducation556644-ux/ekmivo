@@ -1,4 +1,5 @@
 "use client";
+import {useDashboardInitialData} from "./dashboard-initial-data";
 import {PaymentLinkCards,LinkIcon,paymentLinkState} from "./payment-link-cards";
 import {PaymentLoadingSkeleton} from "./payment-loading-skeleton";
 import {DashboardConfirmDialog} from "./dashboard-confirm-dialog";
@@ -13,7 +14,9 @@ type RecordRow={id:string;reference:string;status:string;version:number;body:Par
 const empty=():Body=>({max_quantity:1,image_url:"",return_url:"",customer_id:"",reference:"",name:"",email:"",phone:"",description:"",notes:"",private_notes:"",amount_minor:0,items:[{title:"",quantity:1,unit_amount_minor:0}],tax_minor:0,fee_minor:0,shipping_minor:0,discount_minor:0,max_uses:0,expires_at:"",due_at:"",fields:[],tags:[]});
 export function PaymentDocuments({kind,workspaceId,environment,locale,userId,canWrite,canManage,detailId}:{kind:Kind;workspaceId:string;environment:string;locale:"en"|"bn";userId:string;canWrite:boolean;canManage:boolean;detailId?:string}){
  const bn=locale==="bn",t=useCallback((en:string,bnText:string)=>bn?bnText:en,[bn]),base=`/api/go/workspaces/${workspaceId}/documents/${kind}`;
- const [now,setNow]=useState(0);
+ const seed=useDashboardInitialData<{items:RecordRow[];next_cursor:string|null;delivery:typeof delivery;activity:{invoices:typeof activity}}>("documents");
+ const initialLoad=useRef(Boolean(seed));
+ const [now,setNow]=useState(seed?.at??0);
  const [linkFilter,setLinkFilter]=useState("all");
  const [documentFilter,setDocumentFilter]=useState("all"),[documentFiltersOpen,setDocumentFiltersOpen]=useState(false);
  const columnsMenu=useRef<HTMLDetailsElement|null>(null);
@@ -23,7 +26,7 @@ export function PaymentDocuments({kind,workspaceId,environment,locale,userId,can
  const [customerSearch,setCustomerSearch]=useState("");const [customerError,setCustomerError]=useState("");
  const [activity,setActivity]=useState<{id:string;reference:string;status:string;amount_minor:number;paid_minor:number}[]>([]);
  const [delivery,setDelivery]=useState<{id:string;kind:string;status:string;created_at:string}[]>([]);
- const [rows,setRows]=useState<RecordRow[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState(""),[search,setSearch]=useState(""),[cursor,setCursor]=useState<string|null>(null),[busy,setBusy]=useState(false),[editing,setEditing]=useState<RecordRow|null|undefined>(undefined),[body,setBody]=useState<Body>(empty),[csv,setCsv]=useState(""),[preview,setPreview]=useState<{valid_count:number;errors:{row:number;code:string}[]}|null>(null),[message,setMessage]=useState(""),[customers,setCustomers]=useState<{id:string;body:{name:string}}[]>([]);
+ const [rows,setRows]=useState<RecordRow[]>(seed?.data?.items??[]),[loading,setLoading]=useState(!seed),[error,setError]=useState(seed?.error??""),[search,setSearch]=useState(""),[cursor,setCursor]=useState<string|null>(seed?.data?.next_cursor??null),[busy,setBusy]=useState(false),[editing,setEditing]=useState<RecordRow|null|undefined>(undefined),[body,setBody]=useState<Body>(empty),[csv,setCsv]=useState(""),[preview,setPreview]=useState<{valid_count:number;errors:{row:number;code:string}[]}|null>(null),[message,setMessage]=useState(""),[customers,setCustomers]=useState<{id:string;body:{name:string}}[]>([]);
  const visibleRows=isLinks?rows.filter(row=>linkFilter==="all"||paymentLinkState(row,now)===linkFilter):rows.filter(row=>documentFilter==="all"||documentFilter==="checkout"&&Boolean(row.body.source)||documentFilter==="manual"&&!row.body.source||documentFilter==="paid"&&row.paid_minor>=row.amount_minor||documentFilter==="unpaid"&&row.status==="issued"&&row.paid_minor<row.amount_minor||row.status===documentFilter);
  const exportAbort=useRef<AbortController|null>(null);
   useEffect(()=>{if(!message)return;const timer=setTimeout(()=>setMessage(""),3000);return()=>clearTimeout(timer)},[message]);
@@ -64,12 +67,12 @@ export function PaymentDocuments({kind,workspaceId,environment,locale,userId,can
    void fetch(`${base}/${row.id}?environment=${encodeURIComponent(environment)}`,{cache:"no-store",credentials:"same-origin",signal:controller.signal})
     .then(async response=>{if(!response.ok)throw Error("DETAILS_UNAVAILABLE");return response.json()})
     .then(data=>{if(!controller.signal.aborted){const fresh=data?.items?.[0] as RecordRow|undefined;if(fresh?.id===row.id)setSelectedDocument(fresh)}})
-    .catch(()=>{/* Keep the already loaded row; never invent or reconstruct a masked number. */});
+    .catch(()=>{if(!controller.signal.aborted)setError(t("Customer details could not be refreshed. Retry.","গ্রাহকের বিস্তারিত হালনাগাদ হয়নি। আবার চেষ্টা করুন।"))});
   };
  useEffect(()=>{const dialog=editorDialog.current;if(!dialog)return;if(editing!==undefined&&!dialog.open)dialog.showModal();else if(editing===undefined&&dialog.open)dialog.close()},[editing]);
  const draft=useRef<{dirty:boolean;save:()=>Promise<boolean>;discard:()=>void}>({dirty:false,save:async()=>false,discard:()=>{}});
  const load=useCallback(async(after?:string,signal?:AbortSignal)=>{setLoading(true);setError("");try{const q=new URLSearchParams({environment});if(search)q.set("q",search);if(after)q.set("cursor",after);const r=await fetch(`${base}${detailId?"/"+detailId:""}?${q}`,{cache:"no-store",signal});if(!r.ok)throw Error(String(r.status));const d=await r.json();if(!signal?.aborted){setRows(old=>after?[...old,...d.items]:d.items);setNow(Date.now());setCursor(d.next_cursor);setDelivery(d.delivery??[]);setActivity(d.activity?.invoices??[])}}catch(e){if(!signal?.aborted)setError(navigator.onLine?t("Unable to load records.","তথ্য পাওয়া যাচ্ছে না।"):t("Offline. Reconnect to load records.","সংযোগ নেই। আবার সংযুক্ত হয়ে দেখুন।"))}finally{if(!signal?.aborted)setLoading(false)}},[base,detailId,environment,search,t]);
- useEffect(()=>{const c=new AbortController();void Promise.resolve().then(()=>load(undefined,c.signal));return()=>c.abort()},[load]);
+ useEffect(()=>{if(initialLoad.current){initialLoad.current=false;return;}const c=new AbortController();void Promise.resolve().then(()=>load(undefined,c.signal));return()=>c.abort()},[load,seed,search,detailId]);
  useEffect(()=>{if(editing===undefined)return;const guard=(e:BeforeUnloadEvent)=>{e.preventDefault()};window.addEventListener("beforeunload",guard);return()=>window.removeEventListener("beforeunload",guard)},[editing]);
  async function command(path:string,data:unknown,method="POST"){setBusy(true);setError("");setMessage("");try{const serialized=JSON.stringify(data);const hash=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(`${base}|${environment}|${path}|${method}|${serialized}`));const slot="ekmivo-request:"+Array.from(new Uint8Array(hash),v=>v.toString(16).padStart(2,"0")).join("");let key=sessionStorage.getItem(slot);if(!key){key=crypto.randomUUID();sessionStorage.setItem(slot,key)}const r=await fetch(`${base}${path}?environment=${environment}`,{method,headers:{"Content-Type":"application/json","Idempotency-Key":key},body:serialized});const d=await r.json();if(!r.ok)throw Error(d.error?.code||d.code||String(r.status));sessionStorage.removeItem(slot);setMessage(t("Saved by the server.","সার্ভারে সংরক্ষিত হয়েছে।"));return d}catch(e){setError(e instanceof Error?e.message:t("Request unconfirmed","অনুরোধ নিশ্চিত হয়নি"));return null}finally{setBusy(false)}}
  async function save(e?:React.FormEvent){e?.preventDefault();const data={...body,customer_id:body.customer_id||undefined,expires_at:body.expires_at?new Date(body.expires_at).toISOString():undefined,due_at:body.due_at?new Date(body.due_at).toISOString():undefined,expected_version:editing?.version};if(await command(editing?"/"+editing.id+(kind==="invoices"&&editing.status==="issued"?"/correct":""):"",data,editing&&!(kind==="invoices"&&editing.status==="issued")?"PATCH":"POST")){draft.current.dirty=false;setEditing(undefined);await load();return true}return false}

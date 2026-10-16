@@ -19,5 +19,5 @@ export default async function ServiceSection({ params, searchParams }: {
  if(service==="payments"&&query.env!==undefined)
    redirect(`/w/${workspace.id}/payments/${section}`);
  const paymentContext=service==="payments"?await paymentContextFor(workspace,user.id,undefined):undefined;
- return <DashboardContent framed locale={locale} user={user} workspace={workspace} service={service} section={section} paymentContext={paymentContext}/>;
+ return <DashboardContent framed initialQuery={query} locale={locale} user={user} workspace={workspace} service={service} section={section} paymentContext={paymentContext}/>;
 }

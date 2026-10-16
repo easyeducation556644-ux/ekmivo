@@ -177,3 +177,7 @@
 .ds-app[data-service="payments"] .ekv3-request-modal .pg05-actions.ekv3-modal-footer>button:first-child{order:0}
 .ds-app[data-service="payments"] .ekv3-request-modal .pg05-actions.ekv3-modal-footer>button[type="submit"]{order:1}
 @media(max-width:650px){.ds-app[data-service="payments"] .sd-pairing.ekv3-pair-dialog[open]{grid-template-columns:1fr}.ds-app[data-service="payments"] .ekv3-row-popover{min-width:140px}}
+
+/* Workspace switcher occupies the same full sidebar row as navigation. */
+.ds-business-block{grid-template-columns:minmax(0,1fr);width:100%}
+.ds-business-block .ds-business-picker{width:100%;min-width:0}

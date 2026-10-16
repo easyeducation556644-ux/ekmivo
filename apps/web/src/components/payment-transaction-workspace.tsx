@@ -1,4 +1,5 @@
 "use client";
+import {useDashboardInitialData} from "./dashboard-initial-data";
 import {useSearchParams} from "next/navigation";
 import {PaymentLoadingSkeleton} from "./payment-loading-skeleton";
 import {useCallback,useEffect,useMemo,useRef,useState} from "react";
@@ -19,14 +20,17 @@ export function PaymentTransactionWorkspace({locale,workspaceId,environment,reso
  const [draft,setDraft]=useState<Filters>(queryFilters),[filters,setFilters]=useState<Filters>(queryFilters);
  useEffect(()=>{void Promise.resolve().then(()=>{setDraft(queryFilters);setFilters(old=>JSON.stringify(old)===JSON.stringify(queryFilters)?old:queryFilters)})},[queryFilters]);
  const rememberFilters=(next:Filters)=>{const u=new URL(window.location.href);for(const key of Object.keys(initial) as (keyof Filters)[]){if(next[key])u.searchParams.set(key,next[key]);else u.searchParams.delete(key)}u.searchParams.delete("cursor");window.history.pushState(null,"",u.pathname+u.search+u.hash)};
- const [rows,setRows]=useState<Item[]>([]),[cursor,setCursor]=useState<string|null>(null);
- const [loading,setLoading]=useState(true),[busy,setBusy]=useState<string|null>(null);
- const [error,setError]=useState(""),[notice,setNotice]=useState(""),[nonce,setNonce]=useState(0);
+ const seed=useDashboardInitialData<{items:Item[];next_cursor?:string}>("transactions");
+ const initialLoad=useRef(Boolean(seed));
+ const accountSeed=useDashboardInitialData<{items:{id:string;method?:string;display_suffix?:string}[]}>("accounts");
+ const [rows,setRows]=useState<Item[]>(seed?.data?.items??[]),[cursor,setCursor]=useState<string|null>(seed?.data?.next_cursor??null);
+ const [loading,setLoading]=useState(!seed),[busy,setBusy]=useState<string|null>(null);
+ const [error,setError]=useState(seed?.error??""),[notice,setNotice]=useState(""),[nonce,setNonce]=useState(0);
  const [filterError,setFilterError]=useState("");
  const [filtersOpen,setFiltersOpen]=useState(false);
  const [columns,setColumns]=useState([true,true,true,true,true,true]);
  const columnLabels=[incoming?t("Received device","প্রাপ্তির ডিভাইস"):t("Reference","রেফারেন্স"),t("Payer number","প্রেরকের নম্বর"),t("TrxID","ট্রানজেকশন আইডি"),t("Method","মাধ্যম"),t("Status","অবস্থা"),t("Amount","পরিমাণ")];
- const [accounts,setAccounts]=useState<{id:string;method?:string;display_suffix?:string}[]>([]);
+ const [accounts,setAccounts]=useState<{id:string;method?:string;display_suffix?:string}[]>(accountSeed?.data?.items??[]);
  const detailDialog=useRef<HTMLDialogElement|null>(null);
  const [selected,setSelected]=useState<Item|null>(null);
  const openDetail=(item:Item)=>{setSelected(item);detailDialog.current?.showModal()};
@@ -34,13 +38,14 @@ export function PaymentTransactionWorkspace({locale,workspaceId,environment,reso
  const [online,setOnline]=useState(true);
  useEffect(()=>{const fn=()=>setOnline(navigator.onLine);fn();window.addEventListener("online",fn);window.addEventListener("offline",fn);return()=>{window.removeEventListener("online",fn);window.removeEventListener("offline",fn)}},[]);
  useEffect(()=>{
+  if(accountSeed)return;
   const controller=new AbortController();
   void fetch(base+"gateways?environment="+encodeURIComponent(environment),{cache:"no-store",credentials:"same-origin",signal:controller.signal})
    .then(async response=>{if(!response.ok)throw Error(String(response.status));return response.json()})
    .then(data=>{if(controller.signal.aborted)return;if(!Array.isArray(data.items))throw Error("INVALID_ACCOUNT_SOURCE");setAccounts(data.items.filter((a:unknown)=>!!a&&typeof a==="object"&&"id" in a&&typeof a.id==="string"));setAccountError(false)})
    .catch(()=>{if(!controller.signal.aborted)setAccountError(true)});
   return()=>controller.abort();
- },[base,environment]);
+ },[base,environment,accountSeed]);
  const url=useCallback((next?:string)=>{
   const q=new URLSearchParams({environment});
   for(const key of ["status","method"] as const)if(filters[key])q.set(key,filters[key]);
@@ -52,6 +57,7 @@ export function PaymentTransactionWorkspace({locale,workspaceId,environment,reso
   return base+resource+"?"+q.toString();
  },[base,resource,environment,filters]);
  useEffect(()=>{
+  if(initialLoad.current){initialLoad.current=false;return;}
   const ctl=new AbortController();
   void Promise.resolve().then(async()=>{setLoading(true);setError("");
    try{
