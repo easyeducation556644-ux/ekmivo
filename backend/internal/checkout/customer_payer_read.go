@@ -5,12 +5,22 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/masharzy/ekmivo/backend/internal/deviceevidence"
 	"github.com/masharzy/ekmivo/backend/internal/merchantwebhook"
 )
+
+// Historical pg64 payer groups use a 64-prefixed MD5 UUID without forcing
+// RFC version/variant bits. Preserve those stable catalog identities; never
+// weaken the validator used for payment intents, workspaces or other records.
+var payerCustomerIDPattern = regexp.MustCompile(`^64[0-9a-f]{6}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+
+func validDocumentID(kind, id string) bool {
+	return uuidPattern.MatchString(id) || kind == "customers" && payerCustomerIDPattern.MatchString(id)
+}
 
 type verifiedPayerSMSEvidence struct {
 	ID       string `json:"id"`
@@ -33,21 +43,14 @@ const verifiedPayerPaymentsSQL = `WITH candidates AS (
 SELECT payment_id,customer_id FROM candidates WHERE evidence_rank<=3
 ORDER BY evidence_rank,customer_id LIMIT 150`
 
-// Only owner/admin may recover verified payer phones. Saved customer contacts
-// never inherit payer identity, and missing evidence is never reconstructed
-// from a four-digit suffix.
-func (s *Service) supplementCustomerPayerNumbers(r *http.Request, ws, realm string, result any, role string) {
-	log.Printf("customer_payer_recovery stage=request role=%s", role)
-	if role != "owner" && role != "admin" {
-		return
-	}
+func payerCustomerRows(result any) ([]string, map[string]map[string]any) {
 	payload, ok := result.(map[string]any)
 	if !ok {
-		return
+		return nil, nil
 	}
 	records, ok := payload["items"].([]any)
 	if !ok || len(records) == 0 || len(records) > 50 {
-		return
+		return nil, nil
 	}
 	ids := make([]string, 0, len(records))
 	byID := make(map[string]map[string]any, len(records))
@@ -61,13 +64,23 @@ func (s *Service) supplementCustomerPayerNumbers(r *http.Request, ws, realm stri
 			continue
 		}
 		id, ok := row["id"].(string)
-		if !ok || !uuidPattern.MatchString(id) {
+		if !ok || !payerCustomerIDPattern.MatchString(id) {
 			continue
 		}
 		ids = append(ids, id)
 		byID[id] = body
 	}
-	log.Printf("customer_payer_recovery stage=customer_groups count=%d", len(ids))
+	return ids, byID
+}
+
+// Only owner/admin may recover verified payer phones. Saved customer contacts
+// never inherit payer identity, and missing evidence is never reconstructed
+// from a four-digit suffix.
+func (s *Service) supplementCustomerPayerNumbers(r *http.Request, ws, realm string, result any, role string) {
+	if role != "owner" && role != "admin" {
+		return
+	}
+	ids, byID := payerCustomerRows(result)
 	if len(ids) == 0 {
 		return
 	}
@@ -113,7 +126,6 @@ func (s *Service) supplementCustomerPayerNumbers(r *http.Request, ws, realm stri
 			unresolved = append(unresolved, id)
 		}
 	}
-	log.Printf("customer_payer_recovery stage=contact_result unresolved=%d", len(unresolved))
 	if len(unresolved) != 0 {
 		s.recoverPayersFromVerifiedSMS(r, ws, realm, unresolved, byID)
 	}

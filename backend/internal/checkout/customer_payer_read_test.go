@@ -121,3 +121,44 @@ func TestVerifiedSMSPhoneRecovery(t *testing.T) {
 		}
 	})
 }
+
+func TestHistoricalPayerCustomerUUIDValidation(t *testing.T) {
+	// Catalog MD5 identities may have any version/variant nibble, unlike new
+	// financial UUIDs. Previously this valid customer could neither be read
+	// by ID nor enter list-level full-phone recovery.
+	for _, id := range []string{"64abcdef-1234-0abc-cdef-123456789abc", "64000000-0000-0000-f000-000000000000"} {
+		if uuidPattern.MatchString(id) {
+			t.Fatal("fixture must exercise non-RFC catalog ID")
+		}
+		if !payerCustomerIDPattern.MatchString(id) || !validDocumentID("customers", id) {
+			t.Fatal("historical customer rejected")
+		}
+		for _, kind := range []string{"invoices", "payment-links", "payments", ""} {
+			if validDocumentID(kind, id) {
+				t.Fatalf("catalog exception widened to %s", kind)
+			}
+		}
+	}
+	if !validDocumentID("customers", "11111111-1111-4111-8111-111111111111") {
+		t.Fatal("ordinary customer rejected")
+	}
+	for _, id := range []string{"64abcdef-1234-0abc-cdef-123456789abc/other", "65000000-0000-0000-f000-000000000000", "not-a-uuid"} {
+		if validDocumentID("customers", id) {
+			t.Fatal("invalid catalog ID accepted")
+		}
+	}
+}
+
+func TestListRecoverySelectsHistoricalCatalogCustomer(t *testing.T) {
+	id := "64abcdef-1234-0abc-cdef-123456789abc"
+	body := map[string]any{"source": "checkout_payer", "phone": "••••5678"}
+	result := map[string]any{"items": []any{map[string]any{"id": id, "body": body}, map[string]any{"id": "64000000-0000-0000-f000-000000000000", "body": map[string]any{"source": "manual"}}}}
+	ids, rows := payerCustomerRows(result)
+	if len(ids) != 1 || ids[0] != id || rows[id] == nil {
+		t.Fatal("historical payer group skipped before decrypt")
+	}
+	setVerifiedPayerPhone(rows[id], "+8801712345678")
+	if body["phone"] != "+8801712345678" {
+		t.Fatal("response body did not receive recovered number")
+	}
+}

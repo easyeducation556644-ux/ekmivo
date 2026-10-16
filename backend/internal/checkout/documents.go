@@ -218,7 +218,7 @@ func (s *Service) HandleDocuments(w http.ResponseWriter, r *http.Request) {
 	w, finishActivity := s.observeAPI(w, r, ws, realm)
 	defer finishActivity()
 	id, action := r.PathValue("documentID"), r.PathValue("documentAction")
-	if id != "" && !uuidPattern.MatchString(id) {
+	if id != "" && !validDocumentID(res, id) {
 		fail(w, 404, "NOT_FOUND")
 		return
 	}
