@@ -11,6 +11,7 @@ export function HostedInvoice({locale,token}:{locale:"en"|"bn";token:string}){
  const bn=locale==="bn",t=(en:string,be:string)=>bn?be:en;
  const [doc,setDoc]=useState<Invoice|null>(null),[pending,setPending]=useState(true),[error,setError]=useState("");
  useEffect(()=>{const abort=new AbortController();setPending(true);fetch("/api/documents/"+token,{cache:"no-store",signal:abort.signal}).then(async r=>{if(!r.ok)throw Error("UNAVAILABLE");return r.json()}).then(d=>{if(!abort.signal.aborted){if(d?.kind!=="invoices")throw Error("INVALID_KIND");setDoc(d)}}).catch(()=>{if(!abort.signal.aborted)setError(t("Invoice unavailable or no longer payable.","ইনভয়েস পাওয়া যাচ্ছে না বা আর পরিশোধযোগ্য নয়।"))}).finally(()=>{if(!abort.signal.aborted)setPending(false)});return()=>abort.abort()},[token,locale]);
+ useEffect(()=>{if(!doc||new URLSearchParams(window.location.search).get("print")!=="1")return;const timeout=window.setTimeout(()=>window.print(),500);return()=>window.clearTimeout(timeout)},[doc]);
  const money=(n:number)=>new Intl.NumberFormat(bn?"bn-BD":"en-BD",{style:"currency",currency:"BDT",minimumFractionDigits:2}).format(n/100);
  const fmt=(raw?:string)=>{if(!raw)return "—";const d=new Date(raw);return Number.isFinite(d.getTime())?new Intl.DateTimeFormat(bn?"bn-BD":"en-GB",{dateStyle:"medium",timeZone:"Asia/Dhaka"}).format(d):"—"};
  const rows=doc?.body?.items??[];const subtotal=rows.reduce((sum,item)=>sum+item.quantity*item.unit_amount_minor,0);
