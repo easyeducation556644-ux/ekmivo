@@ -141,3 +141,16 @@
 @media(max-width:480px){.ek-page-scope .fgrid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.ek-page-scope *{transition:none!important;animation:none!important}}
 @media print{.ek-page-scope .acts,.ek-page-scope #fl,.ek-page-scope .toast{display:none!important}.ek-page-scope{background:white!important;color:black!important;padding:0}}
+
+
+/* The live payments ledger is a four-column reference table without a duplicate heading. */
+.ek-page-scope .reference-ledger .tw{overflow-x:auto}
+.ek-page-scope .reference-ledger table{min-width:460px}
+.ek-page-scope .reference-ledger th,.ek-page-scope .reference-ledger td{padding-left:20px;padding-right:20px}
+.ek-page-scope .reference-ledger td a{color:var(--tx);text-decoration:none}
+.ek-page-scope .reference-ledger td a:hover{text-decoration:underline}
+.ek-page-scope .reference-ledger td .sub{margin-top:3px}
+.ek-page-scope .reference-ledger-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--line);font-size:13px;color:var(--mu)}
+.ek-page-scope .reference-ledger-footer div{display:flex;flex-wrap:wrap;gap:8px}
+.ek-page-scope .reference-ledger-footer button{height:32px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--tx);font-weight:500}
+.ek-page-scope .reference-ledger-footer button:disabled{opacity:.4;cursor:not-allowed}
