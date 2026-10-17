@@ -126,3 +126,12 @@ The HTML API-key create modal contains its own Sandbox/Live environment choice. 
 **Actual isolated Neon Sandbox contract tests PASS (writes rolled back):** 0078 sequential numbers and same-key idempotent replay; 0079 Draft not public, Issued metadata and Cancelled accessible; 0080 Draft capability preview including private-notes redaction, then Issued/Cancelled states. Production ledger functions/SHAs verified read-only after application. No production payment/invoice fixture writes.
 
 **Not yet accepted:** Connected browser cannot be driven for authenticated screenshot visual comparisons at 320/768/1024/1440, themes EN/BN, real invoice email delivery or Live payment E2E. GitHub Foundation CI runner failed before any test step; Vercel builds for later commits hit `build-rate-limit`. Do not mark lint, full build, Go unit tests or real payment acceptance PASS. There is currently no verified production backend deployment of these source changes. Do not claim the entire dashboard completed.
+
+
+### Additional financial smoke and source checks — 2026-10-17
+
+- Source correction `9eea1b1`: the New Payment Link button now executes authorized create then publish; if publishing fails, it retains an actual draft rather than presenting a usable live link.
+- **PASS in isolated Neon Sandbox, rolled back:** a fresh payment link is private as Draft, becomes public and server-priced after `pg10_write(...'publish'...)`, and retains the correct amount. This tests the financial SQL contract, not browser checkout.
+- **PASS in isolated Neon Sandbox, rolled back:** both Draft and Void invoice capabilities were rejected by `pg10_visit` (no checkout intents), while their public preview can be read after migration 0080; sanitization removes private_notes.
+- Go source test `backend/internal/checkout/invoice_delivery_test.go` now checks escaping and Paid-vs-Pay in generated invoice email. It has **not been executed** because no Go CI runner was allocated.
+- Migrations 0078, 0079, 0080 ledger checksum/readiness checked in both production Live and Sandbox financial DBs. All changed Go/Next code awaits fresh compile/build, not an acceptance pass. Vercel reported deployment failure due to subscription `build-rate-limit` rather than compiler output; GitHub Foundation jobs did not run.
