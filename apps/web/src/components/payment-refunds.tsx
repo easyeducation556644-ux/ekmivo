@@ -59,7 +59,7 @@ export function PaymentRefunds({locale,workspaceId,environment,canManage,detailI
  const ref=(row:Row)=>row.payment_id||row.source_intent_id||row.id;
 
  return <div className={"ek-page-scope rf-reference"+(viewing?" open":"")}>
-  <main className="page">
+  <div className="page">
    <header className="ph"><div><h1>{t("Refunds","রিফান্ড")}</h1><p>{t("Review requests and track seller-managed returns.","রিফান্ড অনুরোধ ও বিক্রেতা-পরিচালিত ফেরতের হিসাব দেখুন।")}</p></div>
     <button className={"btn"+(loading?" spin":"")} disabled={loading||busy} onClick={()=>{setNonce(n=>n+1);setNotice(t("Refreshed","রিফ্রেশ করা হয়েছে"))}}><DashboardIcon name="refresh" width={16} height={16}/>{t("Refresh","রিফ্রেশ")}</button></header>
    <section className="stats" aria-label={t("Summary","সারাংশ")}>
@@ -74,7 +74,7 @@ export function PaymentRefunds({locale,workspaceId,environment,canManage,detailI
      {!visible.length&&<div className="empty"><b>{t("No refund requests match","মিলে যায় এমন রিফান্ড নেই")}</b>{t("Try another status or clear the search.","অন্য অবস্থা বেছে নিন বা সার্চ পরিষ্কার করুন।")}</div>}</>}
     <div className="pg"><span>{t("Showing","দেখানো হচ্ছে")} {visible.length} {t("of","টি /")} {items.length}{next?"+":""} {t("requests","অনুরোধ")}</span><div><button disabled={!cursor||loading||busy} onClick={()=>setCursor("")}>{t("First page","প্রথম পাতা")}</button><button disabled={!next||loading||busy} onClick={()=>setCursor(next??"")}>{t("Next page","পরের পাতা")}</button></div></div>
    </section>
-  </main>
+  </div>
   <div className="scrim" onClick={()=>setViewing(null)} aria-hidden="true"/>
   <aside className="dr" role="dialog" aria-modal="true" aria-labelledby="refund-detail-title" aria-hidden={!viewing}>
    <div className="dh"><h3 id="refund-detail-title">{t("Refund details","রিফান্ডের বিবরণ")}</h3><button ref={closeButton} type="button" className="btn" aria-label={t("Close","বন্ধ করুন")} onClick={()=>setViewing(null)}><DashboardIcon name="x" width={16} height={16}/></button></div>
