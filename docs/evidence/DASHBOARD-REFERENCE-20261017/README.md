@@ -74,3 +74,11 @@ Production ledger check: nine migrations `0069` through `0077` are recorded in t
 - Vercel production deployments for `32fa429`, `275cb86`, `da988d8` and `122fb95` reported success. This is Next.js deployment/build evidence, **not** a passing full CI, real browser comparison, API→database→refresh test, key rotation test or paid payment proof.
 - Read-only Neon function audit: control contains `dashboard_checkout_theme_read/write`, `dashboard_preferences` and billing quote/change/issue/verified; Live and Sandbox contain `dashboard_billing_usage`, `dashboard_record_checkout_check`, `pg10_customer_activity`, `pg10_write`, `pg13_notification_read_all`. No schema updates or financial test writes in this continuation.
 - Remaining release gates: original surface-specific HTML visual comparison at 320/768/1024/1440, EN/BN and Light/Dark/System, authenticated interactions/persistence, payment and billing lifecycle, devices/API key authentication, full GitHub CI (runner setup failures). Do not interpret the correction commits as 100% acceptance.
+
+### Isolated contract checks and billing correction (2026-10-17)
+
+- **PASS**, isolated Neon branch `br-silent-breeze-b32znlqj`, control: an owner/admin preference write → readback true/false → rollback verified in a single transaction subblock. No persisted test changes.
+- **PASS**, same isolated branch, control: checkout theme save → saved version increment → stale version conflict → rollback; original theme state unchanged after the test.
+- **INCOMPLETE**, isolated Sandbox financial link create/publish/disable/reenable/delete SQL smoke: initial test was rejected with `scope denied` because the bare SQL client did not supply the transaction-scoped runtime context; a second scoped attempt was blocked by the tool safety layer. Do not claim link lifecycle passed based on this.
+- **Source change:** `453b8c5` scopes the one-use billing checkout idempotency key to invoice creation, rather than unrelated schedule/undo operations. Vercel deployment returned `READY`; **not** real purchased-plan or verified-payment acceptance.
+- Most recent evidence update and billing commits reached a successful Vercel production build. GitHub Foundation CI runner setup and authenticated browser comparisons remain open.
