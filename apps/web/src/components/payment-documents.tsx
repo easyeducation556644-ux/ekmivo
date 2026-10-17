@@ -110,7 +110,8 @@ export function PaymentDocuments({kind,workspaceId,environment,locale,userId,can
    if(!res.ok)throw Error("LINK_DETAILS_UNAVAILABLE");
    const data=await res.json();const original=data?.items?.[0] as RecordRow|undefined;
    if(!original?.body)throw Error("LINK_DETAILS_UNAVAILABLE");
-   const cloned={...empty(),...original.body,reference:(original.reference||row.reference).slice(0,70)+"-copy"};
+   const cloned={...empty(),...original.body,reference:(original.reference||row.reference).slice(0,70)+"-copy-"+crypto.randomUUID().slice(0,8)};
+    if(cloned.expires_at){const expiry=new Date(cloned.expires_at);if(Number.isFinite(expiry.getTime()))cloned.expires_at=new Date(expiry.getTime()-expiry.getTimezoneOffset()*60000).toISOString().slice(0,16)}
    setBody(cloned);setExpiryMode(cloned.expires_at?"custom":"none");setEditing(null);
   }catch{setError(t("Unable to duplicate this link.","লিংকটি ডুপ্লিকেট করা যায়নি।"))}
   finally{setBusy(false)}
