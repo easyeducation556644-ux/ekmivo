@@ -64,6 +64,7 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
  const [draftBase,setDraftBase]=useState<Fields>(empty);
  const [expanded,setExpanded]=useState(false);
  useEffect(()=>{const url=new URL(window.location.href);if(url.searchParams.get("create")!=="1")return;const timer=setTimeout(()=>{url.searchParams.delete("create");window.history.replaceState(window.history.state,"",url.pathname+url.search+url.hash);setExpanded(true)},0);return()=>clearTimeout(timer)},[]);
+ const openNewRequest=()=>{setFields(current=>({...current,reference:current.reference.trim()||"REQ-"+new Date().toISOString().slice(0,10).replace(/-/g,"")+"-"+crypto.randomUUID().slice(0,8).toUpperCase()}));setExpanded(true)};
  const [sourceOpen,setSourceOpen]=useState(false);
  const [visibleLimit,setVisibleLimit]=useState(20);
  const createDialog=useRef<HTMLDialogElement|null>(null),sourceDialog=useRef<HTMLDialogElement|null>(null);
@@ -207,7 +208,7 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
    keyRef.current="";
    setFields(empty);setDraftBase(empty);setExpanded(false);
    try{sessionStorage.removeItem(draftKey);sessionStorage.removeItem(draftKey+":key")}catch{}
-   setNotice(bn?"Sandbox payment request তৈরি হয়েছে। টাকা পাঠানোর দরকার নেই।":"Sandbox payment request created. Do not send real money.");
+   setNotice(environment==="sandbox"?(bn?"Sandbox payment request তৈরি হয়েছে। আসল টাকা পাঠাবেন না।":"Sandbox payment request created. Do not send real money."):(bn?"পেমেন্ট রিকোয়েস্ট তৈরি হয়েছে। সার্ভার যাচাই ছাড়া Paid হবে না।":"Payment request created. Paid status requires server verification."));
    await refresh();
    if(json.checkout_token){
     setCopied("");
@@ -267,7 +268,7 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
  const visible=data.filter(item=>(statusFilter==="all"||item.state===statusFilter)
    &&(item.merchant_reference||"").toLowerCase().includes(search.trim().toLowerCase()));
  return <section className="pg05-merchant ekv3-requests">
-  <header className="ekv3-page-header"><div><h1>{bn?"পেমেন্ট লিংক":"Payment links"}</h1><p>{bn?"একবারের পেমেন্ট অনুরোধ তৈরি ও পরিচালনা করুন।":"Create and manage one-time payments."}</p></div><div className="ekv3-head-actions"><button type="button" className="ekv3-icon-button" disabled={load==="loading"} aria-label={bn?"রিফ্রেশ":"Refresh"} title={bn?"রিফ্রেশ":"Refresh"} onClick={()=>void refresh()}>↻</button>{canWrite&&<button type="button" className="ekv3-primary" onClick={()=>setExpanded(true)}>{bn?"নতুন রিকোয়েস্ট":"New request"}</button>}</div></header>
+  <header className="ekv3-page-header"><div><h1>{bn?"পেমেন্ট লিংক":"Payment links"}</h1><p>{bn?"একবারের পেমেন্ট অনুরোধ তৈরি ও পরিচালনা করুন।":"Create and manage one-time payments."}</p></div><div className="ekv3-head-actions"><button type="button" className="ekv3-icon-button" disabled={load==="loading"} aria-label={bn?"রিফ্রেশ":"Refresh"} title={bn?"রিফ্রেশ":"Refresh"} onClick={()=>void refresh()}>↻</button>{canWrite&&<button type="button" className="ekv3-primary" aria-haspopup="dialog" onClick={openNewRequest}>{bn?"নতুন রিকোয়েস্ট":"New request"}</button>}</div></header>
   <div className="ref-dashboard"><div className="ref-page"><div className="tabs"><Link href={`/w/${workspaceId}/payments/payment-links`}>{bn?"পেমেন্ট লিংক":"Payment links"}</Link><button type="button" className="on" aria-current="page">{bn?"একবারের রিকোয়েস্ট":"One-time requests"}</button></div><div className="card ekv3-request-card"><div className="ekv3-requests-toolbar toolbar"><input type="search" aria-label={bn?"রেফারেন্স খুঁজুন":"Search reference"} placeholder={bn?"রেফারেন্স খুঁজুন":"Search reference"} value={search} onChange={event=>{setSearch(event.target.value);setVisibleLimit(20)}}/><select aria-label={bn?"অবস্থা":"Status"} value={statusFilter} onChange={event=>{setStatusFilter(event.target.value);setVisibleLimit(20)}}><option value="all">{bn?"সব":"All"}</option>{["completed","requires_payer","awaiting_payment","expired","cancelled"].map(key=><option value={key} key={key}>{statusLabel(key,bn)}</option>)}</select></div>
   {error&&<div className="ekv3-page-error" role="alert">{error}<button type="button" onClick={()=>void refresh()}>{bn?"আবার চেষ্টা করুন":"Try again"}</button></div>}
   <div className="ekv3-table-scroller tw" role="region" tabIndex={0} aria-label={bn?"একবারের রিকোয়েস্ট":"One-time requests"}><table className="ekv3-table"><thead><tr><th>{bn?"রেফারেন্স":"Reference"}</th><th className="ekv3-numeric">{bn?"পরিমাণ":"Amount"}</th><th>{bn?"অবস্থা":"Status"}</th><th>{bn?"মেয়াদ":"Expires"}</th><th><span className="sr-only">{bn?"অ্যাকশন":"Actions"}</span></th></tr></thead>
