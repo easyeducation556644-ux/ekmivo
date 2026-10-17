@@ -2,7 +2,7 @@
 import {useDashboardInitialData} from "./dashboard-initial-data";
 import {useCallback,useEffect,useRef,useState} from "react";
 import "./ek-financial-pages.css";
-import {DashboardIcon} from "./dashboard-icon";
+import {FinancialIcon as DashboardIcon} from "./financial-icon";
 type Row={id:string;payment_id:string|null;source_observation_id?:string|null;source_intent_id?:string|null;amount_minor:number;status:string;version:number;reason:string;created_at?:string;updated_at?:string;seller_note?:string;seller_reference?:string;customer?:{name:string;email:string;phone:string}};
 type Action="review"|"approve"|"reject"|"cancel"|"report-returned";
 const statusOptions=["requested","reviewing","approved","rejected","seller_reported_returned","cancelled"];
