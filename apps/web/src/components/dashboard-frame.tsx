@@ -80,6 +80,15 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
   const current=scrollableNav.current?.querySelector<HTMLElement>('a[aria-current="page"]');
   if(current)current.scrollIntoView({block:"nearest",inline:"nearest",behavior:"instant"});
  },[section,service,workspace.id,pathname]);
+ useEffect(()=>{
+  if(!mobileOpen)return;
+  const frame=requestAnimationFrame(()=>{
+   const current=drawer.current?.querySelector<HTMLElement>('.ds-navigation a[aria-current="page"]');
+   current?.scrollIntoView({block:"nearest",inline:"nearest",behavior:"instant"});
+  });
+  return()=>cancelAnimationFrame(frame);
+ },[mobileOpen,section,workspace.id]);
+
  const groups=navigation[service];
  const foundGroups=searchableNavigation(service,globalQuery);
  const foundKeys=foundGroups.flatMap(group=>group.items);
