@@ -17,6 +17,7 @@ export function PaymentRefunds({locale,workspaceId,environment,canManage,detailI
  const decisionDialog=useRef<HTMLDialogElement|null>(null);
  const closeButton=useRef<HTMLButtonElement>(null),returnFocus=useRef<HTMLElement|null>(null);
  const [search,setSearch]=useState("");
+ const [baseCounts,setBaseCounts]=useState<Record<string,number>>(()=>{const counts:Record<string,number>={};for(const row of seed?.data?.items??[])counts[row.status]=(counts[row.status]??0)+1;return counts});
  const [viewing,setViewing]=useState<Row|null>(null);
  const [selected,setSelected]=useState<Row|null>(null),[action,setAction]=useState<Action>("review"),[note,setNote]=useState(""),[reference,setReference]=useState(""),[confirmed,setConfirmed]=useState(false);
  const name=(code:string)=>statusMap[code]?.[bn?1:0]||code;
@@ -29,7 +30,7 @@ export function PaymentRefunds({locale,workspaceId,environment,canManage,detailI
    if(!r.ok)throw Error(String(r.status));
    const body:unknown=await r.json();
    if(!body||typeof body!=="object"||!("items" in body)||!Array.isArray(body.items))throw Error("INVALID_DATA");
-   if(!signal.aborted){const page=body as {items:Row[];next_cursor?:string};setItems(page.items);setNext(page.next_cursor??null)}
+   if(!signal.aborted){const page=body as {items:Row[];next_cursor?:string};setItems(page.items);setNext(page.next_cursor??null);if(!status){const counts:Record<string,number>={};for(const row of page.items)counts[row.status]=(counts[row.status]??0)+1;setBaseCounts(counts)}}
   }catch(e){if(!signal.aborted)setError(t("Refund records are unavailable. Retry.","রিফান্ডের তথ্য পাওয়া যায়নি। আবার চেষ্টা করুন।")+" ("+(e instanceof Error?e.message:"")+")")}
   finally{if(!signal.aborted)setLoading(false)}
  },[base,detailId,environment,status,cursor,bn]);
@@ -68,7 +69,7 @@ export function PaymentRefunds({locale,workspaceId,environment,canManage,detailI
     <div className="st"><div className="si"><DashboardIcon name="sliders" width={18} height={18}/></div><div><span>{t("Requested amount on this page","এই পাতার অনুরোধকৃত পরিমাণ")}</span><b dir="ltr">{moneyRef(total)}</b></div></div>
    </section>
    {error&&<div className="financial-error" role="alert">{error}<button onClick={()=>setNonce(n=>n+1)}>{t("Retry","আবার চেষ্টা")}</button></div>}
-   <section className="card"><div className="tb"><div className="chips" role="group" aria-label={t("Filter by status","অবস্থা অনুযায়ী বাছুন")}>{statusChoices.map(([key,label])=><button type="button" className="chip" key={key} aria-pressed={status===key} onClick={()=>{setStatus(key);setCursor("");setViewing(null)}}>{label}<i>{key?items.filter(r=>r.status===key).length:items.length}</i></button>)}</div>
+   <section className="card"><div className="tb"><div className="chips" role="group" aria-label={t("Filter by status","অবস্থা অনুযায়ী বাছুন")}>{statusChoices.map(([key,label])=><button type="button" className="chip" key={key} aria-pressed={status===key} onClick={()=>{setStatus(key);setCursor("");setViewing(null)}}>{label}<i>{key?(baseCounts[key]??(status===key?items.length:0)):Object.values(baseCounts).reduce((a,b)=>a+b,0)||items.length}</i></button>)}</div>
     <label className="find"><DashboardIcon name="search" width={16} height={16}/><input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder={t("Search reference or phone","রেফারেন্স বা ফোন খুঁজুন")} aria-label={t("Search refunds","রিফান্ড খুঁজুন")}/></label></div>
     {loading?<div className="financial-status" role="status">{t("Loading refunds…","রিফান্ড লোড হচ্ছে…")}</div>:<><table className="refund-table"><thead><tr><th>{t("Reference","রেফারেন্স")}</th><th>{t("Customer","গ্রাহক")}</th><th>{t("Date","তারিখ")}</th><th>{t("Status","অবস্থা")}</th><th className="r">{t("Amount","পরিমাণ")}</th><th style={{width:44}}/></tr></thead><tbody>{visible.map(row=><tr key={row.id} tabIndex={0} role="button" onClick={e=>openDetails(row,e.currentTarget)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openDetails(row,e.currentTarget)}}}><td className="mono">{ref(row).slice(0,12)}</td><td dir="ltr">{row.customer?.phone||row.customer?.name||"—"}</td><td>{date(row.created_at)}<span className="sub">{row.updated_at&&row.updated_at!==row.created_at?t("Updated","আপডেট"):null}</span></td><td><span className={"bd "+statusClass(row.status)}>{name(row.status)}</span></td><td className="r amt">{moneyRef(row.amount_minor)}</td><td className="go"><DashboardIcon name="chevron-right" width={18} height={18}/></td></tr>)}</tbody></table>
      {!visible.length&&<div className="empty"><b>{t("No refund requests match","মিলে যায় এমন রিফান্ড নেই")}</b>{t("Try another status or clear the search.","অন্য অবস্থা বেছে নিন বা সার্চ পরিষ্কার করুন।")}</div>}</>}
