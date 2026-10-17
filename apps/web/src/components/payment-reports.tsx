@@ -14,7 +14,7 @@ type MethodRow=MoneyRow&{method:string};
 type AccountRow=MoneyRow&{account_id:string;method:string;display_suffix:string};
 type CustomerRow=MoneyRow&{customer_id:string;reference:string;name:string};
 type RefundRow={status:string;amount_minor:number;request_count:number};
-type DayRow={day:string;amount_minor:number};
+type DayRow={day:string;amount_minor:number;payment_count?:number};
 type Report={
  verified_gross_minor:number;allocated_minor:number;unallocated_minor:number;payment_count:number;
  seller_reported_returned_minor:number;open_requested_refund_minor:number;refund_request_count:number;
@@ -206,6 +206,7 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
  const countDelta=matchedCompare&&displayed?changePercent(displayed.payment_count,matchedCompare.report.payment_count):null;
  const barDays=useMemo(()=>{const from=Date.parse(active.from+"T00:00:00Z"),to=Date.parse(active.to+"T00:00:00Z");if(!Number.isFinite(from)||!Number.isFinite(to)||from>to)return [] as string[];return Array.from({length:Math.min(400,Math.floor((to-from)/millis)+1)},(_,i)=>new Date(from+i*millis).toISOString().slice(0,10))},[active.from,active.to]);
  const byDay=Object.fromEntries((displayed?.daily??[]).map(day=>[day.day,day.amount_minor]));
+ const dailyCounts=Object.fromEntries((displayed?.daily??[]).map(day=>[day.day,day.payment_count]));
  const peak=Math.max(1,...barDays.map(day=>byDay[day]??0));
  const niceDay=(day:string)=>new Date(day+"T00:00:00Z").toLocaleDateString("en-US",{timeZone:"UTC",month:"short",day:"numeric"});
  const money=(minor:number)=>"BDT "+(minor/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -215,7 +216,7 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
  const icon=(name:string)=><DashboardIcon name={name as Parameters<typeof DashboardIcon>[0]["name"]} width={16} height={16}/>;
  const printReport=()=>{const root=document.documentElement,original=root.dataset.theme;root.dataset.theme="light";window.print();if(original===undefined)delete root.dataset.theme;else root.dataset.theme=original};
  return <div className="ek-page-scope er-reference">
-  <main className="page">
+  <div className="page">
    <header className="ph"><div><h1>{t("Reports","রিপোর্ট")}</h1><p>{t("Verified payments, matching and refunds for the period you choose.","নির্বাচিত সময়ের যাচাইকৃত পেমেন্ট, মিল ও রিফান্ড।")}</p></div>
     <div className="acts"><button className={"btn"+(loading?" spin":"")} disabled={loading} onClick={()=>{setRefresh(n=>n+1);setToast(t("Refreshed","রিফ্রেশ করা হয়েছে"))}}>{icon("refresh")}{t("Refresh","রিফ্রেশ")}</button>
      <button className="btn" disabled={!displayed||stale} onClick={()=>{if(displayed){exportReport(displayed,active);setToast(t("Export started","এক্সপোর্ট শুরু হয়েছে"))}}}>{icon("download")}{t("Export","এক্সপোর্ট")}</button>
@@ -236,7 +237,7 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
     <section className="card hero" aria-label={t("Verified volume","যাচাইকৃত পরিমাণ")}>
      <div><span className="lbl">{t("Verified volume","যাচাইকৃত পরিমাণ")}</span><div className="num" dir="ltr">{money(displayed.verified_gross_minor)}</div><span className="lbl">{numeric(displayed.payment_count,locale)} {t("verified transactions","টি যাচাইকৃত লেনদেন")}</span>
       <div className="bars" role="group" aria-label={t("Verified volume by day","দৈনিক যাচাইকৃত পরিমাণ")}>{barDays.map(day=>{const amount=byDay[day]??0;return <button type="button" key={day} aria-label={niceDay(day)+", "+money(amount)} onMouseEnter={()=>setHoverDay(day)} onFocus={()=>setHoverDay(day)} onBlur={()=>setHoverDay(null)}><i className={amount?"on":""} style={{height:amount?Math.max(8,amount/peak*100)+"%":"0%"}}/></button>})}</div>
-      <div className="ro">{hoverDay?niceDay(hoverDay)+" · "+money(byDay[hoverDay]??0):t("Daily verified volume","দৈনিক যাচাইকৃত পরিমাণ")}</div></div>
+      <div className="ro">{hoverDay?niceDay(hoverDay)+" · "+money(byDay[hoverDay]??0)+(typeof dailyCounts[hoverDay]==="number"?" · "+dailyCounts[hoverDay]+" "+t("transactions","লেনদেন"):""):t("Daily verified volume","দৈনিক যাচাইকৃত পরিমাণ")}</div></div>
      <div className="side2"><div><span className="lbl">{t("Average payment","গড় পেমেন্ট")}</span><div className="num md" dir="ltr">{money(avg??0)}</div></div>
       <div><span className="lbl">{t("Change","পরিবর্তন")}</span><div className={"num md "+(delta&&delta.startsWith("-")?"dn":delta?"up":"mu")}>{!compare?t("Not compared","তুলনা করা হয়নি"):compareLoading?t("Loading…","লোড হচ্ছে…"):compareError||!matchedCompare?t("No data","তথ্য নেই"):delta??t("No data","তথ্য নেই")}</div>{matchedCompare&&<span className="lbl">{t("vs","বনাম")} {money(matchedCompare.report.verified_gross_minor)} {t("in the previous period","আগের সময়সীমায়")}</span>}</div>
       <label className="sw"><input type="checkbox" checked={compare} onChange={e=>{setCompare(e.target.checked);setCompareError("")}}/><span>{t("Compare previous period","আগের সময়ের সঙ্গে তুলনা")}</span></label></div>
@@ -249,14 +250,14 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
     <div className="tw" role="tabpanel">
     {section==="payments"&&canReveal&&<PaymentReportLedger key={JSON.stringify([workspaceId,environment,applied.from,applied.to,applied.account])} locale={locale} workspaceId={workspaceId} environment={environment} period={applied} canReveal={canReveal}/>}
     {section==="payments"&&!canReveal&&<div className="empty">{t("You do not have access to payment details.","পেমেন্টের বিস্তারিত দেখার অনুমতি নেই।")}</div>}
-    {displayed&&section==="summary"&&<table><thead><tr><th>{t("Day","দিন")}</th><th>{t("Payments","পেমেন্ট")}</th><th className="r">{t("Verified volume","যাচাইকৃত পরিমাণ")}</th></tr></thead><tbody>{displayed.daily.map(day=><tr key={day.day}><td><b>{day.day}</b></td><td>{displayed.payment_count>0?"—":"0"}</td><td className="r amt">{money(day.amount_minor)}</td></tr>)}</tbody>{displayed.daily.length>1&&<tfoot><tr><td>{t("Total","মোট")}</td><td>{displayed.payment_count}</td><td className="r amt">{money(displayed.verified_gross_minor)}</td></tr></tfoot>}</table>}
+    {displayed&&section==="summary"&&<table><thead><tr><th>{t("Day","দিন")}</th><th>{t("Payments","পেমেন্ট")}</th><th className="r">{t("Verified volume","যাচাইকৃত পরিমাণ")}</th></tr></thead><tbody>{displayed.daily.map(day=><tr key={day.day}><td><b>{day.day}</b></td><td>{day.payment_count??"—"}</td><td className="r amt">{money(day.amount_minor)}</td></tr>)}</tbody>{displayed.daily.length>1&&<tfoot><tr><td>{t("Total","মোট")}</td><td>{displayed.payment_count}</td><td className="r amt">{money(displayed.verified_gross_minor)}</td></tr></tfoot>}</table>}
     {displayed&&section==="methods"&&<table><thead><tr><th>{t("Method","মাধ্যম")}</th><th>{t("Payments","পেমেন্ট")}</th><th>{t("Share","অংশ")}</th><th className="r">{t("Verified volume","যাচাইকৃত পরিমাণ")}</th></tr></thead><tbody>{displayed.methods.map(row=>{const share=displayed.verified_gross_minor?Math.round(row.amount_minor/displayed.verified_gross_minor*100):0;return <tr key={row.method}><td>{row.method}</td><td>{row.payment_count}</td><td><span className="share"><i style={{width:share+"%"}}/></span>{share}%</td><td className="r amt">{money(row.amount_minor)}</td></tr>})}</tbody></table>}
     {displayed&&section==="customers"&&<table><thead><tr><th>{t("Customer","গ্রাহক")}</th><th>{t("Payments","পেমেন্ট")}</th><th className="r">{t("Verified volume","যাচাইকৃত পরিমাণ")}</th></tr></thead><tbody>{displayed.customers.map(row=><tr key={row.customer_id}><td>{row.name||row.reference||row.customer_id}</td><td>{row.payment_count}</td><td className="r amt">{money(row.amount_minor)}</td></tr>)}</tbody></table>}
     {displayed&&section==="refunds"&&<table><thead><tr><th>{t("Status","অবস্থা")}</th><th>{t("Requests","অনুরোধ")}</th><th className="r">{t("Amount","পরিমাণ")}</th></tr></thead><tbody>{displayed.refunds.map((row,i)=><tr key={row.status+i}><td><span className={"bd "+(row.status==="approved"?"approved":row.status==="cancelled"?"cancelled":row.status==="rejected"?"declined":"pending")}>{refundLabels[row.status]||row.status}</span></td><td>{row.request_count}</td><td className="r amt">{money(row.amount_minor)}</td></tr>)}</tbody></table>}
     {section==="payouts"&&<div className="empty"><b>{t("No payouts in this period","এই সময়ে কোনো পেআউট নেই")}</b>{t("Payouts will appear here once funds are paid out to you.","ফান্ড পাঠানো হলে পেআউট এখানে দেখা যাবে।")}</div>}
     {displayed&&section!=="payments"&&section!=="payouts"&&((section==="summary"&&!displayed.daily.length)||(section==="methods"&&!displayed.methods.length)||(section==="customers"&&!displayed.customers.length)||(section==="refunds"&&!displayed.refunds.length))&&<div className="empty"><b>{section==="refunds"?t("No refund requests in this period","এই সময়ে কোনো রিফান্ড অনুরোধ নেই"):t("No verified payments in this period","এই সময়ে কোনো যাচাইকৃত পেমেন্ট নেই")}</b>{t("Try a longer period or a different account.","আরও বড় সময়সীমা বা অন্য অ্যাকাউন্ট বেছে নিন।")}</div>}
     </div></section>
-   </main>
+   </div>
    {toast&&<div className="toast on" role="status">{toast}</div>}
  </div>;
 }
