@@ -681,3 +681,24 @@
 .ds-app[data-service="payments"] .ekv3-methods .ek-ref-modal::backdrop{background:rgba(5,5,10,.72)}
 .ds-app[data-service="payments"] .ekv3-methods .ek-ref-modal .pg-phone-setup label:not(.ek-ref-search){font-size:13px}
 @media(max-width:500px){.ds-app[data-service="payments"] .ekv3-methods .ek-ref-number{font-size:13px}.ds-app[data-service="payments"] .ekv3-methods .ek-ref-account{gap:8px}.ds-app[data-service="payments"] .ekv3-methods .ek-ref-logo{flex-basis:75px;width:75px}.ds-app[data-service="payments"] .ekv3-methods .ek-ref-logo svg{width:75px}}
+
+
+/* Reference provider-specific surfaces, faithfully translated from HTML dynamic theme tokens. */
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-account:has(.ek-ref-bkash),.ds-app[data-service="payments"] .ekv3-methods .ek-ref-provider:has(.ek-ref-bkash){background:linear-gradient(135deg,#fff1f7 0%,#ffc4dc 100%);border-color:rgba(226,19,110,.16);color:#3b0a22}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-account:has(.ek-ref-nagad),.ds-app[data-service="payments"] .ekv3-methods .ek-ref-provider:has(.ek-ref-nagad){background:linear-gradient(135deg,#fff6e8 0%,#ffd2a8 100%);border-color:rgba(237,100,36,.18);color:#3a1405}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-account:has(.ek-ref-rocket),.ds-app[data-service="payments"] .ekv3-methods .ek-ref-provider:has(.ek-ref-rocket){background:linear-gradient(135deg,#f8efff 0%,#d8bdee 100%);border-color:rgba(140,52,148,.18);color:#2a0f33}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-account:has(.ek-ref-bkash) .ek-ref-orb{background:rgba(226,19,110,.16)}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-account:has(.ek-ref-nagad) .ek-ref-orb{background:rgba(237,28,36,.13)}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-account:has(.ek-ref-rocket) .ek-ref-orb{background:rgba(140,52,148,.17)}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-account[data-disabled="true"]{opacity:.78;filter:saturate(.2)}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-account .ek-ref-manage{background:rgba(255,255,255,.14);color:inherit}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-account .ek-ref-state i[data-on="true"]{background:#12a066}
+:root[data-theme="dark"] .ds-app[data-service="payments"] .ekv3-methods .ek-ref-account:has(.ek-ref-bkash),:root[data-theme="dark"] .ds-app[data-service="payments"] .ekv3-methods .ek-ref-provider:has(.ek-ref-bkash){background:radial-gradient(170px 90px at 62px 50%,rgba(226,19,110,.2),rgba(226,19,110,0) 72%),#0e0e15;border-color:#23232f;color:#ececf1}
+:root[data-theme="dark"] .ds-app[data-service="payments"] .ekv3-methods .ek-ref-account:has(.ek-ref-nagad),:root[data-theme="dark"] .ds-app[data-service="payments"] .ekv3-methods .ek-ref-provider:has(.ek-ref-nagad){background:radial-gradient(170px 90px at 62px 50%,rgba(240,120,30,.2),rgba(240,120,30,0) 72%),#0e0e15;border-color:#23232f;color:#ececf1}
+:root[data-theme="dark"] .ds-app[data-service="payments"] .ekv3-methods .ek-ref-account:has(.ek-ref-rocket),:root[data-theme="dark"] .ds-app[data-service="payments"] .ekv3-methods .ek-ref-provider:has(.ek-ref-rocket){background:radial-gradient(170px 90px at 62px 50%,rgba(170,70,190,.2),rgba(170,70,190,0) 72%),#0e0e15;border-color:#23232f;color:#ececf1}
+:root[data-theme="dark"] .ds-app[data-service="payments"] .ekv3-methods .ek-ref-account .ek-ref-manage{background:rgba(255,255,255,.08);color:#ececf1}
+@media(prefers-color-scheme:dark){
+ :root:not([data-theme="light"]):not([data-theme="dark"]) .ds-app[data-service="payments"] .ekv3-methods .ek-ref-account:has(.ek-ref-bkash){background:radial-gradient(170px 90px at 62px 50%,rgba(226,19,110,.2),transparent 72%),#0e0e15;color:#ececf1}
+ :root:not([data-theme="light"]):not([data-theme="dark"]) .ds-app[data-service="payments"] .ekv3-methods .ek-ref-account:has(.ek-ref-nagad){background:radial-gradient(170px 90px at 62px 50%,rgba(240,120,30,.2),transparent 72%),#0e0e15;color:#ececf1}
+ :root:not([data-theme="light"]):not([data-theme="dark"]) .ds-app[data-service="payments"] .ekv3-methods .ek-ref-account:has(.ek-ref-rocket){background:radial-gradient(170px 90px at 62px 50%,rgba(170,70,190,.2),transparent 72%),#0e0e15;color:#ececf1}
+}
