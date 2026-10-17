@@ -31,6 +31,8 @@ import com.ekmivo.mobile.data.AppPreferences
 import com.ekmivo.mobile.data.Appearance
 import com.ekmivo.mobile.data.Language
 import com.ekmivo.mobile.receipt.ForwarderScreen
+import com.ekmivo.mobile.receipt.PairingFlow
+import com.ekmivo.mobile.receipt.ReceiptStore
 import com.ekmivo.mobile.receipt.ReceiptRecoveryControl
 import kotlinx.coroutines.launch
 
@@ -38,7 +40,9 @@ private enum class Tab(val icon:ImageVector) {
  FORWARDER(Icons.Outlined.Smartphone), INBOX(Icons.Outlined.ChatBubbleOutline), SETTINGS(Icons.Outlined.Settings)
 }
 @Composable
-fun EkmivoApp(preferences:AppPreferences){
+fun EkmivoApp(preferences:AppPreferences, incomingPairingLink:String?=null){
+ val appContext=LocalContext.current.applicationContext
+ var paired by remember { mutableStateOf(ReceiptStore(appContext).use { it.phone()!=null || it.enrollment()!=null }) }
  val appearance by preferences.appearance.collectAsState(initial=Appearance.SYSTEM)
  val language by preferences.language.collectAsState(initial=Language.BN)
  val bn=language==Language.BN
@@ -46,7 +50,9 @@ fun EkmivoApp(preferences:AppPreferences){
  val scope=rememberCoroutineScope()
  var tab by rememberSaveable{mutableStateOf(Tab.FORWARDER)}
  EkmivoTheme(dark=dark){
-  Scaffold(
+  if (!paired) {
+   PairingFlow(bn=bn, incomingLink=incomingPairingLink, onPaired={paired=true})
+  } else Scaffold(
    containerColor=MaterialTheme.colorScheme.background,
    bottomBar={
     Surface(
