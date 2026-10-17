@@ -6,23 +6,26 @@ const source=(path)=>readFileSync(new URL("../../"+path,import.meta.url),"utf8")
 test("public /pay uses workspace brand, configured provider choices and single idempotent checkout",()=>{
  const s=source("apps/web/src/components/public-document.tsx");
  assert.match(s,/doc\.merchant_name/);
- assert.match(s,/doc\.brand\?\.support_url/);
- assert.match(s,/doc\.configured_methods/);
+ assert.match(s,/doc\?\.brand\?\.support_url/);
+ assert.match(s,/doc\?\.configured_methods/);
  assert.match(s,/readyMethods\.includes\(m\)/);
  assert.match(s,/data-ready=\{readyMethods\.includes\(m\)\}/);
  assert.match(s,/ProviderMark method=\{m\}/);
  assert.match(s,/Idempotency-Key/);
- assert.ok(s.includes('"/checkout/"+d.checkout_token+"?method="'));
+ assert.match(s,/router\.push\("\/checkout\/"\+d\.checkout_token\+"\?method="\+selected\)/);
  assert.doesNotMatch(s,/SiteHeader|SiteFooter/);
  assert.match(s,/disabled=\{locked\|\|terminal\}/);
  assert.match(s,/disabled=\{locked\|\|terminal\|\|!selectedReady\|\|payable<=0\}/);
+ assert.match(s,/disabled=\{busy\|\|terminal\|\|!selectedReady\|\|payable<=0\}/);
  assert.match(s,/if\(busy\|\|!doc\|\|!selected\|\|!doc\.methods\?\.includes\(selected\)/);
  assert.doesNotMatch(s,/View order details|customer-pay-details/);
 });
 test("public /checkout has payer lock, actual receiver and auto verification but no email consent",()=>{
  const s=source("apps/web/src/components/checkout-experience.tsx");
  assert.match(s,/ProviderMark method=\{selectedMethod\}/);
- assert.match(s,/payer_number:payer,method/);
+ assert.match(s,/const canonical=normalizeBangladeshPayer\(payer\)/);
+ assert.match(s,/if\(!canonical\)/);
+ assert.match(s,/payer_number:canonical,method/);
  assert.match(s,/info\.destination/);
  assert.match(s,/checkout-receiving-number/);
  assert.match(s,/setInterval/);
@@ -47,7 +50,14 @@ test("provider colors and no marketing header in standalone routes",()=>{
  assert.match(css,/--provider-accent:#e60d6c/);
  assert.match(css,/--provider-accent:#cd1223/);
  assert.match(css,/--provider-accent:#81218a/);
- assert.match(proxy,/pay\|checkout/);
+ // Public /pay and /checkout are locale-rewritten without application chrome.
+ assert.match(proxy,/target\.pathname="\/"\+locale\+path/);
+ assert.match(proxy,/if\(\/\^\\\/\(\?:workspaces\|w\|account\|admin\)/);
+ const checkout=source("apps/web/src/components/checkout-experience.tsx");
+ const document=source("apps/web/src/components/public-document.tsx");
+ assert.match(checkout,/pg05-standalone/);
+ assert.match(document,/data-customer-checkout="true"/);
+ assert.doesNotMatch(document,/SiteHeader|SiteFooter/);
 });
 
 test("dashboard does not declare every live workspace unready from an environment string",()=>{

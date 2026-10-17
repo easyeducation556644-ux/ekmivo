@@ -1,7 +1,8 @@
 "use client";
 import {useDashboardInitialData} from "./dashboard-initial-data";
 import {useCallback,useEffect,useRef,useState} from "react";
-import {PaymentLoadingSkeleton} from "./payment-loading-skeleton";
+import "./ek-financial-pages.css";
+import {FinancialIcon as DashboardIcon} from "./financial-icon";
 type Row={id:string;payment_id:string|null;source_observation_id?:string|null;source_intent_id?:string|null;amount_minor:number;status:string;version:number;reason:string;created_at?:string;updated_at?:string;seller_note?:string;seller_reference?:string;customer?:{name:string;email:string;phone:string}};
 type Action="review"|"approve"|"reject"|"cancel"|"report-returned";
 const statusOptions=["requested","reviewing","approved","rejected","seller_reported_returned","cancelled"];
@@ -13,7 +14,10 @@ export function PaymentRefunds({locale,workspaceId,environment,canManage,detailI
  const initialLoad=useRef(Boolean(seed));
  const [items,setItems]=useState<Row[]>(seed?.data?.items??[]),[loading,setLoading]=useState(!seed),[busy,setBusy]=useState(false),[error,setError]=useState(seed?.error??""),[notice,setNotice]=useState("");
  const [status,setStatus]=useState(""),[cursor,setCursor]=useState(""),[next,setNext]=useState<string|null>(seed?.data?.next_cursor??null),[nonce,setNonce]=useState(0);
- const detailsDialog=useRef<HTMLDialogElement|null>(null),decisionDialog=useRef<HTMLDialogElement|null>(null);
+ const decisionDialog=useRef<HTMLDialogElement|null>(null);
+ const closeButton=useRef<HTMLButtonElement>(null),returnFocus=useRef<HTMLElement|null>(null);
+ const [search,setSearch]=useState("");
+ const [baseCounts,setBaseCounts]=useState<Record<string,number>>(()=>{const counts:Record<string,number>={};for(const row of seed?.data?.items??[])counts[row.status]=(counts[row.status]??0)+1;return counts});
  const [viewing,setViewing]=useState<Row|null>(null);
  const [selected,setSelected]=useState<Row|null>(null),[action,setAction]=useState<Action>("review"),[note,setNote]=useState(""),[reference,setReference]=useState(""),[confirmed,setConfirmed]=useState(false);
  const name=(code:string)=>statusMap[code]?.[bn?1:0]||code;
@@ -26,12 +30,13 @@ export function PaymentRefunds({locale,workspaceId,environment,canManage,detailI
    if(!r.ok)throw Error(String(r.status));
    const body:unknown=await r.json();
    if(!body||typeof body!=="object"||!("items" in body)||!Array.isArray(body.items))throw Error("INVALID_DATA");
-   if(!signal.aborted){const page=body as {items:Row[];next_cursor?:string};setItems(page.items);setNext(page.next_cursor??null)}
+   if(!signal.aborted){const page=body as {items:Row[];next_cursor?:string};setItems(page.items);setNext(page.next_cursor??null);if(!status){const counts:Record<string,number>={};for(const row of page.items)counts[row.status]=(counts[row.status]??0)+1;setBaseCounts(counts)}}
   }catch(e){if(!signal.aborted)setError(t("Refund records are unavailable. Retry.","রিফান্ডের তথ্য পাওয়া যায়নি। আবার চেষ্টা করুন।")+" ("+(e instanceof Error?e.message:"")+")")}
   finally{if(!signal.aborted)setLoading(false)}
  },[base,detailId,environment,status,cursor,bn]);
  useEffect(()=>{if(initialLoad.current){initialLoad.current=false;return;}const c=new AbortController();void Promise.resolve().then(()=>{if(!c.signal.aborted)void load(c.signal)});return()=>c.abort()},[load,nonce]);
- useEffect(()=>{const d=detailsDialog.current;if(!d)return;if(viewing&&!d.open)d.showModal();else if(!viewing&&d.open)d.close()},[viewing]);
+ useEffect(()=>{if(viewing)closeButton.current?.focus();else returnFocus.current?.focus()},[viewing]);
+ useEffect(()=>{if(!viewing)return;const onKey=(e:KeyboardEvent)=>{if(e.key==="Escape"){e.preventDefault();setViewing(null)}};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey)},[viewing]);
  useEffect(()=>{const d=decisionDialog.current;if(!d)return;if(selected&&!d.open)d.showModal();else if(!selected&&d.open)d.close()},[selected]);
  useEffect(()=>{if(!selected)return;const onEscape=(e:KeyboardEvent)=>{if(e.key==="Escape"&&!busy)setSelected(null)};window.addEventListener("keydown",onEscape);return()=>window.removeEventListener("keydown",onEscape)},[selected,busy]);
  const eligible=(row:Row)=>canManage&&!["rejected","cancelled","seller_reported_returned"].includes(row.status);
@@ -45,27 +50,53 @@ export function PaymentRefunds({locale,workspaceId,environment,canManage,detailI
   }catch(e){setError(t("Could not confirm this decision.","সিদ্ধান্ত নিশ্চিত করা যায়নি।")+" "+String(e instanceof Error?e.message:""))}
   finally{setBusy(false)}
  }
- const total=items.reduce((s,r)=>s+r.amount_minor,0),needsAction=items.filter(r=>["requested","reviewing","approved"].includes(r.status)).length;
- return <div className="rf-workbench">
-  <header className="rf-header"><div><h1>{t("Refunds","রিফান্ড")}</h1><p>{t("Review requests and track seller-managed returns.","রিফান্ড অনুরোধ ও বিক্রেতার সিদ্ধান্ত পরিচালনা করুন।")}</p></div><button type="button" onClick={()=>setNonce(n=>n+1)} disabled={loading||busy}>{t("Refresh","রিফ্রেশ")}</button></header>
-  <section className="rf-totals" aria-label={t("Loaded refunds","লোড হওয়া রিফান্ড")}><div><span>{t("Requests on this page","এই পৃষ্ঠার অনুরোধ")}</span><strong>{items.length}{next?"+":""}</strong></div><div><span>{t("Needs attention","পদক্ষেপ প্রয়োজন")}</span><strong>{needsAction}</strong></div><div><span>{t("Requested amount on this page","এই পৃষ্ঠার পরিমাণ")}</span><strong>{money(total)}</strong></div></section>
-  {!detailId&&<div className="rf-filter"><label>{t("Status","অবস্থা")}<select value={status} onChange={e=>{setStatus(e.target.value);setCursor("")}}><option value="">{t("All requests","সব অনুরোধ")}</option>{statusOptions.map(x=><option key={x} value={x}>{name(x)}</option>)}</select></label></div>}
-  {notice&&<p data-feedback="success" className="rf-notice" role="status">{notice}</p>}
-  {error&&<div className="rf-error" role="alert">{error}<button type="button" onClick={()=>setNonce(n=>n+1)}>{t("Retry","আবার চেষ্টা")}</button></div>}
-  {loading?<PaymentLoadingSkeleton locale={locale} layout="document"/>:!error&&!items.length?<div className="rf-empty"><strong>{t("No refund requests","কোনো রিফান্ড অনুরোধ নেই")}</strong></div>:<div className="ekv2-refund-table opw-scroll" role="region" tabIndex={0} aria-label={t("Refund requests","রিফান্ড অনুরোধ")}><table><thead><tr><th>{t("Reference","রেফারেন্স")}</th><th>{t("Customer","গ্রাহক")}</th><th>{t("Date","তারিখ")}</th><th>{t("Status","অবস্থা")}</th><th>{t("Amount","পরিমাণ")}</th></tr></thead><tbody>{items.map(row=><tr key={row.id} className="ekv2-clickable-row" tabIndex={0} onClick={()=>setViewing(row)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setViewing(row)}}}><td>{row.payment_id?row.payment_id.slice(0,12):row.source_intent_id?row.source_intent_id.slice(0,12):row.id.slice(0,12)}</td><td>{row.customer?.name||row.customer?.phone||"—"}</td><td>{date(row.created_at)}</td><td><span className="opw-status" data-status={row.status}>{name(row.status)}</span></td><td className="opw-num">{money(row.amount_minor)}</td></tr>)}</tbody></table></div>}
-  <dialog ref={detailsDialog} className="ekv2-record-dialog" aria-label={t("Refund details","রিফান্ডের বিবরণ")} onCancel={()=>setViewing(null)} onClose={()=>setViewing(null)} onClick={e=>{if(e.target===e.currentTarget)setViewing(null)}}>
-   {viewing&&<div className="ekv2-detail"><div className="ekv2-detail-head"><h2>{t("Refund details","রিফান্ডের বিবরণ")}</h2><button type="button" aria-label={t("Close","বন্ধ করুন")} onClick={()=>setViewing(null)}>×</button></div><div className="ekv2-detail-amount">{money(viewing.amount_minor)}</div><span className="opw-status" data-status={viewing.status}>{name(viewing.status)}</span><dl className="ekv2-detail-list">
-    <div><dt>{t("Customer","গ্রাহক")}</dt><dd>{viewing.customer?.name||viewing.customer?.phone||"—"}</dd></div><div><dt>{t("Phone","ফোন")}</dt><dd>{viewing.customer?.phone||"—"}</dd></div><div><dt>{t("Date","তারিখ")}</dt><dd>{date(viewing.created_at)}</dd></div><div><dt>{t("Payment","পেমেন্ট")}</dt><dd>{viewing.payment_id||viewing.source_intent_id||"—"}</dd></div><div><dt>{t("Reason","কারণ")}</dt><dd>{viewing.reason||"—"}</dd></div>{viewing.seller_reference&&<div><dt>{t("Return reference","ফেরতের রেফারেন্স")}</dt><dd>{viewing.seller_reference}</dd></div>}</dl>
-    <div className="ekv2-detail-actions"><button type="button" onClick={()=>setViewing(null)}>{t("Close","বন্ধ করুন")}</button>{eligible(viewing)&&<button type="button" className="ekv2-primary" onClick={()=>choose(viewing)}>{t("Review request","অনুরোধ দেখুন")}</button>}</div></div>}
-  </dialog>
-  {!detailId&&<div className="rf-page-nav"><button type="button" disabled={!cursor||loading||busy} onClick={()=>setCursor("")}>{t("First page","প্রথম পাতা")}</button><button type="button" disabled={!next||loading||busy} onClick={()=>setCursor(next??"")}>{t("Next page","পরের পাতা")}</button></div>}
-  <dialog ref={decisionDialog} className="ekv2-refund-decision" onCancel={e=>{if(busy)e.preventDefault();else setSelected(null)}} onClose={()=>setSelected(null)} onClick={e=>{if(e.target===e.currentTarget&&!busy)setSelected(null)}}>{selected&&<form className="rf-action-panel" onSubmit={submit} aria-label={t("Seller refund decision","বিক্রেতার রিফান্ড সিদ্ধান্ত")}>
-   <div className="rf-action-head"><div><h2>{t("Review refund","রিফান্ড পর্যালোচনা")}</h2><strong>{money(selected.amount_minor)}</strong></div><button type="button" disabled={busy} onClick={()=>setSelected(null)} aria-label={t("Close","বন্ধ করুন")}>✕</button></div>
+ const visible=items.filter(r=>[r.id,r.payment_id,r.source_intent_id,r.customer?.phone].join(" ").toLowerCase().includes(search.toLowerCase()));
+ const total=visible.reduce((s,r)=>s+r.amount_minor,0),needsAction=visible.filter(r=>r.status==="requested").length;
+ const moneyRef=(v:number)=>"BDT "+(v/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+ const statusClass=(s:string)=>s==="approved"?"approved":s==="seller_reported_returned"?"refunded":s==="rejected"?"declined":s==="cancelled"?"cancelled":"pending";
+ const statusChoices=[["",t("All requests","সব অনুরোধ")],["requested",t("Pending","অপেক্ষমাণ")],["reviewing",t("In review","পর্যালোচনায়")],["approved",t("Approved","অনুমোদিত")],["seller_reported_returned",t("Reported returned","ফেরত রিপোর্ট")],["rejected",t("Declined","প্রত্যাখ্যাত")],["cancelled",t("Cancelled","বাতিল")]];
+ const copyId=(value:string)=>{void navigator.clipboard.writeText(value).then(()=>setNotice(t("Copied","কপি হয়েছে"))).catch(()=>setNotice(t("Copy failed","কপি করা যায়নি")))};
+ const openDetails=(row:Row,el:HTMLElement)=>{returnFocus.current=el;setViewing(row)};
+ const ref=(row:Row)=>row.id;
+ const shortDate=(v?:string)=>v&&!Number.isNaN(Date.parse(v))?new Intl.DateTimeFormat("en-US",{dateStyle:"medium",timeZone:"Asia/Dhaka"}).format(new Date(v)):"—";
+ const shortTime=(v?:string)=>v&&!Number.isNaN(Date.parse(v))?new Intl.DateTimeFormat("en-US",{timeStyle:"short",timeZone:"Asia/Dhaka"}).format(new Date(v)):"";
+
+ return <div className={"ek-page-scope rf-reference"+(viewing?" open":"")}>
+  <div className="page">
+   <header className="ph"><div><h1>{t("Refunds","রিফান্ড")}</h1><p>{t("Review requests and track seller-managed returns.","রিফান্ড অনুরোধ ও বিক্রেতা-পরিচালিত ফেরতের হিসাব দেখুন।")}</p></div>
+    <button className={"btn"+(loading?" spin":"")} disabled={loading||busy} onClick={()=>{setNonce(n=>n+1);setNotice(t("Refreshed","রিফ্রেশ করা হয়েছে"))}}><DashboardIcon name="refresh" width={16} height={16}/>{t("Refresh","রিফ্রেশ")}</button></header>
+   <section className="stats" aria-label={t("Summary","সারাংশ")}>
+    <div className="st"><div className="si"><DashboardIcon name="list" width={18} height={18}/></div><div><span>{t("Requests on this page","এই পাতার অনুরোধ")}</span><b>{visible.length}</b></div></div>
+    <div className={"st"+(needsAction?" hot":"")}><div className="si"><DashboardIcon name="alert-circle" width={18} height={18}/></div><div><span>{t("Needs attention","পদক্ষেপ প্রয়োজন")}</span><b>{needsAction}</b></div></div>
+    <div className="st"><div className="si"><DashboardIcon name="sliders" width={18} height={18}/></div><div><span>{t("Requested amount on this page","এই পাতার অনুরোধকৃত পরিমাণ")}</span><b dir="ltr">{moneyRef(total)}</b></div></div>
+   </section>
+   {error&&<div className="financial-error" role="alert">{error}<button onClick={()=>setNonce(n=>n+1)}>{t("Retry","আবার চেষ্টা")}</button></div>}
+   <section className="card"><div className="tb"><div className="chips" role="group" aria-label={t("Filter by status","অবস্থা অনুযায়ী বাছুন")}>{statusChoices.map(([key,label])=><button type="button" className="chip" key={key} aria-pressed={status===key} onClick={()=>{setStatus(key);setCursor("");setViewing(null)}}>{label}<i>{key?(baseCounts[key]??(status===key?items.length:0)):Object.values(baseCounts).reduce((a,b)=>a+b,0)||items.length}</i></button>)}</div>
+    <label className="find"><DashboardIcon name="search" width={16} height={16}/><input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder={t("Search reference or phone","রেফারেন্স বা ফোন খুঁজুন")} aria-label={t("Search refunds","রিফান্ড খুঁজুন")}/></label></div>
+    {loading?<div className="financial-status" role="status">{t("Loading refunds…","রিফান্ড লোড হচ্ছে…")}</div>:<><table className="refund-table"><thead><tr><th>{t("Reference","রেফারেন্স")}</th><th>{t("Customer","গ্রাহক")}</th><th>{t("Date","তারিখ")}</th><th>{t("Status","অবস্থা")}</th><th className="r">{t("Amount","পরিমাণ")}</th><th style={{width:44}}/></tr></thead><tbody>{visible.map(row=><tr key={row.id} tabIndex={0} role="button" onClick={e=>openDetails(row,e.currentTarget)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openDetails(row,e.currentTarget)}}}><td className="mono">{ref(row).slice(0,12)}</td><td dir="ltr">{row.customer?.phone||row.customer?.name||"—"}</td><td>{shortDate(row.created_at)}<span className="sub">{shortTime(row.created_at)}</span></td><td><span className={"bd "+statusClass(row.status)}>{name(row.status)}</span></td><td className="r amt">{moneyRef(row.amount_minor)}</td><td className="go"><DashboardIcon name="chevron-right" width={18} height={18}/></td></tr>)}</tbody></table>
+     {!visible.length&&<div className="empty"><b>{t("No refund requests match","মিলে যায় এমন রিফান্ড নেই")}</b>{t("Try another status or clear the search.","অন্য অবস্থা বেছে নিন বা সার্চ পরিষ্কার করুন।")}</div>}</>}
+    <div className="pg"><span>{t("Showing","দেখানো হচ্ছে")} {visible.length} {t("of","টি /")} {items.length}{next?"+":""} {t("requests","অনুরোধ")}</span><div><button disabled={!cursor||loading||busy} onClick={()=>setCursor("")}>{t("First page","প্রথম পাতা")}</button><button disabled={!next||loading||busy} onClick={()=>setCursor(next??"")}>{t("Next page","পরের পাতা")}</button></div></div>
+   </section>
+  </div>
+  <div className="scrim" onClick={()=>setViewing(null)} aria-hidden="true"/>
+  <aside className="dr" role="dialog" aria-modal="true" aria-labelledby="refund-detail-title" aria-hidden={!viewing}>
+   <div className="dh"><h3 id="refund-detail-title">{t("Refund details","রিফান্ডের বিবরণ")}</h3><button ref={closeButton} type="button" className="btn" aria-label={t("Close","বন্ধ করুন")} onClick={()=>setViewing(null)}><DashboardIcon name="x" width={16} height={16}/></button></div>
+   {viewing&&<><div className="db"><div className="big" dir="ltr">{moneyRef(viewing.amount_minor)}</div><span className={"bd "+statusClass(viewing.status)}>{name(viewing.status)}</span>
+    <div className="kv"><span>{t("Reference","রেফারেন্স")}</span><div className="mono">{ref(viewing)}<button type="button" className="cp" aria-label={t("Copy","কপি")} onClick={()=>copyId(ref(viewing))}><DashboardIcon name="copy" width={15} height={15}/></button></div></div>
+    <div className="kv"><span>{t("Customer","গ্রাহক")}</span><div dir="ltr">{viewing.customer?.phone||viewing.customer?.name||"—"}</div></div>
+    <div className="kv"><span>{t("Requested","অনুরোধ")}</span><div>{date(viewing.created_at)}</div></div>
+    {viewing.reason&&<div className="kv"><span>{t("Reason","কারণ")}</span><div>{viewing.reason}</div></div>}
+    {viewing.seller_reference&&<div className="kv"><span>{t("Return reference","ফেরত রেফারেন্স")}</span><div className="mono">{viewing.seller_reference}</div></div>}
+    </div><div className="df"><button className="btn" type="button" onClick={()=>setViewing(null)}>{t("Close","বন্ধ করুন")}</button><button className="btn" type="button" onClick={()=>copyId(ref(viewing))}><DashboardIcon name="copy" width={16} height={16}/>{t("Copy ID","আইডি কপি")}</button>{eligible(viewing)&&<button className="btn" type="button" onClick={()=>choose(viewing)}>{t("Review request","অনুরোধ পর্যালোচনা")}</button>}</div></>}
+  </aside>
+  <dialog ref={decisionDialog} className="finance-decision" onCancel={e=>{if(busy)e.preventDefault();else setSelected(null)}} onClose={()=>setSelected(null)}>{selected&&<form onSubmit={submit} aria-label={t("Seller refund decision","বিক্রেতার রিফান্ড সিদ্ধান্ত")}>
+   <header className="ph"><div><h2>{t("Review refund","রিফান্ড পর্যালোচনা")}</h2><strong dir="ltr">{moneyRef(selected.amount_minor)}</strong></div><button className="btn" type="button" disabled={busy} onClick={()=>setSelected(null)}>×</button></header>
    <label>{t("Decision","সিদ্ধান্ত")}<select value={action} onChange={e=>setAction(e.target.value as Action)}>{operations(selected).map(op=><option key={op} value={op}>{op==="report-returned"?t("Mark seller-reported returned","বিক্রেতার ফেরত রিপোর্ট করুন"):op==="review"?t("Review","পর্যালোচনা"):op==="approve"?t("Approve","অনুমোদন"):op==="reject"?t("Reject","প্রত্যাখ্যান"):t("Cancel","বাতিল")}</option>)}</select></label>
    <label>{t("Seller note","বিক্রেতার মন্তব্য")}<textarea required minLength={10} maxLength={2000} value={note} onChange={e=>setNote(e.target.value)} placeholder={t("Explain your decision","সিদ্ধান্তের কারণ লিখুন")}/></label>
    {action==="report-returned"&&<label>{t("Return transaction reference","ফেরতের লেনদেনের রেফারেন্স")}<input required maxLength={128} value={reference} onChange={e=>setReference(e.target.value)}/></label>}
-   <label className="rf-confirm"><input type="checkbox" required checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/><span>{t("I confirm this action. No money is transferred automatically.","আমি সিদ্ধান্ত নিশ্চিত করছি। স্বয়ংক্রিয়ভাবে কোনো টাকা পাঠানো হবে না।")}</span></label>
-   <div className="rf-action-buttons"><button type="button" disabled={busy} onClick={()=>setSelected(null)}>{t("Cancel","বাতিল")}</button><button type="submit" disabled={busy||!confirmed||note.trim().length<10}>{busy?t("Saving…","সংরক্ষণ হচ্ছে…"):t("Save decision","সিদ্ধান্ত সংরক্ষণ")}</button></div>
+   <label className="confirm"><input type="checkbox" required checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/><span>{t("I confirm this action. No money is transferred automatically.","আমি সিদ্ধান্ত নিশ্চিত করছি। স্বয়ংক্রিয়ভাবে কোনো টাকা পাঠানো হবে না।")}</span></label>
+   <div className="decision-actions"><button type="button" className="btn" disabled={busy} onClick={()=>setSelected(null)}>{t("Cancel","বাতিল")}</button><button type="submit" className="btn" disabled={busy||!confirmed||note.trim().length<10}>{busy?t("Saving…","সংরক্ষণ হচ্ছে…"):t("Save decision","সিদ্ধান্ত সংরক্ষণ")}</button></div>
   </form>}</dialog>
+  {notice&&<div className="toast on" role="status">{notice}</div>}
  </div>;
 }
