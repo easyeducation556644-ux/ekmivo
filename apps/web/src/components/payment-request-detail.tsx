@@ -4,7 +4,7 @@ type Detail={merchant_reference:string;amount_minor:number;currency:string;state
  items?:{title:string;quantity:number;unit_amount_minor:number}[];
  attempt:null|{payer_suffix:string;method:string;window_start:string;window_end:string};
  events:{event_type:string;reason:string;occurred_at:string}[]};
-export function PaymentRequestDetail({id,workspaceId,environment,locale,onClose}:{
+export function PaymentRequestDetail({id,workspaceId,environment,locale}:{
  id:string;workspaceId:string;environment:string;locale:"bn"|"en";onClose:()=>void;
 }){
  const bn=locale==="bn";
