@@ -18,7 +18,7 @@ export function PaymentMethodManagement({locale,workspaceId,environment,canManag
  const [method,setMethod]=useState(""),[number,setNumber]=useState(""),[label,setLabel]=useState("");
  const normalizeNumber=(raw:string)=>{const digits=raw.replace(/\D/g,"");return digits.startsWith("880")?("0"+digits.slice(3)):digits.startsWith("01")?digits:""};
  const [query,setQuery]=useState(""),[filter,setFilter]=useState<"all"|"active"|"disabled">("all"),[providerQuery,setProviderQuery]=useState("");
- const visibleAccounts=accounts.filter(a=>(filter==="all"||(filter==="active"?!a.Disabled:a.Disabled))&&[a.Label,a.Number,methodName[a.Method]||a.Method].join(" ").toLowerCase().includes(query.trim().toLowerCase()));
+ const visibleAccounts=accounts.filter(a=>(filter==="all"||(filter==="active"?!a.Disabled:a.Disabled))&&[a.Label,a.Number,formattedAccount(a.Number),methodName[a.Method]||a.Method].join(" ").toLowerCase().includes(query.trim().toLowerCase()));
  const openAdd=()=>{setMethod("");setNumber("");setLabel("");setProviderQuery("");setError("");createDialog.current?.showModal()};
  const [selected,setSelected]=useState<string|null>(null),[edited,setEdited]=useState<string|null>(null),[newLabel,setNewLabel]=useState(""),[newNumber,setNewNumber]=useState("");
  const [confirmAccount,setConfirmAccount]=useState<Account|null>(null);
