@@ -1,6 +1,6 @@
 import qrcode from "./qr-generator.mjs";
 export function pairingPayload(token){
- if(typeof token!=="string"||!/^[A-Za-z0-9_-]{24,160}$/.test(token))throw Error("INVALID_PAIRING_CODE");
+ if(typeof token!=="string"||!/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/.test(token))throw Error("INVALID_PAIRING_CODE");
  return "ekmivo://pair?token="+encodeURIComponent(token);
 }
 export function pairingSvg(token){
