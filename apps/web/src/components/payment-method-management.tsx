@@ -15,7 +15,10 @@ export function PaymentMethodManagement({locale,workspaceId,environment,canManag
  const seed=useDashboardInitialData<{accounts:Account[];items:Phone[]}>("phones");
  const [accounts,setAccounts]=useState<Account[]>(seed?.data?.accounts??[]),[loading,setLoading]=useState(!seed),[busy,setBusy]=useState(false),[error,setError]=useState(seed?.error??""),[notice,setNotice]=useState("");
  const createDialog=useRef<HTMLDialogElement>(null),editDialog=useRef<HTMLDialogElement>(null),detailsDialog=useRef<HTMLDialogElement>(null);
- const [method,setMethod]=useState("bkash"),[number,setNumber]=useState(""),[label,setLabel]=useState("");
+ const [method,setMethod]=useState(""),[number,setNumber]=useState(""),[label,setLabel]=useState("");
+ const [query,setQuery]=useState(""),[filter,setFilter]=useState<"all"|"active"|"disabled">("all"),[providerQuery,setProviderQuery]=useState("");
+ const visibleAccounts=accounts.filter(a=>(filter==="all"||(filter==="active"?!a.Disabled:a.Disabled))&&[a.Label,a.Number,methodName[a.Method]||a.Method].join(" ").toLowerCase().includes(query.trim().toLowerCase()));
+ const openAdd=()=>{setMethod("");setNumber("");setLabel("");setProviderQuery("");setError("");createDialog.current?.showModal()};
  const [selected,setSelected]=useState<string|null>(null),[edited,setEdited]=useState<string|null>(null),[newLabel,setNewLabel]=useState(""),[newNumber,setNewNumber]=useState("");
  const [confirmAccount,setConfirmAccount]=useState<Account|null>(null);
  const current=accounts.find(account=>account.ID===selected)||null;
@@ -59,21 +62,25 @@ export function PaymentMethodManagement({locale,workspaceId,environment,canManag
  return <section className="pg-phone-panel ekv3-methods" aria-busy={loading||busy}>
   <header className="ekv3-page-header"><div><h1>{t("Payment methods","পেমেন্ট মাধ্যম")}</h1><p>{t("Accounts customers can pay into.","গ্রাহকের পেমেন্ট গ্রহণের অ্যাকাউন্টগুলো।")}</p></div><div className="ekv3-head-actions">
    <button type="button" className="ekv3-icon-button" aria-label={t("Refresh","রিফ্রেশ")} title={t("Refresh","রিফ্রেশ")} disabled={loading||busy} onClick={()=>void load()}><DashboardIcon name="refresh" width={16} height={16}/></button>
-   {canManage&&<button type="button" className="ekv3-primary" onClick={()=>{setError("");createDialog.current?.showModal()}}>{t("Add account","অ্যাকাউন্ট যোগ করুন")}</button>}
+   {canManage&&<button type="button" className="ekv3-primary" onClick={openAdd}>{t("Add account","অ্যাকাউন্ট যোগ করুন")}</button>}
   </div></header>
   {error&&<div className="ekv3-page-error" role="alert">{error}<button type="button" onClick={()=>void load()}>{t("Try again","আবার চেষ্টা করুন")}</button></div>}
+  <div className="ek-ref-toolbar">
+   <label className="ek-ref-search"><DashboardIcon name="search" width={16} height={16}/><input type="search" aria-label={t("Search accounts","অ্যাকাউন্ট খুঁজুন")} placeholder={t("Search by number, provider or label","নম্বর, মাধ্যম বা নাম দিয়ে খুঁজুন")} value={query} onChange={e=>setQuery(e.target.value)}/></label>
+   <div className="ek-ref-tabs" role="group" aria-label={t("Account status","অ্যাকাউন্টের অবস্থা")}>
+    {(["all","active","disabled"] as const).map(key=><button key={key} type="button" className={filter===key?"is-selected":""} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{key==="all"?t("All","সব"):key==="active"?t("Active","সক্রিয়"):t("Disabled","বন্ধ")} <span>{key==="all"?accounts.length:accounts.filter(a=>key==="active"?!a.Disabled:a.Disabled).length}</span></button>)}
+   </div>
+  </div>
   {loading&&accounts.length===0?<div className="ekv3-rows-skeleton" role="status" aria-label={t("Loading accounts","অ্যাকাউন্ট লোড হচ্ছে")}>{[0,1,2].map(i=><div key={i} className="ekv3-skeleton-row"><i/><span/><b/></div>)}</div>:
-  <div className="ekv3-list">
-   {accounts.map(a=><div key={a.ID} className="ekv3-account-row">
-    <span className="ekv3-method-avatar" aria-hidden="true">{(methodName[a.Method]||a.Method).slice(0,1).toUpperCase()}</span>
-    <div className="ekv3-account-name"><strong>{a.Label||methodName[a.Method]||a.Method}</strong>{a.Label&&<small>{methodName[a.Method]||a.Method}</small>}</div>
-    <div className="ekv3-account-number"><span>{formattedAccount(a.Number)}</span><button type="button" className="ekv3-copy" onClick={()=>numberCopy(a.Number)} title={t("Copy number","নম্বর কপি")} aria-label={t("Copy number","নম্বর কপি")}><DashboardIcon name="copy" width={15} height={15}/></button></div>
-    
-    <span className="ekv3-status" data-tone={a.Disabled?"neutral":"success"}>{status(a)}</span>
-    <button type="button" className="ekv3-secondary" onClick={()=>setSelected(a.ID)}>{t("Manage","পরিচালনা")}</button>
-   </div>)}
-   {!loading&&!accounts.length&&<div className="ekv3-empty">{t("No payment methods yet.","এখনো কোনো পেমেন্ট মাধ্যম নেই।")}{canManage&&<button className="ekv3-primary" type="button" onClick={()=>createDialog.current?.showModal()}>{t("Add account","অ্যাকাউন্ট যোগ করুন")}</button>}</div>}
+  <div className="ek-ref-cards">
+   {visibleAccounts.map(a=><article className="ek-ref-account wc" key={a.ID} data-disabled={a.Disabled}>
+    <div className="ek-ref-account-main"><div className={"ek-ref-logo ek-ref-"+a.Method}><span>{methodName[a.Method]||a.Method}</span></div><div className="ek-ref-account-identity"><strong>{a.Label||methodName[a.Method]||a.Method}</strong><span>{formattedAccount(a.Number)} <button type="button" onClick={()=>numberCopy(a.Number)} aria-label={t("Copy number","নম্বর কপি")} title={t("Copy number","নম্বর কপি")}><DashboardIcon name="copy" width={13} height={13}/></button></span></div></div>
+    <div className="ek-ref-account-footer"><span className="ek-ref-state"><i data-on={!a.Disabled}/>{status(a)}</span><div className="ek-ref-actions">{canManage&&<button type="button" role="switch" aria-checked={!a.Disabled} className="ek-ref-switch" disabled={busy} onClick={()=>setConfirmAccount(a)} aria-label={a.Disabled?t("Enable account","অ্যাকাউন্ট চালু করুন"):t("Disable account","অ্যাকাউন্ট বন্ধ করুন")}><span/></button>}<button type="button" className="ek-ref-manage" onClick={()=>setSelected(a.ID)}>{t("Manage","পরিচালনা")}</button></div></div>
+   </article>)}
+   {canManage&&<button type="button" className="ek-ref-add-card" onClick={openAdd}><span><DashboardIcon name="plus" width={16} height={16}/></span>{t("Add account","অ্যাকাউন্ট যোগ করুন")}</button>}
+   {!loading&&visibleAccounts.length===0&&<div className="ek-ref-empty">{accounts.length?t("No accounts match your search.","অনুসন্ধানে কোনো অ্যাকাউন্ট পাওয়া যায়নি।"):t("No payment methods yet.","এখনো কোনো পেমেন্ট মাধ্যম নেই।")}</div>}
   </div>}
+  <p className="ek-ref-count">{t("Showing","দেখানো হচ্ছে")} {visibleAccounts.length} {t("of","টি /")} {accounts.length} {t("accounts","অ্যাকাউন্ট")}</p>
   <dialog ref={detailsDialog} className="ekv3-drawer" aria-label={t("Account details","অ্যাকাউন্টের বিবরণ")} onCancel={closeDetails} onClose={closeDetails} onClick={event=>{if(event.target===event.currentTarget)closeDetails()}}>
    {current&&<div className="ekv3-drawer-content">
     <div className="ekv3-drawer-heading"><h2>{current.Label||methodName[current.Method]||current.Method}</h2><button type="button" aria-label={t("Close","বন্ধ করুন")} onClick={closeDetails}>×</button></div>
@@ -91,13 +98,13 @@ export function PaymentMethodManagement({locale,workspaceId,environment,canManag
     <div className="pg-phone-actions"><button type="button" onClick={()=>setEdited(null)}>{t("Cancel","বাতিল")}</button><button type="submit" className="ekv3-primary" disabled={busy}>{t("Save changes","পরিবর্তন সংরক্ষণ")}</button></div>
    </form></div>)}
   </dialog>
-  <dialog ref={createDialog} className="pg-phone-dialog ekv3-form-modal" aria-labelledby="ekv3-add-account">
-   <div className="pg-phone-dialog-head"><h2 id="ekv3-add-account">{t("Add account","অ্যাকাউন্ট যোগ করুন")}</h2><button type="button" aria-label={t("Close","বন্ধ করুন")} onClick={()=>createDialog.current?.close()}>×</button></div>
+  <dialog ref={createDialog} className="pg-phone-dialog ekv3-form-modal ek-ref-modal" aria-labelledby="ekv3-add-account">
+   <div className="pg-phone-dialog-head"><div><h2 id="ekv3-add-account">{t("Add account","অ্যাকাউন্ট যোগ করুন")}</h2><p>{method?t("Enter the account customers will pay into.","গ্রাহক যে অ্যাকাউন্টে পেমেন্ট করবেন সেটি দিন।"):t("Choose a provider.","একটি মাধ্যম বেছে নিন।")}</p></div><button type="button" aria-label={t("Close","বন্ধ করুন")} onClick={()=>createDialog.current?.close()}>×</button></div>
    <form className="pg-phone-setup" onSubmit={e=>{e.preventDefault();void create()}}>
-    <label>{t("Payment method","পেমেন্ট মাধ্যম")}<select value={method} onChange={e=>setMethod(e.target.value)}>{Object.keys(methodName).map(m=><option key={m} value={m}>{methodName[m]}</option>)}</select></label>
-    <label>{t("Receiving number","রিসিভিং নম্বর")}<input required autoFocus type="tel" inputMode="tel" autoComplete="off" value={number} onChange={e=>setNumber(e.target.value)} placeholder="+8801XXXXXXXXX"/></label>
+    {!method?<><label className="ek-ref-search ek-ref-provider-search"><DashboardIcon name="search" width={16} height={16}/><input aria-label={t("Search providers","মাধ্যম খুঁজুন")} placeholder={t("Search providers","মাধ্যম খুঁজুন")} value={providerQuery} onChange={e=>setProviderQuery(e.target.value)}/></label><div className="ek-ref-providers">{Object.entries(methodName).filter(([,name])=>name.toLowerCase().includes(providerQuery.toLowerCase())).map(([key,name])=><button type="button" key={key} className="ek-ref-provider wc" onClick={()=>setMethod(key)}><span className={"ek-ref-logo ek-ref-"+key}>{name}</span><strong>{name}</strong></button>)}</div></>:<div className="ek-ref-selected-provider"><span className={"ek-ref-logo ek-ref-"+method}>{methodName[method]}</span><strong>{methodName[method]}</strong><button type="button" onClick={()=>setMethod("")}>{t("Change","পরিবর্তন")}</button></div>}
+    {method&&<><label>{t("Receiving number","রিসিভিং নম্বর")}<input required type="tel" inputMode="tel" autoComplete="off" value={number} onChange={e=>setNumber(e.target.value)} placeholder="+8801XXXXXXXXX"/></label>
     <label>{t("Account name (optional)","অ্যাকাউন্টের নাম (ঐচ্ছিক)")}<input value={label} maxLength={100} onChange={e=>setLabel(e.target.value)}/></label>
-    <div className="pg-phone-actions"><button type="button" onClick={()=>createDialog.current?.close()}>{t("Cancel","বাতিল")}</button><button type="submit" className="ekv3-primary" disabled={busy||!number}>{t("Add account","অ্যাকাউন্ট যোগ করুন")}</button></div>
+    </><div className="pg-phone-actions"><button type="button" onClick={()=>createDialog.current?.close()}>{t("Cancel","বাতিল")}</button><button type="submit" className="ekv3-primary" disabled={busy||!method||!number}>{t("Add account","অ্যাকাউন্ট যোগ করুন")}</button></div>
    </form>
   </dialog>
   {notice&&<div className="ekv3-toast" role="status">{notice}</div>}
