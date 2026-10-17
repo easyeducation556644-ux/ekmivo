@@ -8,7 +8,7 @@ import {ThemedCheckout,WalletToken} from "./themed-checkout";
 import type {MerchantBrandInfo} from "./merchant-brand";
 
 type Field={id:string;label:string;type:string;required:boolean;options:string[]};
-type Document={merchant_name:string;brand?:MerchantBrandInfo;kind:string;reference:string;environment:string;amount_minor:number;due_minor?:number;paid_minor:number;configured_methods?:string[];methods?:string[];body:{max_quantity?:number;image_url?:string;description?:string;notes?:string;due_at?:string;items?:{title:string;quantity:number;unit_amount_minor:number}[];fields?:Field[]}};
+type Document={merchant_name:string;brand?:MerchantBrandInfo;kind:string;reference:string;status?:string;environment:string;amount_minor:number;due_minor?:number;paid_minor:number;configured_methods?:string[];methods?:string[];body:{max_quantity?:number;image_url?:string;description?:string;notes?:string;due_at?:string;items?:{title:string;quantity:number;unit_amount_minor:number}[];fields?:Field[]}};
 function safeUrl(raw?:string){if(!raw)return "";try{const u=new URL(raw);return u.protocol==="https:"&&!u.username&&!u.password?u.href:""}catch{return ""}}
 function ContactIcon({kind}:{kind:"support"|"email"}){return kind==="email"
  ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg>
@@ -104,6 +104,7 @@ export function PublicDocument({locale,token,standalone=false}:{locale:"en"|"bn"
  const support=safeUrl(doc?.brand?.support_url),email=doc?.brand?.support_email||"";
  const logo=safeUrl(doc?.brand?.logo_url);
  const theme=parseCheckoutTheme(doc?.brand?.checkout_theme);
+ if(doc?.kind==="invoices"&&doc.status==="cancelled")return <main data-customer-checkout="true" className="customer-pay-screen" lang={locale}><div className="customer-pay-shell" style={{padding:32,textAlign:"center"}}><h1>{t("Invoice cancelled","ইনভয়েস বাতিল হয়েছে")}</h1><p>{t("This invoice is void. No payment can be made.","এই ইনভয়েসটি বাতিল। কোনো পেমেন্ট করা যাবে না।")}</p><a href={"/"+locale+"/invoice/"+token}>{t("View invoice","ইনভয়েস দেখুন")}</a></div></main>;
  if(theme&&doc)return <ThemedCheckout config={theme} locale={locale} method={selected} step="pay" amountMinor={payable} reference={doc.reference} onLanguage={()=>router.push('/'+(bn?'en':'bn')+'/'+(doc.kind==='invoices'?'invoice':'pay')+'/'+token)}>
   <h2 className="tk-h">{t('How would you like to pay?','কীভাবে পরিশোধ করতে চান?')}</h2><form onSubmit={pay} className="tk-document-form"><div className="tk-ms">{methods.map(m=><button className="tk-m" key={m} type="button" disabled={locked} aria-pressed={selected===m} onClick={()=>setSelected(m)}><WalletToken method={m}/><span className="tk-mt">{m==='bkash'?'bKash':m==='nagad'?'Nagad':'Rocket'}</span><i className="tk-rd"/></button>)}</div>
   {theme.info&&([['name','Full name','পুরো নাম'],['email','Email','ইমেইল'],['addr','Address','ঠিকানা'],['note','Order note','অর্ডার নোট']] as const).filter(([key])=>theme.f[key]).map(([key,en,be])=><label className="tk-fl" key={key}>{t(en,be)}<input className="tk-in" type={key==='email'?'email':'text'} maxLength={key==='note'?1000:254} disabled={locked} value={customerDetails[key]||''} onChange={e=>setCustomerDetails(d=>({...d,[key]:e.target.value}))}/></label>)}
