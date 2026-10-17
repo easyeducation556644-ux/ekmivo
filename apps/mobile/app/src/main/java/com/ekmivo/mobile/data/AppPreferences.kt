@@ -21,7 +21,7 @@ class AppPreferences(context: Context) {
   Appearance.entries.find { it.name == prefs[themeKey] } ?: Appearance.SYSTEM
  }
  val language: Flow<Language> = dataStore.data.map { prefs ->
-  Language.entries.find { it.name == prefs[languageKey] } ?: Language.BN
+  Language.entries.find { it.name == prefs[languageKey] } ?: Language.EN
  }
  suspend fun updateAppearance(value: Appearance) {
   dataStore.edit { it[themeKey] = value.name }

@@ -6,9 +6,9 @@
     <string name="pair_header_code">Use a code</string>
     <string name="pair_welcome_title">Connect this phone to Ekmivo</string>
     <string name="pair_welcome_body">Payment SMS received on this phone will be forwarded to Ekmivo automatically.</string>
-    <string name="pair_step_1">Open Payments → SMS devices in your dashboard</string>
+    <string name="pair_step_1">Open ‘SMS devices’ in your dashboard</string>
     <string name="pair_step_2">Choose ‘Connect phone’ and create a pairing QR</string>
-    <string name="pair_step_3">Scan the QR, or connect using the code</string>
+    <string name="pair_step_3">Tap the ‘Connect phone’ button</string>
     <string name="pair_scan">Scan QR</string>
     <string name="pair_code_link">Connect with a code</string>
     <string name="pair_camera_title">Enable camera</string>
@@ -39,5 +39,6 @@
     <string name="pair_error_saved">The server paired your phone, but saving local credentials failed. Keep this app open and try again.</string>
     <string name="pair_legacy_continue">Set up phone permissions</string>
     <string name="pair_token_progress">%1$d / %2$d code characters</string>
+    <string name="pair_token_placeholder">Enter or paste the 8-character code</string>
     <string name="pair_code_copied_hint">You can paste the complete code</string>
 </resources>

@@ -129,3 +129,10 @@ following docs/design/ekmivo-phase-prompts.md; no UI changes in Phase 1.
 - Phase 2 validation: https://github.com/easyeducation556644-ux/ekmivo/actions/runs/39035147227: **SUCCESS**, `:app:assembleDebug :app:testDebugUnitTest` both passed (BUILD SUCCESSFUL in 2m 37s); debug APK `ekmivo-kotlin-debug` (artifact #12101587617).
 - Web, Go and Docker deliberately **skipped** for this phase on the fork to conserve CI usage; the upstream CI YAML stays unmodified.
 - Original reference screenshot comparison at 360dp and 412dp is **NOT DONE**; APK sent to owner for visual and device pairing acceptance. The generic copy for shop name was explicitly approved by the owner.
+
+## Eight-character pairing polish — 2026-10-17
+- Freshly generated physical-phone pairing capability is 8 uppercase non-confusable symbols from a 32-character crypto/rand alphabet; 40 bits of random entropy. Existing digest, database-enforced 5-minute expiry, single-claim consumption and server validation preserved. Legacy longer claim tokens remain briefly valid for compatibility; no database migration.
+- SMS devices modal shows 8 individual cells with Copy button; QR uses the same token. Android eight-cell input accepts typing/paste via a single backing editor and automatically opens Confirm after 8 characters; server claim still requires explicit consent.
+- EN/BN switcher at top right, new installs default English; dark palette uses reference #0F0F0E, #181817, #222220 and theme follows system setting unless explicitly changed. Steps shortened per owner feedback.
+- Fork targeted CI https://github.com/easyeducation556644-ux/ekmivo/actions/runs/39037292999 **SUCCESS**: Go TestPhysicalPairingCodeShape PASS, focused Node QR/web contract tests 4/4 PASS, Android :app:assembleDebug and :app:testDebugUnitTest PASS. Full unrelated web/Go/Docker jobs were intentionally skipped. Fork-only CI workflow not promoted.
+- Debug artifact #12103270511; locally extracted APK SHA-256 5f19c1ab6a95ef76f2af7a9bd91131951cbe98924fc92bc319ac30e9f2fb8f9d (43,092,147 bytes). Device screenshot acceptance pending. Backend deployment required to issue the new codes in production.

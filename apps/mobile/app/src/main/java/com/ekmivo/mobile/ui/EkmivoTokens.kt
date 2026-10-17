@@ -33,43 +33,44 @@ data class EkmivoPalette(
 
 object EkmivoTokens {
     val Light = EkmivoPalette(
-        canvas = Color(0xFFF5F5F1),
-        surface = Color(0xFFFFFEFB),
+        canvas = Color(0xFFF4F3EE),
+        surface = Color(0xFFFFFFFF),
         raised = Color(0xFFFFFFFF),
-        subtle = Color(0xFFEEEFEA),
-        border = Color(0xFFE2E5DE),
-        controlBorder = Color(0xFFA6ADA7),
-        text = Color(0xFF203148),
-        secondary = Color(0xFF5C6874),
-        muted = Color(0xFF677183),
+        subtle = Color(0xFFECEBE5),
+        border = Color(0xFFDDDCD5),
+        controlBorder = Color(0xFFBBB9B2),
+        text = Color(0xFF1B1B19),
+        secondary = Color(0xFF6B6A64),
+        muted = Color(0xFF6B6A64),
         onPrimary = Color.White,
-        success = Color(0xFF285D42),
-        successBackground = Color(0xFFE2F1E7),
-        warning = Color(0xFF77511D),
-        warningBackground = Color(0xFFFBF0DB),
-        danger = Color(0xFF9C3134),
-        dangerBackground = Color(0xFFFBE9E8)
+        success = Color(0xFF0F7A4B),
+        successBackground = Color(0xFFDDF5E8),
+        warning = Color(0xFF8A5A00),
+        warningBackground = Color(0xFFFBEFD3),
+        danger = Color(0xFFB3382C),
+        dangerBackground = Color(0xFFFBE0DC)
     )
 
     val Dark = EkmivoPalette(
-        canvas = Color(0xFF181C20),
-        surface = Color(0xFF20262B),
-        raised = Color(0xFF293138),
-        subtle = Color(0xFF252C31),
-        border = Color(0xFF333D44),
-        controlBorder = Color(0xFF65727D),
-        text = Color(0xFFE6EAE7),
-        secondary = Color(0xFFACB7BF),
-        muted = Color(0xFFA9A9A9),
+        canvas = Color(0xFF0F0F0E),
+        surface = Color(0xFF181817),
+        raised = Color(0xFF222220),
+        subtle = Color(0xFF222220),
+        border = Color(0xFF2C2C29),
+        controlBorder = Color(0xFF5C5B56),
+        text = Color(0xFFF1F0EA),
+        secondary = Color(0xFF8D8B84),
+        muted = Color(0xFF8D8B84),
         onPrimary = Color.Black,
-        success = Color(0xFFB2DEC1),
-        successBackground = Color(0xFF243A2D),
-        warning = Color(0xFFF0D092),
-        warningBackground = Color(0xFF44351F),
-        danger = Color(0xFFF5B4AE),
-        dangerBackground = Color(0xFF462827)
+        success = Color(0xFF3DDC97),
+        successBackground = Color(0xFF12301F),
+        warning = Color(0xFFF5B544),
+        warningBackground = Color(0xFF33260D),
+        danger = Color(0xFFF2685B),
+        dangerBackground = Color(0xFF3A1B18)
     )
 
+    // Screenshot reference palette for the native app; kept semantic across themes.
     // Exact fixed-size reference geometry. Semantic panel/control/dialog radii
     // are in EkmivoTheme; components retain the reference's own geometry.
     object Measure {
