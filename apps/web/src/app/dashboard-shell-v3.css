@@ -210,3 +210,21 @@
 .ds-app[data-service="payments"] :is(.ds-sidebar,.ds-mobile-dialog) .ds-nav-fixed-bottom a:hover{background:var(--color-hover);color:var(--color-text)}
 .ds-app[data-service="payments"] :is(.ds-sidebar,.ds-mobile-dialog) .ds-nav-fixed-bottom a.is-current{background:var(--color-primary-soft);color:var(--color-primary);font-weight:500}
 .ds-app[data-service="payments"] :is(.ds-sidebar,.ds-mobile-dialog) .ds-nav-fixed-bottom svg{width:16px;height:16px;flex:none}
+
+
+/* One-time Requests inherit the same single-card anatomy as Payment Links. */
+.ds-app[data-service="payments"] .ekv3-request-card{border:1px solid var(--color-border);border-radius:12px;background:var(--color-surface);overflow:visible;min-width:0}
+.ds-app[data-service="payments"] .ekv3-request-card>.ekv3-requests-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0;padding:12px 16px;border-bottom:1px solid var(--color-border)}
+.ds-app[data-service="payments"] .ekv3-request-card>.ekv3-requests-toolbar input{min-width:150px;flex:1 1 240px;width:100%;max-width:none;margin:0;background:var(--color-surface);border:1px solid var(--color-border);border-radius:8px;padding:8px 11px;color:var(--color-text);font:inherit}
+.ds-app[data-service="payments"] .ekv3-request-card>.ekv3-requests-toolbar select{flex:0 0 auto;min-width:145px;margin:0;background:var(--color-surface);border:1px solid var(--color-border);border-radius:8px;padding:8px 11px;color:var(--color-text);font:inherit}
+.ds-app[data-service="payments"] .ekv3-request-card>.ekv3-table-scroller{overflow-x:auto;overflow-y:visible;background:transparent;border:0;border-radius:0}
+.ds-app[data-service="payments"] .ekv3-request-card .ekv3-table{width:100%;border-collapse:collapse}
+.ds-app[data-service="payments"] .ekv3-request-card .ekv3-table th{background:var(--color-surface);color:var(--color-text-muted);font-weight:500;text-align:left}
+.ds-app[data-service="payments"] .ekv3-request-card .ekv3-table th,.ds-app[data-service="payments"] .ekv3-request-card .ekv3-table td{padding:13px 16px;border-bottom:1px solid var(--color-border);font-size:13px}
+.ds-app[data-service="payments"] .ekv3-request-card .ekv3-table tr:last-child td{border-bottom:0}
+.ds-app[data-service="payments"] .ekv3-request-card .ekv3-table tr:hover td{background:var(--color-hover)}
+.ds-app[data-service="payments"] .ekv3-request-card .ekv3-table .ekv3-numeric{text-align:right;white-space:nowrap}
+.ds-app[data-service="payments"] .ekv3-request-card .ekv3-row-popover{z-index:30}
+.ds-app[data-service="payments"] .ekv3-request-card .ekv3-load-more{margin:0;border-top:1px solid var(--color-border)}
+.ds-app[data-service="payments"] .ekv3-requests .ref-dashboard .tabs{margin-bottom:0}
+@media(max-width:600px){.ds-app[data-service="payments"] .ekv3-request-card>.ekv3-requests-toolbar input{flex-basis:100%}.ds-app[data-service="payments"] .ekv3-request-card .ekv3-table{min-width:520px}}
