@@ -14,7 +14,7 @@ export function CredentialEnvironmentSwitcher({locale,userId,workspaceId,initial
   </div>
   {available&&realm==="sandbox"&&<p className="notice" role="status">{locale==="bn"?"Sandbox key দিয়ে শুধু পরীক্ষামূলক ডেটা ব্যবহার করা যায়। এখানে আসল টাকা লেনদেন হয় না।":"Sandbox keys use test data. No real money is involved."}</p>}
   {!available?<div className="notice ref-errors" role="status">{locale==="bn"?`${realm==="sandbox"?"Sandbox":"Live"} পরিবেশটি এই workspace-এ সক্রিয় নেই। এটি চালু হলে এখানে API key তৈরি করা যাবে।`:`${realm==="sandbox"?"Sandbox":"Live"} environment is not active for this workspace. Enable it before issuing keys.`}</div>:<>
-   <ApiKeyManager key={userId+":"+workspaceId+":"+realm} locale={locale} userId={userId} workspaceId={workspaceId} environment={realm} keys={keys[realm]}/>
+   <ApiKeyManager key={userId+":"+workspaceId+":"+realm} locale={locale} userId={userId} workspaceId={workspaceId} environment={realm} keys={keys[realm]} enabledEnvironments={enabled}/>
    <AutomaticWebhookSecret key={realm} workspaceId={workspaceId} environment={realm} locale={locale}/>
   </>}
  </div>;
