@@ -13,6 +13,14 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.ekmivo.mobile.MainActivity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 /**
  * User-visible forwarding service, only started from a foreground app action.
@@ -21,6 +29,8 @@ import com.ekmivo.mobile.MainActivity
  */
 class ReceiptForwardingService:Service() {
  private val channel="ekmivo_receipt_forwarding"
+ private val heartbeatScope=CoroutineScope(SupervisorJob()+Dispatchers.IO)
+ private var heartbeatJob:Job?=null
  override fun onBind(intent:Intent?):IBinder?=null
  override fun onCreate(){
   super.onCreate()
@@ -50,7 +60,24 @@ class ReceiptForwardingService:Service() {
   if(Build.VERSION.SDK_INT>=29)startForeground(1204,n,ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
   else startForeground(1204,n)
   ReceiptSyncWorker.scheduleNow(applicationContext)
+  if(heartbeatJob?.isActive!=true){
+   heartbeatJob=heartbeatScope.launch {
+    // Foreground service is real work: report signed health, not only notification.
+    while(isActive){
+     val allowed=runCatching{
+      ReceiptStore(applicationContext).use { it.enabled() && !it.isRevoked() }
+     }.getOrDefault(false)
+     if(!allowed){stopSelf();break}
+     DeviceHeartbeat.check(applicationContext)
+     delay(DeviceHeartbeat.INTERVAL_MS)
+    }
+   }
+  }
   return START_STICKY
+ }
+ override fun onDestroy(){
+  heartbeatScope.cancel()
+  super.onDestroy()
  }
  override fun onTimeout(startId:Int,fgsType:Int) {
   // Android 15 may limit dataSync foreground service time. WorkManager and

@@ -177,3 +177,19 @@ following docs/design/ekmivo-phase-prompts.md; no UI changes in Phase 1.
 - CI run 39046974983 passed Android `assembleDebug` + `testDebugUnitTest` on real durable Room `sent_at` query. Intake timestamp is no longer mislabelled as forwarding timestamp; when unknown UI says so. Room failed-state records provide the failed count rather than the limited feed slice. An unavailable data source is explicitly shown as unavailable, not zero transactions.
 - Final ring colour reflects state: green when Active, amber when degraded; reduced motion remains respected.
 - No owner screenshot QA claim. Payment verification totals remain unavailable; all visible figures refer only to locally retained forwarded SMS.
+
+## Phase 5 — Settings, diagnostics and live device-health regression fix
+- Settings cards follow design spec §3.7: real device identity (model, not invented shop), last signed heartbeat, SMS/notification/battery/Samsung setup values, language and System/Light/Dark segmented choices, diagnostics entry and destructive disconnect confirmation sheet. The SMS queue is protected by the existing encrypted Room/SQLite unsent guard. Local disconnect does not pretend to revoke the handset remotely: the confirmation explicitly instructs removal in the web dashboard.
+- Diagnostics: signed connection test, opt-in READ_SMS missed-inbox recovery, sanitized OS/app/health metadata text share (no SMS bodies, payer numbers, IDs, private keys) and app version. A connectivity test is **not** a synthetic payment forward or proof of verification.
+- Fix: foreground service sends **signed phone heartbeat every 2 minutes** independently of receipt WorkManager, and app while STARTED probes again after >=30s without an attempt; server 401/403 flows through the existing auth interceptor to Revoked StateFlow and immediately renders Disconnected without app restart. No client-only spoofed online state.
+- Web phone health thresholds align with 15-minute WorkManager fallback: online while last heartbeat <20min, delayed 20–45min, offline >=45min. Actual missing permissions and revoke states take precedence. A notification is not counted as proof of server connectivity.
+- Phase 4 empty/zero retained SMS history hero now shows ৳0 (but source unavailable must still show unknown, never fake a zero).
+- Android 15 foreground dataSync restrictions and OEM battery constraints still apply; no claim of eternal FGS life. WorkManager keeps durable retry support.
+- CI on EC Education fork runs Android assembleDebug + unit tests plus targeted Node source/behaviour checks; unrelated Go/Next.js/Docker checks skipped. The CI-skip workflow is fork-only and MUST NOT be copied upstream.
+- Screenshots at 360dp/412dp and live Samsung/device SMS delivery remain pending owner testing; neither is claimed pass.
+
+### Phase 5 CI and delivery evidence (2026-10-17)
+- EC Education fork [Android + targeted contract CI](https://github.com/easyeducation556644-ux/ekmivo/actions/runs/39050833184): **SUCCESS** after fixing a missing Settings import. `assembleDebug` and `testDebugUnitTest` passed; focused heartbeat/status/settings assertions passed. Unrelated Go/Web full pipeline and Docker builds deliberately skipped; fork-specific CI exclusions are NOT promoted.
+- Debug APK (fork artifact #12108150268) size 43,259,703 bytes; sha256 `30d9afd1e9b2f1b78d7b93acd1cc682d6c670c41bba59def691fa32d31a252b6`.
+- The production web deployment and real Samsung service running with the screen off are **not verified**. System-permitted background work cannot be guaranteed by a persistent notification alone. Owner will verify actual app/web status changes and 360dp/412dp reference screenshot match.
+- Local app Disconnect only clears this handset when the encrypted pending queue is empty; merchant must also remove the entry on the dashboard. There is no signed handset self-revoke endpoint in the existing backend, and the app never claims remote revocation.
