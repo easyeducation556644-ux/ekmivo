@@ -51,7 +51,7 @@ export function PaymentRefunds({locale,workspaceId,environment,canManage,detailI
   finally{setBusy(false)}
  }
  const visible=items.filter(r=>[r.id,r.payment_id,r.source_intent_id,r.customer?.phone].join(" ").toLowerCase().includes(search.toLowerCase()));
- const total=visible.reduce((s,r)=>s+r.amount_minor,0),needsAction=visible.filter(r=>["requested","reviewing","approved"].includes(r.status)).length;
+ const total=visible.reduce((s,r)=>s+r.amount_minor,0),needsAction=visible.filter(r=>r.status==="requested").length;
  const moneyRef=(v:number)=>"BDT "+(v/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
  const statusClass=(s:string)=>s==="approved"?"approved":s==="seller_reported_returned"?"refunded":s==="rejected"?"declined":s==="cancelled"?"cancelled":"pending";
  const statusChoices=[["",t("All requests","সব অনুরোধ")],["requested",t("Pending","অপেক্ষমাণ")],["reviewing",t("In review","পর্যালোচনায়")],["approved",t("Approved","অনুমোদিত")],["seller_reported_returned",t("Reported returned","ফেরত রিপোর্ট")],["rejected",t("Declined","প্রত্যাখ্যাত")],["cancelled",t("Cancelled","বাতিল")]];
