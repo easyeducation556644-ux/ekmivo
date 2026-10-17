@@ -228,3 +228,8 @@
 .ds-app[data-service="payments"] .ekv3-request-card .ekv3-load-more{margin:0;border-top:1px solid var(--color-border)}
 .ds-app[data-service="payments"] .ekv3-requests .ref-dashboard .tabs{margin-bottom:0}
 @media(max-width:600px){.ds-app[data-service="payments"] .ekv3-request-card>.ekv3-requests-toolbar input{flex-basis:100%}.ds-app[data-service="payments"] .ekv3-request-card .ekv3-table{min-width:520px}}
+
+
+/* Keep contextual request actions accessible rather than clipping menus in a scroll layer. */
+@media(min-width:601px){.ds-app[data-service="payments"] .ekv3-request-card>.ekv3-table-scroller{overflow:visible}.ds-app[data-service="payments"] .ekv3-request-card .ekv3-row-menu[open]{z-index:40}}
+@media(max-width:600px){.ds-app[data-service="payments"] .ekv3-request-card .ekv3-row-menu[open] .ekv3-row-popover{position:fixed;top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:12px;right:12px;max-height:50dvh;overflow:auto;z-index:120;width:auto;min-width:0;box-shadow:0 0 0 9999px rgba(0,0,0,.24),0 16px 32px rgba(0,0,0,.2);border-radius:12px}.ds-app[data-service="payments"] .ekv3-request-card .ekv3-row-popover :is(a,button){padding:12px 14px;font-size:14px}}
