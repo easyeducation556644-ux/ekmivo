@@ -89,7 +89,7 @@ export function PaymentDocuments({kind,workspaceId,environment,locale,userId,can
    void fetch(`${base}/${row.id}?environment=${encodeURIComponent(environment)}`,{cache:"no-store",credentials:"same-origin",signal:controller.signal})
     .then(async response=>{if(!response.ok)throw Error("DETAILS_UNAVAILABLE");return response.json()})
     .then(data=>{if(!controller.signal.aborted){const fresh=data?.items?.[0] as RecordRow|undefined;if(fresh?.id===row.id)setSelectedDocument(fresh)}})
-    .catch(()=>{if(!controller.signal.aborted)setError(t("Customer details could not be refreshed. Retry.","গ্রাহকের বিস্তারিত হালনাগাদ হয়নি। আবার চেষ্টা করুন।"))});
+    .catch(()=>{if(!controller.signal.aborted)setError(t("Record details could not be refreshed. Retry.","রেকর্ডের বিস্তারিত হালনাগাদ হয়নি। আবার চেষ্টা করুন।"))});
   };
 
  const draft=useRef<{dirty:boolean;save:()=>Promise<boolean>;discard:()=>void}>({dirty:false,save:async()=>false,discard:()=>{}});
