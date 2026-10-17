@@ -51,7 +51,7 @@ export function PaymentDocuments({kind,workspaceId,environment,locale,userId,can
  useEffect(()=>{
   if(!isLinks)return;
   const abort=new AbortController();
-  invoiceMoreRequest.current?.abort();
+  invoiceMoreRequest.current?.abort();invoiceMoreRequest.current=null;
   setInvoiceLinks([]);
   setInvoiceLinksCursor(null);
   const loadInvoices=async()=>{
