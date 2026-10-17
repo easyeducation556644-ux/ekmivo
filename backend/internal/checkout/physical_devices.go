@@ -3,6 +3,7 @@ package checkout
 // Physical phone management is distinct from per-account evidence routing.
 // Each linked source remains a stable enrollment ID for queued receipt delivery.
 import (
+ "crypto/rand"
  "encoding/base64"
  "encoding/json"
  "errors"
@@ -15,6 +16,20 @@ import (
  "github.com/masharzy/ekmivo/backend/internal/deviceevidence"
  "github.com/masharzy/ekmivo/backend/internal/merchantwebhook"
 )
+
+// Eight characters from a 32-symbol alphabet = 40 bits of OS randomness.
+// The database already stores only the digest, expires in five minutes and
+// consumes the token atomically upon claim.
+var physicalPairingCodePattern = regexp.MustCompile("^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$")
+
+func randomPhysicalPairingCode() (string, error) {
+ const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+ var bytes [8]byte
+ if _, err := rand.Read(bytes[:]); err != nil { return "", err }
+ result := make([]byte, len(bytes))
+ for i, b := range bytes { result[i] = alphabet[int(b) & 31] }
+ return string(result), nil
+}
 
 type phoneAssociation struct {
  ID string `json:"id"`
@@ -93,7 +108,7 @@ func (s *Service) HandlePhones(w http.ResponseWriter,r *http.Request) {
   switch{
   case id==""&&action=="":
    if strings.TrimSpace(body.Name)==""||len(body.Name)>80{return errors.New("phone name required")}
-   var err error;token,err=randomCapability();if err!=nil{return err}
+   var err error;token,err=randomPhysicalPairingCode();if err!=nil{return err}
    return tx.QueryRow(r.Context(),"SELECT pg06_phone_begin($1::uuid,$2,$3,$4)",ws,realm,body.Name,digest(token)).Scan(&raw)
   case id!=""&&action=="attach":
    rule,ok:=s.Pipeline.Rules[body.ParserID]
@@ -177,6 +192,16 @@ func (s *Service) HandlePhysicalDevice(w http.ResponseWriter,r *http.Request,raw
  signature,se:=base64.StdEncoding.DecodeString(r.Header.Get("X-Ekmivo-Signature"))
  if e!=nil||se!=nil||!deviceevidence.TimestampWithinSkew(r.Header.Get("X-Ekmivo-Timestamp"),time.Now())||!deviceevidence.VerifyP256DER(key,canonical,signature){
   fail(w,403,"PHONE_SIGNATURE_REJECTED");return
+ }
+ // The key and signature are checked above. A handset disconnect must revoke
+ // the same server row the dashboard lists, BEFORE Android destroys its key.
+ if r.PathValue("action")=="phone-disconnect" {
+  var revoked bool
+  if e:=pool.QueryRow(r.Context(),"SELECT pg06_phone_self_revoke($1::uuid)",id).Scan(&revoked);e!=nil{
+   fail(w,503,"PHONE_DISCONNECT_UNAVAILABLE");return
+  }
+  if !revoked {fail(w,403,"PHONE_REVOKED");return}
+  write(w,200,map[string]bool{"disconnected":true});return
  }
  if r.PathValue("action")=="phone-events"{
   s.handlePhoneForward(w,r,raw,id,ws,realm,version);return

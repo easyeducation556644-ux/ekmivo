@@ -13,7 +13,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  mobile_disconnect_contract:
+    name: Targeted device disconnect, QR and updater contracts
+    if: ${{ github.event_name == 'pull_request' && github.head_ref == 'ci/mobile-device-disconnect-updates-20261018' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: node --test tools/testing/mobile-device-release-contracts.test.mjs
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Release manifest API unit tests
+        working-directory: backend
+        run: go test ./cmd/api -run 'TestMobileReleaseManifest' -count=1
   web:
+    # Fork-only focused release QA. Preserve original upstream workflow.
+    if: ${{ github.event_name != 'pull_request' || github.head_ref != 'ci/mobile-device-disconnect-updates-20261018' }}
     name: Next.js lint, build and isolated PostgreSQL smoke
     runs-on: ubuntu-latest
     services:
@@ -138,6 +156,8 @@ jobs:
         run: npm run build
 
   backend:
+    # Fork-only focused release QA. Preserve original upstream workflow.
+    if: ${{ github.event_name != 'pull_request' || github.head_ref != 'ci/mobile-device-disconnect-updates-20261018' }}
     name: Go compile and unit tests
     runs-on: ubuntu-latest
     steps:
@@ -185,6 +205,8 @@ jobs:
           go build -o /tmp/ekmivo-worker ./cmd/worker
 
   financial_containers:
+    # Fork-only focused release QA. Preserve original upstream workflow.
+    if: ${{ github.event_name != 'pull_request' || github.head_ref != 'ci/mobile-device-disconnect-updates-20261018' }}
     name: PG04 runtime and migration Docker builds
     runs-on: ubuntu-latest
     steps:

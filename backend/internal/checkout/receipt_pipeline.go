@@ -458,7 +458,7 @@ func (s *Service) HandleDevice(w http.ResponseWriter, r *http.Request) {
 			Token     string `json:"pairing_token"`
 			PublicKey string `json:"public_key"`
 		}
-		if json.Unmarshal(raw, &claim) != nil || !tokenPattern.MatchString(claim.Token) {
+		if json.Unmarshal(raw, &claim) != nil || !(physicalPairingCodePattern.MatchString(claim.Token) || tokenPattern.MatchString(claim.Token)) {
 			fail(w, 422, "INVALID_ENROLLMENT")
 			return
 		}
@@ -510,7 +510,7 @@ func (s *Service) HandleDevice(w http.ResponseWriter, r *http.Request) {
 		write(w, 200, enrollment)
 		return
 	}
-	if r.PathValue("action") == "configuration" || r.PathValue("action") == "phone-heartbeat" || r.PathValue("action") == "phone-events" {
+	if r.PathValue("action") == "configuration" || r.PathValue("action") == "phone-heartbeat" || r.PathValue("action") == "phone-events" || r.PathValue("action") == "phone-disconnect" {
 		s.HandlePhysicalDevice(w, r, raw)
 		return
 	}
