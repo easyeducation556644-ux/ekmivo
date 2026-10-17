@@ -171,11 +171,17 @@ func (w *InvoiceNoticeWorker) Work(ctx context.Context, job *river.Job[InvoiceNo
 	}
 	if invoice.Status!="issued" {return finish("cancelled")}
 	var seller string
-	if w.Control.QueryRow(ctx,"SELECT name FROM workspaces WHERE id=$1::uuid",n.Workspace).Scan(&seller)!=nil {
+	var themeLogo *string
+	if w.Control.QueryRow(ctx,"SELECT coalesce(nullif(t.body->'store'->>'name',''),w.name),t.body->'store'->>'logo' FROM workspaces w LEFT JOIN checkout_theme_settings t ON t.workspace_id=w.id WHERE w.id=$1::uuid",n.Workspace).Scan(&seller,&themeLogo)!=nil {
 		return errors.New("invoice merchant unavailable")
 	}
+	logoURL:=""
+	if themeLogo!=nil && strings.HasPrefix(*themeLogo,"/api/checkout-logos/") {
+		sha:=strings.TrimPrefix(*themeLogo,"/api/checkout-logos/")
+		if len(sha)==64 && strings.Trim(sha,"0123456789abcdef")=="" {logoURL=origin+*themeLogo}
+	}
 	invoiceURL := origin+"/invoice/"+token
-	message := receiptnotice.Message{MerchantRequestedDocument: true, Workspace: n.Workspace, Environment: w.Realm, MessageID: n.ID, Subject: "Invoice / ইনভয়েস " + n.Reference, Text: "Invoice / ইনভয়েস: " + invoiceURL + "\nPayment is verified only by the server. / সার্ভার যাচাই ছাড়া পরিশোধ নিশ্চিত নয়।", HTML: renderInvoiceEmail(seller,n.Reference,string(email),invoiceURL,origin+"/pay/"+token,invoice), Recipient: receiptnotice.Recipient{Workspace: n.Workspace, Environment: w.Realm, Email: string(email), ConsentedAt: n.Created}}
+	message := receiptnotice.Message{MerchantRequestedDocument: true, Workspace: n.Workspace, Environment: w.Realm, MessageID: n.ID, Subject: "Invoice / ইনভয়েস " + n.Reference, Text: "Invoice / ইনভয়েস: " + invoiceURL + "\nPayment is verified only by the server. / সার্ভার যাচাই ছাড়া পরিশোধ নিশ্চিত নয়।", HTML: renderInvoiceEmail(seller,n.Reference,string(email),invoiceURL,origin+"/pay/"+token,invoice,logoURL), Recipient: receiptnotice.Recipient{Workspace: n.Workspace, Environment: w.Realm, Email: string(email), ConsentedAt: n.Created}}
 	e = receiptnotice.SendSMTP(ctx, *w.SMTP, message)
 	if errors.Is(e, receiptnotice.ErrOutcomeUnknown) {
 		return finish("unknown")
@@ -213,7 +219,7 @@ func invoiceEmailMoney(n int64) string {
 	if n < 0 {sign="-";n=-n}
 	return fmt.Sprintf("%sBDT %d.%02d",sign,n/100,n%100)
 }
-func renderInvoiceEmail(seller, reference, to, invoiceURL, payURL string, d invoiceEmailData) string {
+func renderInvoiceEmail(seller, reference, to, invoiceURL, payURL string, d invoiceEmailData, logoURL string) string {
 	e:=html.EscapeString
 	var rows strings.Builder
 	subtotal:=int64(0)
@@ -228,5 +234,7 @@ func renderInvoiceEmail(seller, reference, to, invoiceURL, payURL string, d invo
 	if d.DueMinor>0 {
 		button="<a href=\""+e(payURL)+"\" style=\"display:inline-block;background:#161922;color:white;text-decoration:none;padding:13px 22px;border-radius:8px;font-weight:600\">Pay invoice / পরিশোধ করুন</a>"
 	}
-	return "<!doctype html><html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body style=\"margin:0;padding:24px 12px;background:#f5f6f8;color:#191d25;font-family:Arial,sans-serif\"><div style=\"max-width:620px;margin:auto;background:white;border:1px solid #e7e8ed;border-radius:12px;padding:24px\"><header style=\"border-bottom:1px solid #ddd;padding-bottom:18px\"><b style=\"font-size:21px\">"+e(seller)+"</b><h1 style=\"font-size:17px\">Invoice "+e(reference)+"</h1></header><p>To / প্রাপক: "+e(to)+"</p><p>Due / শেষ তারিখ: "+e(due)+"</p><table style=\"width:100%;border-collapse:collapse\"><thead><tr><th style=\"text-align:left;padding:12px\">Item</th><th style=\"text-align:right;padding:12px\">Qty</th><th style=\"text-align:right;padding:12px\">Amount</th></tr></thead><tbody>"+rows.String()+"</tbody></table><div style=\"padding:16px;text-align:right\"><p>Subtotal: "+e(invoiceEmailMoney(subtotal))+"</p><p>Invoice fee: "+e(invoiceEmailMoney(d.Body.FeeMinor))+"</p><p>Tax: "+e(invoiceEmailMoney(d.Body.TaxMinor))+" &nbsp; Shipping: "+e(invoiceEmailMoney(d.Body.ShippingMinor))+" &nbsp; Discount: "+e(invoiceEmailMoney(d.Body.DiscountMinor))+"</p><strong>Total: "+e(invoiceEmailMoney(d.AmountMinor))+"</strong></div>"+button+"<p><a href=\""+e(invoiceURL)+"\">View invoice / ইনভয়েস দেখুন</a></p><p style=\"font-size:12px;color:#747987\">Payment status is determined only by server verification.</p></div></body></html>"
+	logoMarkup:=""
+	if logoURL!="" {logoMarkup="<img src=\""+e(logoURL)+"\" width=\"48\" height=\"48\" alt=\"\" style=\"display:block;object-fit:contain;margin-bottom:10px\">"}
+	return "<!doctype html><html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body style=\"margin:0;padding:24px 12px;background:#f5f6f8;color:#191d25;font-family:Arial,sans-serif\"><div style=\"max-width:620px;margin:auto;background:white;border:1px solid #e7e8ed;border-radius:12px;padding:24px\"><header style=\"border-bottom:1px solid #ddd;padding-bottom:18px\">"+logoMarkup+"<b style=\"font-size:21px\">"+e(seller)+"</b><h1 style=\"font-size:17px\">Invoice "+e(reference)+"</h1></header><p>To / প্রাপক: "+e(to)+"</p><p>Due / শেষ তারিখ: "+e(due)+"</p><table style=\"width:100%;border-collapse:collapse\"><thead><tr><th style=\"text-align:left;padding:12px\">Item</th><th style=\"text-align:right;padding:12px\">Qty</th><th style=\"text-align:right;padding:12px\">Amount</th></tr></thead><tbody>"+rows.String()+"</tbody></table><div style=\"padding:16px;text-align:right\"><p>Subtotal: "+e(invoiceEmailMoney(subtotal))+"</p><p>Invoice fee: "+e(invoiceEmailMoney(d.Body.FeeMinor))+"</p><p>Tax: "+e(invoiceEmailMoney(d.Body.TaxMinor))+" &nbsp; Shipping: "+e(invoiceEmailMoney(d.Body.ShippingMinor))+" &nbsp; Discount: "+e(invoiceEmailMoney(d.Body.DiscountMinor))+"</p><strong>Total: "+e(invoiceEmailMoney(d.AmountMinor))+"</strong></div>"+button+"<p><a href=\""+e(invoiceURL)+"\">View invoice / ইনভয়েস দেখুন</a></p><p style=\"font-size:12px;color:#747987\">Payment status is determined only by server verification.</p></div></body></html>"
 }
