@@ -57,14 +57,10 @@ private fun lastSync(ts:Long?,bn:Boolean,never:String):String {
  }
 }
 @Composable
-private fun SettingsHeading(title:String){
+private fun SettingsHeading(title:String) {
  val p=LocalEkmivoPalette.current
- Row(Modifier.fillMaxWidth().padding(start=16.dp,end=16.dp,top=16.dp,bottom=12.dp),
-  verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)){
-  Box(Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(p.text),
-   contentAlignment=Alignment.Center){Text("e.",style=EkmivoType.shop.copy(fontSize=16.sp),color=p.onPrimary)}
-  Text(title,style=EkmivoType.settingsTitle,color=p.text)
- }
+ Text(title,style=EkmivoType.settingsTitle,color=p.text,
+  modifier=Modifier.fillMaxWidth().padding(start=16.dp,end=16.dp,top=18.dp,bottom=14.dp))
 }
 @Composable
 private fun SettingsGroup(title:String?=null,top:Int=6,body:@Composable ColumnScope.()->Unit){
@@ -208,7 +204,7 @@ fun EkmivoSettingsScreen(
         runCatching{ReceiptStore(app).use{it.disconnect()}}.getOrDefault(false)
        }
        busy=false;confirm=false
-       if(ok){ReceiptForwardingService.stop(app);onDisconnected()}
+       if(ok){ReceiptForwardingService.stop(app);com.ekmivo.mobile.inbox.InboxPushTokenRegistry.clear(app);onDisconnected()}
        else warning=w(R.string.settings_blocked)
       }
      },contentAlignment=Alignment.Center){

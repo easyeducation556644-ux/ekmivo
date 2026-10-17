@@ -193,3 +193,20 @@ following docs/design/ekmivo-phase-prompts.md; no UI changes in Phase 1.
 - Debug APK (fork artifact #12108150268) size 43,259,703 bytes; sha256 `30d9afd1e9b2f1b78d7b93acd1cc682d6c670c41bba59def691fa32d31a252b6`.
 - The production web deployment and real Samsung service running with the screen off are **not verified**. System-permitted background work cannot be guaranteed by a persistent notification alone. Owner will verify actual app/web status changes and 360dp/412dp reference screenshot match.
 - Local app Disconnect only clears this handset when the encrypted pending queue is empty; merchant must also remove the entry on the dashboard. There is no signed handset self-revoke endpoint in the existing backend, and the app never claims remote revocation.
+
+## Phase 6 — hidden Inbox groundwork, shared header and screenshot QA (2026-10-17)
+- Source: Phase 6 section of `docs/design/ekmivo-phase-prompts.md`. No visible Inbox tab, no fake chats, no fake financial/SMS sender records.
+- User screenshot correction: Live and Settings now have **one shared top EkmivoBrandHeader** with identical EN/BN switcher. Removed Settings duplicate logo/header and retained its one page title. Live status badge is deliberately placed at the upper-right of the pulse ring (not random during recomposition); 136dp ring and 112dp core preserved; "Forwarded in history" wraps to two lines in English and Bangla.
+- Future Inbox types/interfaces in `apps/mobile/app/src/main/java/com/ekmivo/mobile/inbox`: thread/message/state model, repository interface, disabled repository/route and `inboxEnabled=false`; hidden `Tab.INBOX` branch cannot be selected from the two-tab nav. No new API or server behavior.
+- Firebase Messaging service + notification channel + phone-enrollment-scoped token callback/registry added. **Actual FCM is unavailable by design** until a Firebase project config, authenticated token registration endpoint, actual message API and owner approval to enable the flag are supplied. Never manufacture or send any token to an unknown endpoint.
+- Build and unit tests include Inbox feature flag/domain tests; screenshot instrumentation sources compile and capture **all five screens** at the emulator's actual dp dimensions in both themes and languages, but comparison is not automated.
+- QA checklist: `apps/mobile/PHASE6-QA.md`, including explicit **Samsung screen-off 30-minute** test, dashboard heartbeat, web disconnect, no visible Inbox, queue-safety, and 360dp/412dp EN/BN light/dark captures.
+- **Acceptance blocker:** No emulator screenshot captures nor side-by-side comparison against original HTML are available from this session. This phase cannot truthfully be called screenshot-perfect or fully visually accepted until someone runs the tests and compares. Real Samsung device test remains owner-run.
+- CI fork: only Android debug build + unit tests + androidTest compilation, plus targeted phase6 contracts. Do NOT promote fork-only workflow gates into masharzy/main.
+
+### Phase 6 tested source and remaining QA (2026-10-17)
+- EC Education fork: [CI run 39054599390](https://github.com/easyeducation556644-ux/ekmivo/actions/runs/39054599390) **SUCCESS**; Android `assembleDebug`, `testDebugUnitTest` and `assembleDebugAndroidTest` (instrumentation APK compilation), plus targeted Node header/hidden-Inbox checks, all passed.
+- Two earlier runs failed during dependency and duplicate-Settings-header checks; corrected before the successful run. Unrelated Go, Web and Docker jobs deliberately skipped on fork.
+- APK artifact ID 12108803647, `ekmivo-kotlin-debug`; extracted debug APK SHA-256: `41855fec704483d92f09c4694644b39445f8f41b9dcb840df23e1c2da8592d4c`.
+- **Not verified:** screenshots actually captured on 360dp/412dp emulators and compared side-by-side against approved HTML, real Samsung 30min screen-off test, actual FCM registration or chat delivery (intentionally disabled), and backend push schema.
+- Main repository CI settings preserved unchanged; no backend/web code modified in this phase.
