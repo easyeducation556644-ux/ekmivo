@@ -9,8 +9,26 @@ type VerifiedReceipt={payment_id:string;amount_minor:number;verified_at:string;m
 type Invoice={kind:string;reference:string;status?:string;issued_at?:string;bill_to_name?:string;merchant_name?:string;brand?:{logo_url?:string;title?:string;checkout_theme?:string};amount_minor:number;paid_minor:number;due_minor?:number;verified_receipts?:VerifiedReceipt[];environment?:string;created_at?:string;body?:{items?:Item[];due_at?:string;issued_at?:string;name?:string;email?:string;description?:string;notes?:string;tax_minor?:number;fee_minor?:number;shipping_minor?:number;discount_minor?:number}};
 export function HostedInvoice({locale,token}:{locale:"en"|"bn";token:string}){
  const bn=locale==="bn",t=(en:string,be:string)=>bn?be:en;
- const [doc,setDoc]=useState<Invoice|null>(null),[pending,setPending]=useState(true),[error,setError]=useState("");
- useEffect(()=>{const abort=new AbortController();setPending(true);fetch("/api/documents/"+token,{cache:"no-store",signal:abort.signal}).then(async r=>{if(!r.ok)throw Error("UNAVAILABLE");return r.json()}).then(d=>{if(!abort.signal.aborted){if(d?.kind!=="invoices")throw Error("INVALID_KIND");setDoc(d)}}).catch(()=>{if(!abort.signal.aborted)setError(t("Invoice unavailable or no longer payable.","ইনভয়েস পাওয়া যাচ্ছে না বা আর পরিশোধযোগ্য নয়।"))}).finally(()=>{if(!abort.signal.aborted)setPending(false)});return()=>abort.abort()},[token,locale]);
+ // Associate the async response with its request; a new token is immediately loading.
+ const [result,setResult]=useState<{token:string;locale:"en"|"bn";doc:Invoice|null;error:string}|null>(null);
+ const matched=result?.token===token&&result?.locale===locale;
+ const doc=matched?result?.doc??null:null;
+ const error=matched?result?.error??"":"";
+ const pending=!matched;
+ const [now,setNow]=useState<number|null>(null);
+ useEffect(()=>{
+  const tick=window.setTimeout(()=>setNow(Date.now()),0);
+  const interval=window.setInterval(()=>setNow(Date.now()),60_000);
+  return()=>{window.clearTimeout(tick);window.clearInterval(interval)};
+ },[]);
+ useEffect(()=>{
+  const abort=new AbortController();
+  fetch("/api/documents/"+token,{cache:"no-store",signal:abort.signal})
+   .then(async r=>{if(!r.ok)throw Error("UNAVAILABLE");return r.json()})
+   .then(d=>{if(!abort.signal.aborted){if(d?.kind!=="invoices")throw Error("INVALID_KIND");setResult({token,locale,doc:d,error:""})}})
+   .catch(()=>{if(!abort.signal.aborted)setResult({token,locale,doc:null,error:bn?"ইনভয়েস পাওয়া যাচ্ছে না বা আর পরিশোধযোগ্য নয়।":"Invoice unavailable or no longer payable."})});
+  return()=>abort.abort();
+ },[token,locale,bn]);
  useEffect(()=>{
   if(!doc||new URLSearchParams(window.location.search).get("print")!=="1")return;
   let canceled=false,printed=false;
@@ -24,7 +42,7 @@ export function HostedInvoice({locale,token}:{locale:"en"|"bn";token:string}){
  const fmt=(raw?:string)=>{if(!raw)return "—";const d=new Date(raw);return Number.isFinite(d.getTime())?new Intl.DateTimeFormat(bn?"bn-BD":"en-GB",{dateStyle:"medium",timeZone:"Asia/Dhaka"}).format(d):"—"};
  const rows=doc?.body?.items??[];const subtotal=rows.reduce((sum,item)=>sum+item.quantity*item.unit_amount_minor,0);
  const total=doc?.amount_minor??0,paid=doc?.paid_minor??0;
- const draft=doc?.status==="draft";const cancelled=doc?.status==="cancelled";const fullyPaid=Boolean(doc)&&total>0&&paid>=total;const overdue=Boolean(doc?.body?.due_at)&&new Date(doc!.body!.due_at!).getTime()<Date.now();
+ const draft=doc?.status==="draft";const cancelled=doc?.status==="cancelled";const fullyPaid=Boolean(doc)&&total>0&&paid>=total;const overdue=Boolean(doc?.body?.due_at)&&now!==null&&new Date(doc!.body!.due_at!).getTime()<now;
  const status=draft?t("Draft","খসড়া"):cancelled?t("Void","বাতিল"):fullyPaid?t("Paid","পরিশোধিত"):overdue?t("Overdue","মেয়াদ পেরিয়েছে"):t("Due","বাকি");
  const theme=parseCheckoutTheme(doc?.brand?.checkout_theme);const logo=theme?.store.logo||doc?.brand?.logo_url;const safeLogo=logo&&(logo.startsWith("/")&&!logo.startsWith("//")||/^https:\/\/[^\s@]+$/i.test(logo)||/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/i.test(logo))?logo:undefined;
  return <main className="ek-invoice-host" lang={locale}>
