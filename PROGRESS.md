@@ -142,3 +142,6 @@ following docs/design/ekmivo-phase-prompts.md; no UI changes in Phase 1.
 - First fork Android run 39042607345: `assembleDebug` + `testDebugUnitTest` **PASSED**; unrelated Go/Web/Docker skipped.
 - Final refinements: language switch also on the wizard, revoke/permissions change stop running forwarding FGS, on Android 15 `Service.onTimeout` stops the dataSync service and requeues background work instead of promising limitless FGS runtime.
 - Owner will verify the real on-device flow and appearance; real live payment SMS and API delivery are excluded by request from the code-completion gate.
+
+### Delayed forwarding detection
+- A pending encrypted receipt older than 10 minutes triggers Setup Health warning even without a transport error, based on the existing SQLite pending table's creation timestamp. No SMS plaintext is read; the existing WorkManager transport and outbox are untouched.

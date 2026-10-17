@@ -67,7 +67,10 @@ class SetupHealth(private val context: Context) {
   // A checkmark cannot prove a vendor-specific battery setting has changed.
   val oem = if(samsung) HealthLevel.UNKNOWN else HealthLevel.OK
   val backlogWarning = runCatching {
-   ReceiptStore(app).use { it.count() > 0 && it.queueError().isNotBlank() }
+   ReceiptStore(app).use {
+    it.count() > 0 && (it.queueError().isNotBlank() ||
+     (it.oldestPendingAgeMs() ?: 0L) >= 10L*60L*1000L)
+   }
   }.getOrDefault(false)
   return SetupHealthSnapshot(sms, notifications, battery, oem, samsung, acknowledged, backlogWarning)
  }
