@@ -4,7 +4,7 @@ import {useDashboardInitialData} from "./dashboard-initial-data";
 import {useCallback,useEffect,useMemo,useRef,useState} from "react";
 import type {FormEvent} from "react";
 import Link from "next/link";
-import {DashboardIcon} from "./dashboard-icon";
+import {FinancialIcon as DashboardIcon} from "./financial-icon";
 import {PaymentReportLedger} from "./payment-report-ledger";
 import "./ek-financial-pages.css";
 
