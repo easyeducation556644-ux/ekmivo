@@ -2,6 +2,7 @@
 import {useDashboardInitialData} from "./dashboard-initial-data";
 import Link from "next/link";
 import {PaymentRequestDetail} from "./payment-request-detail";
+import {RefModal,RefIcon} from "./reference-ui";
 import {merchantStatusLabel} from "../lib/dashboard-status-labels";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {registerDraft} from "../lib/client/draft-navigation";
@@ -65,7 +66,7 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
  useEffect(()=>{const url=new URL(window.location.href);if(url.searchParams.get("create")!=="1")return;const timer=setTimeout(()=>{url.searchParams.delete("create");window.history.replaceState(window.history.state,"",url.pathname+url.search+url.hash);setExpanded(true)},0);return()=>clearTimeout(timer)},[]);
  const [sourceOpen,setSourceOpen]=useState(false);
  const [visibleLimit,setVisibleLimit]=useState(20);
- const createDialog=useRef<HTMLDialogElement|null>(null),sourceDialog=useRef<HTMLDialogElement|null>(null),detailDialog=useRef<HTMLDialogElement|null>(null);
+ const createDialog=useRef<HTMLDialogElement|null>(null),sourceDialog=useRef<HTMLDialogElement|null>(null);
  const [search,setSearch]=useState("");
  const [statusFilter,setStatusFilter]=useState("all");
  const [submitting,setSubmitting]=useState(false);
@@ -79,7 +80,7 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
  useEffect(()=>{sourceRef.current={draft:sourceDraft,lines:extraLines,base:sourceBase}},[sourceDraft,extraLines,sourceBase]);
  useEffect(()=>{const dialog=createDialog.current;if(!dialog)return;if(expanded&&!dialog.open)dialog.showModal();else if(!expanded&&dialog.open)dialog.close()},[expanded]);
  useEffect(()=>{const dialog=sourceDialog.current;if(!dialog)return;if(sourceOpen&&!dialog.open)dialog.showModal();else if(!sourceOpen&&dialog.open)dialog.close()},[sourceOpen]);
- useEffect(()=>{const dialog=detailDialog.current;if(!dialog)return;if(selected&&!dialog.open)dialog.showModal();else if(!selected&&dialog.open)dialog.close()},[selected]);
+
  useEffect(()=>{if(!notice&&!copied)return;const timer=setTimeout(()=>{setNotice("");setCopied("")},2400);return()=>clearTimeout(timer)},[notice,copied]);
  const draftKey="ekmivo:pg05-request:v1:"+userId+":"+workspaceId+":"+environment;
  const api="/api/go/workspaces/"+workspaceId+"/payment-intents?environment="+environment;
@@ -267,9 +268,9 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
    &&(item.merchant_reference||"").toLowerCase().includes(search.trim().toLowerCase()));
  return <section className="pg05-merchant ekv3-requests">
   <header className="ekv3-page-header"><div><h1>{bn?"পেমেন্ট লিংক":"Payment links"}</h1><p>{bn?"একবারের পেমেন্ট অনুরোধ তৈরি ও পরিচালনা করুন।":"Create and manage one-time payments."}</p></div><div className="ekv3-head-actions"><button type="button" className="ekv3-icon-button" disabled={load==="loading"} aria-label={bn?"রিফ্রেশ":"Refresh"} title={bn?"রিফ্রেশ":"Refresh"} onClick={()=>void refresh()}>↻</button>{canWrite&&<button type="button" className="ekv3-primary" onClick={()=>setExpanded(true)}>{bn?"নতুন রিকোয়েস্ট":"New request"}</button>}</div></header>
-  <div className="ekv3-requests-toolbar"><input type="search" aria-label={bn?"রেফারেন্স খুঁজুন":"Search reference"} placeholder={bn?"রেফারেন্স খুঁজুন":"Search reference"} value={search} onChange={event=>{setSearch(event.target.value);setVisibleLimit(20)}}/><select aria-label={bn?"অবস্থা":"Status"} value={statusFilter} onChange={event=>{setStatusFilter(event.target.value);setVisibleLimit(20)}}><option value="all">{bn?"সব":"All"}</option>{["completed","requires_payer","awaiting_payment","expired","cancelled"].map(key=><option value={key} key={key}>{statusLabel(key,bn)}</option>)}</select></div>
+  <div className="ref-dashboard"><div className="ref-page"><div className="tabs"><Link href={`/w/${workspaceId}/payments/payment-links`}>{bn?"পেমেন্ট লিংক":"Payment links"}</Link><button type="button" className="on" aria-current="page">{bn?"একবারের রিকোয়েস্ট":"One-time requests"}</button></div><div className="card ekv3-request-card"><div className="ekv3-requests-toolbar toolbar"><input type="search" aria-label={bn?"রেফারেন্স খুঁজুন":"Search reference"} placeholder={bn?"রেফারেন্স খুঁজুন":"Search reference"} value={search} onChange={event=>{setSearch(event.target.value);setVisibleLimit(20)}}/><select aria-label={bn?"অবস্থা":"Status"} value={statusFilter} onChange={event=>{setStatusFilter(event.target.value);setVisibleLimit(20)}}><option value="all">{bn?"সব":"All"}</option>{["completed","requires_payer","awaiting_payment","expired","cancelled"].map(key=><option value={key} key={key}>{statusLabel(key,bn)}</option>)}</select></div>
   {error&&<div className="ekv3-page-error" role="alert">{error}<button type="button" onClick={()=>void refresh()}>{bn?"আবার চেষ্টা করুন":"Try again"}</button></div>}
-  <div className="ekv3-table-scroller" role="region" tabIndex={0} aria-label={bn?"একবারের রিকোয়েস্ট":"One-time requests"}><table className="ekv3-table"><thead><tr><th>{bn?"রেফারেন্স":"Reference"}</th><th className="ekv3-numeric">{bn?"পরিমাণ":"Amount"}</th><th>{bn?"অবস্থা":"Status"}</th><th>{bn?"মেয়াদ":"Expires"}</th><th><span className="sr-only">{bn?"অ্যাকশন":"Actions"}</span></th></tr></thead>
+  <div className="ekv3-table-scroller tw" role="region" tabIndex={0} aria-label={bn?"একবারের রিকোয়েস্ট":"One-time requests"}><table className="ekv3-table"><thead><tr><th>{bn?"রেফারেন্স":"Reference"}</th><th className="ekv3-numeric">{bn?"পরিমাণ":"Amount"}</th><th>{bn?"অবস্থা":"Status"}</th><th>{bn?"মেয়াদ":"Expires"}</th><th><span className="sr-only">{bn?"অ্যাকশন":"Actions"}</span></th></tr></thead>
    <tbody>{load==="loading"&&!data.length?[0,1,2].map(n=><tr className="ekv3-loading-row" key={n}><td colSpan={5}><div className="ekv3-skeleton-row"><i/><span/><b/></div></td></tr>):visible.slice(0,visibleLimit).map(item=>{const checkout="/"+locale+"/checkout/"+item.checkout_token;return <tr key={item.id} className="ekv3-clickable" tabIndex={0} onClick={()=>selectDetail(item.id)} onKeyDown={event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();selectDetail(item.id)}}}>
     <td><strong title={item.merchant_reference}>{item.merchant_reference.length>28?item.merchant_reference.slice(0,24)+"…":item.merchant_reference}</strong></td>
     <td className="ekv3-numeric">{number(item.amount_minor,locale)}</td>
@@ -280,6 +281,7 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
    {load!=="loading"&&visible.length===0&&<p className="ekv3-empty">{bn?"কোনো রিকোয়েস্ট পাওয়া যায়নি।":"No requests found."}</p>}
   </div>
   {visible.length>visibleLimit&&<div className="ekv3-load-more"><button type="button" onClick={()=>setVisibleLimit(v=>v+20)}>{bn?"আরও দেখুন":"Load more"}</button></div>}
+  </div></div></div>
   <dialog ref={createDialog} className="ekv3-request-modal" aria-labelledby="ekv3-request-title" onCancel={()=>setExpanded(false)} onClose={()=>setExpanded(false)} onClick={e=>{if(e.target===e.currentTarget)setExpanded(false)}}>
    <div className="ekv3-modal-heading"><h2 id="ekv3-request-title">{bn?"নতুন রিকোয়েস্ট":"New request"}</h2><button type="button" aria-label={bn?"বন্ধ":"Close"} onClick={()=>setExpanded(false)}>×</button></div>
    <form onSubmit={create} className="pg05-form"><fieldset disabled={submitting||!canWrite}>
@@ -354,7 +356,7 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
     
    <div className="ekv3-modal-footer"><button type="button" onClick={()=>setSourceOpen(false)}>{bn?"বাতিল":"Cancel"}</button></div></fieldset></form>
   </dialog>
-  <dialog ref={detailDialog} className="ekv3-drawer" aria-label={bn?"রিকোয়েস্টের বিস্তারিত":"Request details"} onCancel={()=>selectDetail("")} onClose={()=>selectDetail("")} onClick={e=>{if(e.target===e.currentTarget)selectDetail("")}}>{selected&&<div className="ekv3-drawer-content"><PaymentRequestDetail key={selected} id={selected} workspaceId={workspaceId} environment={environment} locale={locale} onClose={()=>selectDetail("")}/></div>}</dialog>
+  <RefModal open={Boolean(selected)} drawer title={bn?"রিকোয়েস্টের বিস্তারিত":"Request details"} onClose={()=>selectDetail("")} footer={<button className="ib" onClick={()=>selectDetail("")}>{bn?"বন্ধ করুন":"Close"}</button>}>{selected&&<PaymentRequestDetail key={selected} id={selected} workspaceId={workspaceId} environment={environment} locale={locale} onClose={()=>selectDetail("")}/>}</RefModal>
   {(notice||copied)&&<div role="status" className="ekv3-toast">{notice||(bn?"লিংক কপি হয়েছে":"Link copied")}</div>}
  </section>;
 }
