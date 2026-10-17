@@ -13,9 +13,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  short_code_contract:
+    name: Targeted 8-character phone code contracts
+    if: ${{ github.event_name == 'pull_request' && github.head_ref == 'ci/android-phase2-polish-20261017' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+      - name: Validate short crypto-random code generator
+        working-directory: backend
+        run: go test ./internal/checkout -run TestPhysicalPairingCodeShape -count=1
+      - name: QR, copy UI and existing expiry assertions
+        run: node --test tools/testing/phone-pairing-short-code.test.mjs
+
   web:
     # Phase 2 validation uses only the Android gate; these jobs passed previously.
-    if: ${{ github.event_name != 'pull_request' || github.head_ref != 'ci/android-phase2-20261017' }}
+    if: ${{ github.event_name != 'pull_request' || github.head_ref != 'ci/android-phase2-polish-20261017' }}
     name: Next.js lint, build and isolated PostgreSQL smoke
     runs-on: ubuntu-latest
     services:
@@ -141,7 +158,7 @@ jobs:
 
   backend:
     # Phase 2 validation uses only the Android gate; these jobs passed previously.
-    if: ${{ github.event_name != 'pull_request' || github.head_ref != 'ci/android-phase2-20261017' }}
+    if: ${{ github.event_name != 'pull_request' || github.head_ref != 'ci/android-phase2-polish-20261017' }}
     name: Go compile and unit tests
     runs-on: ubuntu-latest
     steps:
@@ -190,7 +207,7 @@ jobs:
 
   financial_containers:
     # Phase 2 validation uses only the Android gate; these jobs passed previously.
-    if: ${{ github.event_name != 'pull_request' || github.head_ref != 'ci/android-phase2-20261017' }}
+    if: ${{ github.event_name != 'pull_request' || github.head_ref != 'ci/android-phase2-polish-20261017' }}
     name: PG04 runtime and migration Docker builds
     runs-on: ubuntu-latest
     steps:

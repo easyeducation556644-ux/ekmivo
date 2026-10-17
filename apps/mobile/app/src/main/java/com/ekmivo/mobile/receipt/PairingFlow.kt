@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -85,6 +86,7 @@ private fun pairFailure(status: Int, body: String): Int {
 fun PairingFlow(
  bn: Boolean,
  incomingLink: String?,
+ onLanguageChange: (Boolean) -> Unit,
  onPaired: () -> Unit
 ) {
  val context = LocalContext.current
@@ -132,7 +134,9 @@ fun PairingFlow(
  ) {
   PairingHeader(
    title = if (genericHeader) copy.get(R.string.pair_header) else "Ekmivo",
-   subtitle = if (genericHeader) headerSubtitle else null
+   subtitle = if (genericHeader) headerSubtitle else null,
+   bn = bn,
+   onLanguageChange = onLanguageChange
   )
   when (page) {
    PairPage.WELCOME -> {
@@ -294,30 +298,30 @@ fun PairingFlow(
      PairTitle(copy.get(R.string.pair_code_title))
      Spacer(Modifier.height(8.dp))
      PairBody(copy.get(R.string.pair_code_body))
-     PairTokenEntry(value = input, onValueChange = { input = it; errorId = 0 })
+     PairTokenEntry(
+      value = input,
+      onValueChange = { entered ->
+       input = entered
+       errorId = 0
+       if (entered.length == PairingToken.LENGTH) {
+        token = entered
+        page = PairPage.CONFIRM  // Validate only; claim waits for explicit consent.
+       }
+      }
+     )
      PairLink(copy.get(R.string.pair_paste)) {
       // Clipboard is touched ONLY after this explicit user action.
       val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
       val pasted = clipboard.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString().orEmpty()
       val parsed = PairingToken.parse(pasted)
       if (parsed == null) errorId = R.string.pair_empty_clipboard
-      else { input = parsed; errorId = 0 }
-     }
-    }
-    PairingBottom(
-     copy.get(R.string.pair_code_verify),
-     {
-      val parsed = PairingToken.parse(input)
-      if (parsed == null) errorId = R.string.pair_error_format
       else {
-       token = parsed
-       errorId = 0
+       input = parsed; token = parsed; errorId = 0
        page = PairPage.CONFIRM
       }
-     },
-     copy.get(R.string.pair_scan),
-     { enterScanner() }
-    )
+     }
+    }
+    PairingBottom(null, null, copy.get(R.string.pair_scan), { enterScanner() })
    }
   }
   if (errorId != 0) {
@@ -331,7 +335,7 @@ fun PairingFlow(
 }
 
 @Composable
-private fun PairingHeader(title: String, subtitle: String?) {
+private fun PairingHeader(title: String, subtitle: String?, bn: Boolean, onLanguageChange: (Boolean) -> Unit) {
  val p = LocalEkmivoPalette.current
  Row(
   Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
@@ -348,6 +352,8 @@ private fun PairingHeader(title: String, subtitle: String?) {
    Text(title, style = EkmivoType.shop, color = p.text)
    if (subtitle != null) Text(subtitle, style = EkmivoType.meta, color = p.secondary)
   }
+  Spacer(Modifier.weight(1f))
+  EkmivoLanguageSwitch(bn=bn,onChange=onLanguageChange)
  }
 }
 
@@ -457,39 +463,49 @@ private fun PairActionPill(text: String, selected: Boolean, onClick: () -> Unit)
  }
 }
 
+/** One invisible native text editor drives all eight visible, single-character cells. */
 @Composable
 private fun PairTokenEntry(value: String, onValueChange: (String) -> Unit) {
  val p = LocalEkmivoPalette.current
- val groups = value.chunked(6)
+ val focus = remember { FocusRequester() }
+ val keyboard = LocalSoftwareKeyboardController.current
+ val interactions = remember { MutableInteractionSource() }
+ LaunchedEffect(Unit) { focus.requestFocus(); keyboard?.show() }
  BasicTextField(
   value = value,
-  onValueChange = { changed ->
-   onValueChange(changed.filter { it.isLetterOrDigit() || it == '_' || it == '-' }.take(PairingToken.LENGTH))
+  onValueChange = { raw ->
+   // IME typing and multi-character clipboard insertion share one path.
+   val normalized = PairingToken.normalize(raw)
+   onValueChange(normalized)
   },
   singleLine = true,
   keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
   textStyle = TextStyle(fontSize = 1.sp, color = Color.Transparent),
   cursorBrush = SolidColor(Color.Transparent),
-  modifier = Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 6.dp),
+  modifier = Modifier.fillMaxWidth()
+   .focusRequester(focus)
+   .padding(top = 20.dp, bottom = 6.dp),
   decorationBox = { field ->
    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
     Row(
+     modifier = Modifier.clickable(
+      interactionSource = interactions, indication = null
+     ) { focus.requestFocus(); keyboard?.show() },
      horizontalArrangement = Arrangement.spacedBy(6.dp),
      verticalAlignment = Alignment.CenterVertically
     ) {
-     for (i in 0..7) {
-      if (i == 4) Text("–", color = p.secondary, style = EkmivoType.heroNote)
-      val chars = groups.getOrNull(i).orEmpty()
+     repeat(PairingToken.LENGTH) { position ->
+      if (position == 4) Text("–", color = p.secondary, style = EkmivoType.heroNote)
       Box(
        Modifier.size(width = 26.dp, height = 38.dp)
         .clip(RoundedCornerShape(8.dp))
         .background(p.surface)
-        .border(1.dp, if (i == value.length / 6 && value.length < 43) p.text else p.border,
+        .border(1.dp, if (position == value.length && value.length < PairingToken.LENGTH) p.text else p.border,
          RoundedCornerShape(8.dp)),
        contentAlignment = Alignment.Center
       ) {
-       Text(chars, color = p.text, fontSize = if (chars.length > 1) 7.sp else 15.sp,
-        maxLines = 1)
+       Text(value.getOrNull(position)?.toString().orEmpty(),
+        color = p.text, fontSize = 15.sp, maxLines = 1)
       }
      }
     }
