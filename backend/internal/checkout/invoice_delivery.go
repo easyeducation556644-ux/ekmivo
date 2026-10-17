@@ -169,6 +169,7 @@ func (w *InvoiceNoticeWorker) Work(ctx context.Context, job *river.Job[InvoiceNo
 	if json.Unmarshal(publicRaw,&invoice)!=nil || invoice.Kind!="invoices" {
 		return errors.New("invoice email data unavailable")
 	}
+	if invoice.Status=="cancelled" {return finish("cancelled")}
 	var seller string
 	if w.Control.QueryRow(ctx,"SELECT name FROM workspaces WHERE id=$1::uuid",n.Workspace).Scan(&seller)!=nil {
 		return errors.New("invoice merchant unavailable")
@@ -188,6 +189,9 @@ func (w *InvoiceNoticeWorker) Work(ctx context.Context, job *river.Job[InvoiceNo
 
 type invoiceEmailData struct {
 	Kind string `json:"kind"`
+	Status string `json:"status"`
+	IssuedAt string `json:"issued_at"`
+	BillToName string `json:"bill_to_name"`
 	AmountMinor int64 `json:"amount_minor"`
 	PaidMinor int64 `json:"paid_minor"`
 	DueMinor int64 `json:"due_minor"`
