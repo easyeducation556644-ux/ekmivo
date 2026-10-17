@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"html"
+	"strings"
 	"errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -155,7 +158,23 @@ func (w *InvoiceNoticeWorker) Work(ctx context.Context, job *river.Job[InvoiceNo
 	}
 	s := &Service{TokenKey: w.TokenKey}
 	token := s.token(n.Workspace, w.Realm, "document:invoices:"+n.Key)
-	message := receiptnotice.Message{MerchantRequestedDocument: true, Workspace: n.Workspace, Environment: w.Realm, MessageID: n.ID, Subject: "Invoice / ইনভয়েস " + n.Reference, Text: "Invoice / ইনভয়েস: " + origin + "/bn/invoice/" + token + "\nPayment is verified only by the server. / সার্ভার যাচাই ছাড়া পরিশোধ নিশ্চিত নয়।", Recipient: receiptnotice.Recipient{Workspace: n.Workspace, Environment: w.Realm, Email: string(email), ConsentedAt: n.Created}}
+	var publicRaw []byte
+	if err := w.Pool.QueryRow(ctx, "SELECT pg10_public($1)", digest(token)).Scan(&publicRaw); err != nil {
+		return errors.New("invoice document unavailable")
+	}
+	if len(publicRaw)==0 || string(publicRaw)=="null" {
+		return finish("cancelled")
+	}
+	var invoice invoiceEmailData
+	if json.Unmarshal(publicRaw,&invoice)!=nil || invoice.Kind!="invoices" {
+		return errors.New("invoice email data unavailable")
+	}
+	var seller string
+	if w.Control.QueryRow(ctx,"SELECT name FROM workspaces WHERE id=$1::uuid",n.Workspace).Scan(&seller)!=nil {
+		return errors.New("invoice merchant unavailable")
+	}
+	invoiceURL := origin+"/bn/invoice/"+token
+	message := receiptnotice.Message{MerchantRequestedDocument: true, Workspace: n.Workspace, Environment: w.Realm, MessageID: n.ID, Subject: "Invoice / ইনভয়েস " + n.Reference, Text: "Invoice / ইনভয়েস: " + invoiceURL + "\nPayment is verified only by the server. / সার্ভার যাচাই ছাড়া পরিশোধ নিশ্চিত নয়।", HTML: renderInvoiceEmail(seller,n.Reference,string(email),invoiceURL,origin+"/bn/pay/"+token,invoice), Recipient: receiptnotice.Recipient{Workspace: n.Workspace, Environment: w.Realm, Email: string(email), ConsentedAt: n.Created}}
 	e = receiptnotice.SendSMTP(ctx, *w.SMTP, message)
 	if errors.Is(e, receiptnotice.ErrOutcomeUnknown) {
 		return finish("unknown")
@@ -164,4 +183,46 @@ func (w *InvoiceNoticeWorker) Work(ctx context.Context, job *river.Job[InvoiceNo
 		return finish("failed")
 	}
 	return finish("accepted")
+}
+
+
+type invoiceEmailData struct {
+	Kind string `json:"kind"`
+	AmountMinor int64 `json:"amount_minor"`
+	PaidMinor int64 `json:"paid_minor"`
+	DueMinor int64 `json:"due_minor"`
+	Body struct {
+		DueAt string `json:"due_at"`
+		Items []struct {
+			Title string `json:"title"`
+			Quantity int64 `json:"quantity"`
+			UnitMinor int64 `json:"unit_amount_minor"`
+		} `json:"items"`
+		TaxMinor int64 `json:"tax_minor"`
+		FeeMinor int64 `json:"fee_minor"`
+		ShippingMinor int64 `json:"shipping_minor"`
+		DiscountMinor int64 `json:"discount_minor"`
+	} `json:"body"`
+}
+func invoiceEmailMoney(n int64) string {
+	sign := ""
+	if n < 0 {sign="-";n=-n}
+	return fmt.Sprintf("%sBDT %d.%02d",sign,n/100,n%100)
+}
+func renderInvoiceEmail(seller, reference, to, invoiceURL, payURL string, d invoiceEmailData) string {
+	e:=html.EscapeString
+	var rows strings.Builder
+	subtotal:=int64(0)
+	for _,item:=range d.Body.Items {
+		value:=item.Quantity*item.UnitMinor
+		subtotal+=value
+		rows.WriteString("<tr><td style=\"padding:12px;border-bottom:1px solid #eee\">"+e(item.Title)+"</td><td style=\"padding:12px;text-align:right;border-bottom:1px solid #eee\">"+fmt.Sprint(item.Quantity)+"</td><td style=\"padding:12px;text-align:right;border-bottom:1px solid #eee\">"+e(invoiceEmailMoney(value))+"</td></tr>")
+	}
+	due:="—"
+	if ts,err:=time.Parse(time.RFC3339,d.Body.DueAt);err==nil {due=ts.In(time.FixedZone("BDT",6*3600)).Format("02 Jan 2006")}
+	button:="<p style=\"color:#167744;font-weight:600\">Payment verified / পেমেন্ট যাচাইকৃত</p>"
+	if d.DueMinor>0 {
+		button="<a href=\""+e(payURL)+"\" style=\"display:inline-block;background:#161922;color:white;text-decoration:none;padding:13px 22px;border-radius:8px;font-weight:600\">Pay invoice / পরিশোধ করুন</a>"
+	}
+	return "<!doctype html><html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body style=\"margin:0;padding:24px 12px;background:#f5f6f8;color:#191d25;font-family:Arial,sans-serif\"><div style=\"max-width:620px;margin:auto;background:white;border:1px solid #e7e8ed;border-radius:12px;padding:24px\"><header style=\"border-bottom:1px solid #ddd;padding-bottom:18px\"><b style=\"font-size:21px\">"+e(seller)+"</b><h1 style=\"font-size:17px\">Invoice "+e(reference)+"</h1></header><p>To / প্রাপক: "+e(to)+"</p><p>Due / শেষ তারিখ: "+e(due)+"</p><table style=\"width:100%;border-collapse:collapse\"><thead><tr><th style=\"text-align:left;padding:12px\">Item</th><th style=\"text-align:right;padding:12px\">Qty</th><th style=\"text-align:right;padding:12px\">Amount</th></tr></thead><tbody>"+rows.String()+"</tbody></table><div style=\"padding:16px;text-align:right\"><p>Subtotal: "+e(invoiceEmailMoney(subtotal))+"</p><p>Invoice fee: "+e(invoiceEmailMoney(d.Body.FeeMinor))+"</p><p>Tax: "+e(invoiceEmailMoney(d.Body.TaxMinor))+" &nbsp; Shipping: "+e(invoiceEmailMoney(d.Body.ShippingMinor))+" &nbsp; Discount: "+e(invoiceEmailMoney(d.Body.DiscountMinor))+"</p><strong>Total: "+e(invoiceEmailMoney(d.AmountMinor))+"</strong></div>"+button+"<p><a href=\""+e(invoiceURL)+"\">View invoice / ইনভয়েস দেখুন</a></p><p style=\"font-size:12px;color:#747987\">Payment status is determined only by server verification.</p></div></body></html>"
 }
