@@ -8,7 +8,7 @@ export function PaymentRequestDetail({id,workspaceId,environment,locale,onClose}
  id:string;workspaceId:string;environment:string;locale:"bn"|"en";onClose:()=>void;
 }){
  const bn=locale==="bn";
- const [detail,setDetail]=useState<Detail|null>(null),[error,setError]=useState(false),[retry,setRetry]=useState(0);
+ const [detail,setDetail]=useState<Detail|null>(null),[error,setError]=useState(false),[retry,setRetry]=useState(0),[copied,setCopied]=useState(false);
  useEffect(()=>{
   const controller=new AbortController();
   fetch(`/api/go/workspaces/${workspaceId}/payment-intents/${id}?environment=${environment}`,{cache:"no-store",signal:controller.signal})
@@ -20,8 +20,8 @@ export function PaymentRequestDetail({id,workspaceId,environment,locale,onClose}
  const time=(value:string)=>new Date(value).toLocaleString(bn?"bn-BD":"en-BD",{timeZone:"Asia/Dhaka",timeZoneName:"short"});
  const money=(value:number)=>new Intl.NumberFormat(bn?"bn-BD":"en-BD",{style:"currency",currency:"BDT"}).format(value/100);
  const events:Record<string,string>={created:bn?"রিকোয়েস্ট ইস্যু":"Request issued",payer_locked:bn?"প্রেরক ও মাধ্যম লক":"Payer and method locked",cancelled:bn?"ব্যবসা বাতিল করেছে":"Cancelled by merchant"};
- return <section className="ds-panel pg05-section" aria-label={bn?"রিকোয়েস্টের ইতিহাস":"Request history"}>
-  <div className="pg05-topline"><h2>{detail?.merchant_reference||(bn?"রিকোয়েস্টের তথ্য":"Request details")}</h2><button type="button" onClick={onClose}>{bn?"বন্ধ করুন":"Close details"}</button></div>
+ return <section className="ref-request-details" aria-label={bn?"রিকোয়েস্টের ইতিহাস":"Request history"}>
+  {detail&&<div className="drawer-group"><div className="kv"><span>{bn?"পূর্ণ রেফারেন্স":"Full reference"}</span><span className="mono" title={detail.merchant_reference}>{detail.merchant_reference}</span></div><button type="button" className="ib" onClick={()=>void navigator.clipboard.writeText(detail.merchant_reference).then(()=>setCopied(true)).catch(()=>setCopied(false))}>{copied?(bn?"কপি হয়েছে":"Copied"):(bn?"রেফারেন্স কপি":"Copy reference")}</button></div>}
   {error?<p role="alert">{bn?"তথ্য পাওয়া যায়নি বা দেখার অনুমতি নেই।":"Details unavailable or access denied."} <button onClick={()=>{setError(false);setRetry(x=>x+1)}}>{bn?"আবার চেষ্টা":"Retry"}</button></p>:
    !detail?<p role="status">{bn?"তথ্য আনা হচ্ছে…":"Loading details…"}</p>:<>
     <p>{money(detail.amount_minor)} · {detail.source_reference||(bn?"স্বতন্ত্র রিকোয়েস্ট":"Standalone request")}</p>
