@@ -40,6 +40,10 @@ interface ReceivedSmsDao {
  @Query("SELECT * FROM received_sms WHERE status != 'sent' ORDER BY created_at, id LIMIT :limit")
  fun unacknowledged(limit: Int): List<ReceivedSms>
 
+ /** Durable-ACK timestamp; not the original SMS intake timestamp. */
+ @Query("SELECT MAX(sent_at) FROM received_sms WHERE status='sent'")
+ fun latestAckAt(): Long?
+
  @Query("SELECT count(*) FROM received_sms WHERE status != 'sent'")
  fun countUnacknowledged(): Int
 

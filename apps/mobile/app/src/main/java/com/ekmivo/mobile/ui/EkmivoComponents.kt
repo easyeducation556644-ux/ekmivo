@@ -155,16 +155,18 @@ fun EkmivoScannerFrame(modifier: Modifier = Modifier) {
 fun EkmivoPulseRing(
     modifier: Modifier = Modifier,
     reducedMotion: Boolean = false,
+    ringColor: Color? = null,
     core: @Composable () -> Unit
 ) {
     val palette = LocalEkmivoPalette.current
+    val pulseInk = ringColor ?: palette.success
     val static = reducedMotion || LocalInspectionMode.current
     Box(modifier.size(EkmivoTokens.Measure.heroRing), contentAlignment = Alignment.Center) {
         if (static) {
             Box(
                 Modifier.fillMaxSize()
                     .graphicsLayer { alpha = .18f }
-                    .border(1.dp, palette.success, CircleShape)
+                    .border(1.dp, pulseInk, CircleShape)
             )
         } else {
             val transition = rememberInfiniteTransition(label = "live pulse")
@@ -187,7 +189,7 @@ fun EkmivoPulseRing(
                             scaleY = scale
                             alpha = .5f * (1f - progress)
                         }
-                        .border(1.dp, palette.success, CircleShape)
+                        .border(1.dp, pulseInk, CircleShape)
                 )
             }
             Ring(0)

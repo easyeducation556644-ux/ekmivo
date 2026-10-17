@@ -31,6 +31,11 @@ import com.ekmivo.mobile.data.AppPreferences
 import com.ekmivo.mobile.data.Appearance
 import com.ekmivo.mobile.data.Language
 import com.ekmivo.mobile.receipt.ForwarderScreen
+import com.ekmivo.mobile.receipt.EkmivoLiveHome
+import com.ekmivo.mobile.receipt.EkmivoDisconnected
+import com.ekmivo.mobile.receipt.ConnectionState
+import com.ekmivo.mobile.receipt.ReceiptRepository
+import com.ekmivo.mobile.receipt.ReceiptSyncWorker
 import com.ekmivo.mobile.receipt.PairingFlow
 import com.ekmivo.mobile.receipt.SetupWizard
 import com.ekmivo.mobile.receipt.SetupHealth
@@ -53,6 +58,10 @@ private enum class Tab(val icon:ImageVector) {
 fun EkmivoApp(preferences:AppPreferences, incomingPairingLink:String?=null){
  val appContext=LocalContext.current.applicationContext
  var paired by remember { mutableStateOf(ReceiptStore(appContext).use { it.phone()!=null || it.enrollment()!=null }) }
+ val repository=remember { ReceiptRepository.get(appContext) }
+ val connection by repository.state.collectAsState()
+ var reconnecting by remember { mutableStateOf(false) }
+ var pendingRetained by remember { mutableIntStateOf(runCatching{ ReceiptStore(appContext).use{it.count()} }.getOrDefault(0)) }
  val health=remember { SetupHealth(appContext) }
  var healthNow by remember { mutableStateOf(health.refresh()) }
  var wizardActive by remember { mutableStateOf(paired && health.needsWizard()) }
@@ -61,6 +70,7 @@ fun EkmivoApp(preferences:AppPreferences, incomingPairingLink:String?=null){
   val observer=LifecycleEventObserver { _,event ->
    if(event==Lifecycle.Event.ON_RESUME){
     healthNow=health.refresh()
+    pendingRetained=runCatching{ReceiptStore(appContext).use{it.count()}}.getOrDefault(0)
     if(SetupPlan.firstMissing(healthNow)!=null){
      ReceiptForwardingService.stop(appContext)
     }
@@ -85,13 +95,22 @@ fun EkmivoApp(preferences:AppPreferences, incomingPairingLink:String?=null){
  val scope=rememberCoroutineScope()
  var tab by rememberSaveable{mutableStateOf(Tab.FORWARDER)}
  EkmivoTheme(dark=dark){
-  if (!paired) {
+  if(connection==ConnectionState.Revoked && !reconnecting){
+   EkmivoDisconnected(bn,pendingRetained,
+    onReconnect={
+     ReceiptForwardingService.stop(appContext)
+     reconnecting=true;paired=false;wizardActive=false
+     repository.beginPairing()
+    },
+    onQueue={}
+   )
+  } else if (!paired || reconnecting || connection==ConnectionState.Unpaired) {
    PairingFlow(
     bn=bn, incomingLink=incomingPairingLink,
     onLanguageChange={ toBn ->
      scope.launch { preferences.updateLanguage(if(toBn) Language.BN else Language.EN) }
     },
-    onPaired={paired=true;wizardActive=true;healthNow=health.refresh()}
+    onPaired={paired=true;reconnecting=false;wizardActive=true;healthNow=health.refresh()}
    )
   } else if(wizardActive) {
    SetupWizard(bn=bn,onLanguageChange={toBn ->
@@ -104,43 +123,13 @@ fun EkmivoApp(preferences:AppPreferences, incomingPairingLink:String?=null){
   } else Scaffold(
    containerColor=MaterialTheme.colorScheme.background,
    bottomBar={
-    Surface(
-     modifier=Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal=18.dp,vertical=11.dp),
-     shape=RoundedCornerShape(28.dp),
-     color=MaterialTheme.colorScheme.surface,
-     shadowElevation=12.dp,
-     border=BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant)
-    ){
-     Row(Modifier.fillMaxWidth().padding(6.dp),horizontalArrangement=Arrangement.spacedBy(3.dp)){
-      Tab.entries.forEach{item->
-       val chosen=item==tab
-       val label=when(item){
-        Tab.FORWARDER->"SMS Forwarder"
-        Tab.INBOX->"Inbox"
-        Tab.SETTINGS->if(bn)"সেটিংস" else "Settings"
-       }
-       Column(
-        modifier=Modifier.weight(if(item==Tab.FORWARDER)1.35f else 1f)
-         .background(if(chosen)MaterialTheme.colorScheme.primary else Color.Transparent,RoundedCornerShape(22.dp))
-         .clickable{tab=item}.padding(vertical=10.dp,horizontal=1.dp),
-        verticalArrangement=Arrangement.spacedBy(3.dp),
-        horizontalAlignment=Alignment.CenterHorizontally
-       ){
-        Icon(item.icon,contentDescription=null,modifier=Modifier.size(21.dp),
-         tint=if(chosen)MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(label,style=MaterialTheme.typography.labelMedium,maxLines=1,
-         color=if(chosen)MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
-       }
-      }
-     }
+    EkmivoBottomNav(bn,if(tab==Tab.SETTINGS)EkmivoPage.SETTINGS else EkmivoPage.LIVE) {
+     tab=if(it==EkmivoPage.LIVE)Tab.FORWARDER else Tab.SETTINGS
     }
    }
   ){padding->
    Column(Modifier.fillMaxSize().padding(padding)){
-    if(tab==Tab.FORWARDER && healthNow.needsAttention){
-     SetupHealthFixNotice(bn,healthNow){wizardActive=true}
-    }
-    Row(Modifier.fillMaxWidth().padding(start=25.dp,end=25.dp,top=15.dp,bottom=13.dp),
+    if(tab==Tab.SETTINGS) Row(Modifier.fillMaxWidth().padding(start=25.dp,end=25.dp,top=15.dp,bottom=13.dp),
      verticalAlignment=Alignment.CenterVertically){
      Surface(color=MaterialTheme.colorScheme.primary,shape=RoundedCornerShape(11.dp)){
       Text("e.",Modifier.padding(horizontal=13.dp,vertical=4.dp),
@@ -157,7 +146,13 @@ fun EkmivoApp(preferences:AppPreferences, incomingPairingLink:String?=null){
      fadeIn(tween(170)) togetherWith fadeOut(tween(100))
     },label="App section",modifier=Modifier.fillMaxSize()){page->
      when(page){
-      Tab.FORWARDER->ForwarderScreen(bn)
+      Tab.FORWARDER->EkmivoLiveHome(
+       bn,connection,healthNow.needsAttention,
+       onFix={
+        if(healthNow.needsAttention)wizardActive=true
+        else ReceiptSyncWorker.scheduleNow(appContext)
+       }
+      )
       Tab.INBOX->Column(
        Modifier.fillMaxSize().padding(25.dp),
        verticalArrangement=Arrangement.Center,horizontalAlignment=Alignment.CenterHorizontally){
