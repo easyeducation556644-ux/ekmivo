@@ -695,3 +695,17 @@ Manual pending: in an owner/admin workspace, open Developers → API Keys while 
 **Sandbox Neon checks PASS (rollback):** invoice-number replay returns same reference, second request increments counter; public draft shows sanitized data but no payment, issued date/status, canceled read-only status. New migrations 0078–0080 installed and checksummed in Live/Sandbox production financial databases; no live financial test writes. The invoice `fee_minor` is a merchant-entered additive fee, **not** processor pricing.
 
 **Must still run before acceptance:** 320/768/1024/1440 side-by-side browser checks Light/Dark/System EN/BN; drawer focus trap/backdrop/Escape/focus restoration/long-ID copy; desktop and mobile sidebar scrolling and pinned Billing; both link/request tabs, create/cancel/copy/refresh/pagination and retained prior receipts; invoice Draft/Create & Issue, concurrent numbering, optional override, prefilled Edit, issued/correct/cancel, verified-paid and overdue statuses, checkout theme on Pay, SMTP HTML delivery/unknown delivery, and webhook status sync. Run Next lint, typecheck, full production build, Go compile/unit tests, contracts, and financial smoke. GitHub Foundation runner startup and Vercel build rate-limit currently prevent fresh PASS. Access to an interactive authenticated browser and a working CI/build runner is needed. Do not replace these results with source inspection.
+
+
+### 2026-10-17 continued fixes: invoice delivery and request visual shell
+
+Implemented and pushed:
+- Invoice email test fixtures match canonical language-neutral invoice and Pay URLs; renderer reads saved Checkout Theme store name and validated asset URL; prints issue/due dates and recipient, maintains HTML+text, full Paid confirmation can be sent without offering a second Pay button.
+- Hosted invoice displays stored PNG/JPEG/WebP base64 logo if present. Invoice Print now opens real hosted invoice page with print trigger rather than printing dashboard chrome.
+- Invoice total breakdown and grouped invoice-hosted links have premium scoped CSS (custom disclosure control rather than browser-default triangle), mobile responsive.
+- One-time Requests header now lives in same `ref-dashboard/ref-page` layout as Payment Links; toolbar, table and actions already migrated into one card.
+- These changes do **not** alter payment verification, allocation or financial proof.
+
+**Verification actually observed:** Render deployment `dep-db9hdvv2d8hs73d7c8hg` for commit `6497aa1` reached `live` after `go build` succeeded. Later CSS/request-layout commits have not been verified by Vercel production build due to plan-level `build-rate-limit`. GitHub Foundation CI workflow for latest source commit has no passing jobs. Production Live/Sandbox ledger `0078`–`0081` SHA-256 entries match each other. Production data at audit time: Live one issued invoice and one associated intent; zero verified invoice allocations; Sandbox zero verified invoice allocations. Actual Paid status end-to-end cannot be demonstrated with that data; do not claim it passed.
+
+Manual pending as before: frontend build, lint, TypeScript checks, all Go unit tests, authenticated browser screenshot/focus/viewport checks, email delivery to an inbox, and a real provider-verified invoice transaction. No 100% acceptance.
