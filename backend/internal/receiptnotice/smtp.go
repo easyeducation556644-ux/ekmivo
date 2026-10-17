@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"mime"
@@ -30,7 +31,7 @@ type Message struct {
 	MerchantRequestedDocument                        bool // Explicit seller-requested invoice; never receipt verification.
 	ContactVerification                              bool
 	Recipient                                        Recipient
-	Workspace, Environment, MessageID, Subject, Text string
+	Workspace, Environment, MessageID, Subject, Text, HTML string
 }
 
 func EncodeMessage(c SMTPConfig, m Message, now time.Time) ([]byte, error) {
@@ -47,13 +48,25 @@ func EncodeMessage(c SMTPConfig, m Message, now time.Time) ([]byte, error) {
 	}
 	to, err := NormalizeEmail(m.Recipient.Email)
 	if err != nil || len(m.Subject) == 0 || len(m.Subject) > 200 || strings.ContainsAny(m.Subject, "\r\n") ||
-		len(m.Text) > 32000 || len(m.MessageID) < 16 || len(m.MessageID) > 80 ||
+		len(m.Text) > 32000 || len(m.HTML) > 64000 || len(m.MessageID) < 16 || len(m.MessageID) > 80 ||
 		strings.ContainsAny(m.MessageID, "\r\n <>@") {
 		return nil, errors.New("invalid notice message")
 	}
 	text := strings.ReplaceAll(strings.ReplaceAll(m.Text, "\r\n", "\n"), "\r", "\n")
 	text = strings.ReplaceAll(text, "\n", "\r\n")
 	domain := from[strings.LastIndexByte(from, '@')+1:]
+	if m.HTML != "" {
+		const boundary = "ekmivo-invoice-alternative"
+		encoded := base64.StdEncoding.EncodeToString([]byte(m.HTML))
+		var wrapped strings.Builder
+		for len(encoded) > 76 {
+			wrapped.WriteString(encoded[:76])
+			wrapped.WriteString("\r\n")
+			encoded = encoded[76:]
+		}
+		wrapped.WriteString(encoded)
+		return []byte(fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nMessage-ID: <%s@%s>\r\nDate: %s\r\nMIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=%q\r\n\r\n--%s\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n%s\r\n--%s\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n%s\r\n--%s--\r\n", from, to, mime.QEncoding.Encode("UTF-8", m.Subject), m.MessageID, domain, now.Format(time.RFC1123Z), boundary, boundary, text, boundary, wrapped.String(), boundary)), nil
+	}
 	return []byte(fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nMessage-ID: <%s@%s>\r\nDate: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n%s\r\n", from, to, mime.QEncoding.Encode("UTF-8", m.Subject), m.MessageID, domain, now.Format(time.RFC1123Z), text)), nil
 }
 
