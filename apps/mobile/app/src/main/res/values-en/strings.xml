@@ -8,7 +8,7 @@
     <string name="pair_welcome_body">Payment SMS received on this phone will be forwarded to Ekmivo automatically.</string>
     <string name="pair_step_1">Open ‘SMS devices’ in your dashboard</string>
     <string name="pair_step_2">Choose ‘Connect phone’ and create a pairing QR</string>
-    <string name="pair_step_3">Tap the ‘Connect phone’ button</string>
+    <string name="pair_step_3">Scan the pairing QR code shown on your dashboard.</string>
     <string name="pair_scan">Scan QR</string>
     <string name="pair_code_link">Connect with a code</string>
     <string name="pair_camera_title">Enable camera</string>

@@ -201,6 +201,13 @@ class ReceiptStore(private val appContext: Context): SQLiteOpenHelper(appContext
   return true
  }
  fun count():Int=readableDatabase.rawQuery("SELECT count(*) FROM pending",null).use{it.moveToFirst();it.getInt(0)}
+ /** Oldest encrypted, unacknowledged receipt age; no plaintext or identity access. */
+ fun oldestPendingAgeMs():Long? =
+  readableDatabase.rawQuery("SELECT MIN(created) FROM pending",null).use { cursor ->
+   if(cursor.moveToFirst()&&!cursor.isNull(0))
+    (System.currentTimeMillis()-cursor.getLong(0)).coerceAtLeast(0L)
+   else null
+  }
  fun deliveryDisposition(id:String):Int =
   readableDatabase.rawQuery("SELECT sent FROM recent WHERE id=?",arrayOf(id)).use{
    if(it.moveToFirst())if(it.getInt(0)==1)2 else 1 else 0

@@ -1,6 +1,6 @@
 # Ekmivo Android rebuild — execution ledger
 
-Current phase: **1 (state machine and data layer, no UI changes)**.
+Current phase: **3 (permissions, Setup Health, Done)**.
 Acceptance: **OPEN** until Android build, unit tests and preview verification are evidenced.
 Date: 2026-10-17
 Scope: Phase 1 data-only implementation; phases 2–6 NOT started. Phase 0 evidence gates remain OPEN.
@@ -136,3 +136,29 @@ following docs/design/ekmivo-phase-prompts.md; no UI changes in Phase 1.
 - EN/BN switcher at top right, new installs default English; dark palette uses reference #0F0F0E, #181817, #222220 and theme follows system setting unless explicitly changed. Steps shortened per owner feedback.
 - Fork targeted CI https://github.com/easyeducation556644-ux/ekmivo/actions/runs/39037292999 **SUCCESS**: Go TestPhysicalPairingCodeShape PASS, focused Node QR/web contract tests 4/4 PASS, Android :app:assembleDebug and :app:testDebugUnitTest PASS. Full unrelated web/Go/Docker jobs were intentionally skipped. Fork-only CI workflow not promoted.
 - Debug artifact #12103270511; locally extracted APK SHA-256 5f19c1ab6a95ef76f2af7a9bd91131951cbe98924fc92bc319ac30e9f2fb8f9d (43,092,147 bytes). Device screenshot acceptance pending. Backend deployment required to issue the new codes in production.
+
+## Phase 3 — Setup Health, permission wizard and Done (2026-10-17)
+- Flow correction: Welcome step 3 is now “Scan the pairing QR code shown on your dashboard.” (BN equivalent). No separate build made solely for copy.
+- SetupHealth.kt: re-evaluate on each activity RESUME: RECEIVE_SMS, POST_NOTIFICATIONS on API 33+, PowerManager battery exemption, manufacturer detection and existing encrypted queue error/backlog. OK/MISSING/UNKNOWN are explicit; a Samsung sleeping-app setting is never falsely shown OS-verified.
+- SetupPlan and SetupPlanTest: ordered SMS → notification → battery → Samsung OEM (Samsung only). Already granted steps skipped; Samsung guide completion is an honest manual acknowledgement, **not** a verified OS state. Re-surface when a delivery backlog/error appears.
+- SetupWizard.kt: same spec-sized header, 4 progress bars (22×4dp), centered 76dp icon tile, 19sp title, 13sp body, live status tags, primary system dialog/settings action, why-needed disclosure. Denied and don't-ask-again handled via app settings, no silent skip, callback/resume recheck. Done screen uses generic copy (user approved not showing unverifiable workspace name), Start goes to current app.
+- EkmivoApp.kt: after claim, show wizard, not old Forwarder screen; existing paired phones with missing setup re-enter wizard. Home fix card only when health requires attention; Settings reliability card shows real status and Fix link. No Phase 4 Home redesign.
+- Foreground service: low-importance channel with notification returning to app, started only from a visible Activity following completed setup; network delivery still handled by WorkManager with encrypted Room/legacy outbox retries. Does not start from BOOT_COMPLETED. Android 15+ may impose a dataSync FGS time limit; **never** claim guaranteed always-on operation.
+- AndroidManifest: narrowly required POST_NOTIFICATIONS, REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, FOREGROUND_SERVICE, FOREGROUND_SERVICE_DATA_SYNC, and non-exported dataSync service. Camera still only requested by explicit scanner action; READ_SMS remains opt-in for recovery, not part of setup wizard.
+- Existing paired credentials and unsent receipt database are preserved. No Go or Web API changes in Phase 3.
+- Distribution observed in this workflow: sideloaded test APK. Google Play's restricted SMS/FGS declarations would require separate review before Play submission.
+- CI: build + unit tests on EC Education fork; do not run unrelated backend/web/Docker jobs; do not promote fork-only workflow gating to upstream.
+- User explicitly owns live SMS/API device tests and device screenshot checks; these are NOT counted toward code/architecture/CI implementation acceptance. Their absence must still be disclosed honestly.
+
+### Phase 3 CI evidence and hardening
+- First fork Android run 39042607345: `assembleDebug` + `testDebugUnitTest` **PASSED**; unrelated Go/Web/Docker skipped.
+- Final refinements: language switch also on the wizard, revoke/permissions change stop running forwarding FGS, on Android 15 `Service.onTimeout` stops the dataSync service and requeues background work instead of promising limitless FGS runtime.
+- Owner will verify the real on-device flow and appearance; real live payment SMS and API delivery are excluded by request from the code-completion gate.
+
+### Delayed forwarding detection
+- A pending encrypted receipt older than 10 minutes triggers Setup Health warning even without a transport error, based on the existing SQLite pending table's creation timestamp. No SMS plaintext is read; the existing WorkManager transport and outbox are untouched.
+
+### Final Phase 3 Android validation
+- Fork CI https://github.com/easyeducation556644-ux/ekmivo/actions/runs/39043254003 passed :app:assembleDebug and :app:testDebugUnitTest (other unrelated Web, Go, Docker jobs deliberately skipped).
+- Debug APK size 43,125,139 bytes, sha256 fbc9a69669f573852d0c5eda7178429e879ae8848acbb8f65b8877cf4c5e55b1.
+- Live device SMS/API and screenshot QA are owner-run; not verified in this session and intentionally excluded from user-defined code-completion acceptance.
