@@ -8,7 +8,7 @@
     <string name="pair_welcome_body">এই ফোনে আসা পেমেন্টের SMS নিজে থেকে Ekmivo-তে পাঠানো হবে।</string>
     <string name="pair_step_1">ড্যাশবোর্ডে ‘SMS devices’ খুলুন</string>
     <string name="pair_step_2">‘ফোন যুক্ত করুন’ থেকে pairing QR তৈরি করুন</string>
-    <string name="pair_step_3">‘ফোন যুক্ত করুন’ বাটনে চাপুন</string>
+    <string name="pair_step_3">ড্যাশবোর্ডে দেখানো পেয়ারিং QR কোডটি স্ক্যান করুন।</string>
     <string name="pair_scan">QR স্ক্যান করুন</string>
     <string name="pair_code_link">কোড দিয়ে যুক্ত করুন</string>
     <string name="pair_camera_title">ক্যামেরা চালু করুন</string>
