@@ -656,3 +656,28 @@
 
 .ekv3-methods .ek-ref-logo svg{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain}
 .ekv3-methods .ek-ref-provider .ek-ref-logo svg{width:100%;height:100%}
+
+
+/* Pixel measurements carried over from the supplied Payment methods.html account rows. */
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-cards{grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:10px}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-account{position:relative;overflow:hidden;display:flex;align-items:center;flex-direction:row;justify-content:flex-start;flex-wrap:wrap;gap:8px 14px;min-height:76px;padding:10px 14px;box-shadow:var(--ref-shadow)}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-orb{position:absolute;right:-36px;top:-50px;width:120px;height:120px;border-radius:50%;background:rgba(109,106,242,.035);pointer-events:none}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-logo{position:relative;flex:0 0 92px;width:92px;height:46px;background:transparent;border-radius:0}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-logo svg{width:88px;height:44px}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-account-identity{position:relative;flex:1 1 150px;display:flex;flex-direction:column;gap:3px}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-state{gap:6px;font-size:11px;opacity:.85;white-space:nowrap}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-state i{height:6px;width:6px}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-caption{opacity:.7;margin-left:2px;overflow:hidden;text-overflow:ellipsis}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-number{display:flex;align-items:center;gap:2px;white-space:nowrap;font-size:15px;font-weight:500;letter-spacing:-.01em;font-family:"Geist Mono",monospace}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-number button{flex:none;height:24px;width:24px;border:0;border-radius:7px;background:transparent;color:inherit;opacity:.6;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-actions{position:relative;gap:10px;margin:0}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-add-card{min-height:76px}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-provider{min-height:84px;border-radius:14px;overflow:hidden}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-provider .ek-ref-logo{flex:0 0 auto;width:80px;height:40px}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-provider .ek-ref-logo svg{width:80px;height:40px}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-providers{grid-template-columns:repeat(auto-fill,minmax(124px,1fr))}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-modal .ek-ref-provider-search{background:var(--ref-bg)}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-modal{border:1px solid var(--ref-line);box-shadow:0 24px 64px rgba(0,0,0,.3)}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-modal::backdrop{background:rgba(5,5,10,.72)}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-modal .pg-phone-setup label:not(.ek-ref-search){font-size:13px}
+@media(max-width:500px){.ds-app[data-service="payments"] .ekv3-methods .ek-ref-number{font-size:13px}.ds-app[data-service="payments"] .ekv3-methods .ek-ref-account{gap:8px}.ds-app[data-service="payments"] .ekv3-methods .ek-ref-logo{flex-basis:75px;width:75px}.ds-app[data-service="payments"] .ekv3-methods .ek-ref-logo svg{width:75px}}
