@@ -1,7 +1,7 @@
 
 /* Reports / Refunds. Reference Ekmivo_Reports.html / Ekmivo_Refunds.html.
    Every declaration is locally scoped; shell, nav and topbar are unchanged. */
-.ek-page-scope{--bg:#09090b;--side:#0c0c0f;--panel:#111114;--raise:#17171b;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.14);--tx:#f2f2f5;--mu:#a1a1ab;--mu2:#6f6f7a;--ac:#8b7cf6;--acb:rgba(139,124,246,.14);--btn:#f2f2f5;--btnt:#0b0b0d;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171;--r:12px;color-scheme:dark;font:14px/1.5 Inter,"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--tx);-webkit-font-smoothing:antialiased;min-height:100%;padding:32px 24px 56px}
+.ek-page-scope{--bg:#09090b;--side:#0c0c0f;--panel:#111114;--raise:#17171b;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.14);--tx:#f2f2f5;--mu:#a1a1ab;--mu2:#6f6f7a;--ac:#8b7cf6;--acb:rgba(139,124,246,.14);--btn:#f2f2f5;--btnt:#0b0b0d;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171;--r:12px;color-scheme:dark;font:14px/1.5 "Geist",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--tx);-webkit-font-smoothing:antialiased;min-height:100%;padding:32px 24px 56px}
 :root[data-theme=light] .ek-page-scope{--bg:#f6f6f8;--side:#fff;--panel:#fff;--raise:#f1f1f4;--line:rgba(0,0,0,.08);--line2:rgba(0,0,0,.16);--tx:#16161a;--mu:#5d5d68;--mu2:#8a8a95;--ac:#5b4bd6;--acb:rgba(91,75,214,.1);--btn:#16161a;--btnt:#fff;--ok:#15803d;--warn:#b45309;--bad:#b91c1c;color-scheme:light}
 .ek-page-scope,.ek-page-scope *{box-sizing:border-box}
 .ek-page-scope :is(h1,h2,h3,p){margin:0}
@@ -154,3 +154,27 @@
 .ek-page-scope .reference-ledger-footer div{display:flex;flex-wrap:wrap;gap:8px}
 .ek-page-scope .reference-ledger-footer button{height:32px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--tx);font-weight:500}
 .ek-page-scope .reference-ledger-footer button:disabled{opacity:.4;cursor:not-allowed}
+
+/* Typography: Hind Siliguri is self-hosted via next/font/local in app/layout.tsx.
+   Apply it consistently to Bengali text and interactive descendants; preserve LTR IDs/amounts. */
+html[lang="bn"] .ek-page-scope,
+.ek-page-scope:lang(bn){
+ font-family:var(--font-hind-siliguri),"Hind Siliguri",sans-serif!important;
+}
+html[lang="bn"] .ek-page-scope :is(button,input,select,textarea,option),
+.ek-page-scope:lang(bn) :is(button,input,select,textarea,option){
+ font-family:var(--font-hind-siliguri),"Hind Siliguri",sans-serif!important;
+}
+.ek-page-scope :is(.mono,.amt,[dir="ltr"]){
+ font-variant-numeric:tabular-nums;
+}
+.ek-page-scope .mono{
+ font-family:"Geist Mono",ui-monospace,Menlo,monospace!important;
+}
+.ek-page-scope .ph p,.ek-page-scope .lbl,.ek-page-scope .fd span{font-weight:400}
+.ek-page-scope .page{width:100%}
+.ek-page-scope .card .tw{width:100%;max-height:none;overflow-x:auto;overflow-y:visible}
+.ek-page-scope .tabs{scrollbar-width:thin}
+.ek-page-scope .find input{box-shadow:none!important;min-height:0!important;padding:0!important}
+.ek-page-scope .fd .inp{min-width:0}
+.ek-page-scope .rf-reference,.ek-page-scope .er-reference{background:var(--bg)}
