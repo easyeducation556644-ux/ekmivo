@@ -24,7 +24,7 @@
     <string name="pair_connecting">Connecting…</string>
     <string name="pair_connecting_body">This phone is being connected to your dashboard.</string>
     <string name="pair_code_title">Enter pairing code</string>
-    <string name="pair_code_body">The code appears on your dashboard's ‘Connect phone’ page.</string>
+    <string name="pair_code_body">The code appears on your dashboard ‘Connect phone’ page.</string>
     <string name="pair_code_verify">Verify code</string>
     <string name="pair_paste">Paste code</string>
     <string name="pair_empty_clipboard">No valid pairing token was found in the clipboard.</string>
