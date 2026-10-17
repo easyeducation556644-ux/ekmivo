@@ -61,7 +61,7 @@ export function PublicDocument({locale,token,standalone=false}:{locale:"en"|"bn"
  async function pay(e:React.FormEvent){
   e.preventDefault();
   if(busy||!doc||!selected||!doc.methods?.includes(selected)||terminal)return;
-  if(completedToken.current){router.push("/"+locale+"/checkout/"+completedToken.current+"?method="+selected);return}
+  if(completedToken.current){router.push("/checkout/"+completedToken.current+"?method="+selected);return}
   if(!pendingBody.current&&doc.body.fields?.some(f=>f.type==="checkbox"&&f.required&&(!Array.isArray(values[f.id])||values[f.id].length===0))){
    setError(t("Choose all required options.","প্রয়োজনীয় অপশন নির্বাচন করুন।"));return;
   }
@@ -84,7 +84,7 @@ export function PublicDocument({locale,token,standalone=false}:{locale:"en"|"bn"
    if(typeof d.checkout_token!=="string"||!/^[A-Za-z0-9_-]{43}$/.test(d.checkout_token))throw Error("UNCONFIRMED");
    completedToken.current=d.checkout_token;
    try{sessionStorage.setItem("ekmivo:document:"+token,JSON.stringify({key:key.current,body:pendingBody.current,checkout:d.checkout_token}))}catch{}
-   router.push("/"+locale+"/checkout/"+d.checkout_token+"?method="+selected);
+   router.push("/checkout/"+d.checkout_token+"?method="+selected);
   }catch(e){setError(checkoutError(e instanceof Error?e.message:"UNCONFIRMED"))}
   finally{setBusy(false)}
  }
@@ -104,8 +104,8 @@ export function PublicDocument({locale,token,standalone=false}:{locale:"en"|"bn"
  const support=safeUrl(doc?.brand?.support_url),email=doc?.brand?.support_email||"";
  const logo=safeUrl(doc?.brand?.logo_url);
  const theme=parseCheckoutTheme(doc?.brand?.checkout_theme);
- if(doc?.kind==="invoices"&&(doc.status==="cancelled"||doc.status==="draft"))return <main data-customer-checkout="true" className="customer-pay-screen" lang={locale}><div className="customer-pay-shell" style={{padding:32,textAlign:"center"}}><h1>{doc.status==="draft"?t("Invoice draft","ইনভয়েস খসড়া"):t("Invoice cancelled","ইনভয়েস বাতিল হয়েছে")}</h1><p>{doc.status==="draft"?t("This invoice has not been issued yet. Payment is unavailable.","ইনভয়েসটি এখনো ইস্যু হয়নি। পেমেন্ট করা যাবে না।"):t("This invoice is void. No payment can be made.","এই ইনভয়েসটি বাতিল। কোনো পেমেন্ট করা যাবে না।")}</p><a href={"/"+locale+"/invoice/"+token}>{t("View invoice","ইনভয়েস দেখুন")}</a></div></main>;
- if(theme&&doc)return <ThemedCheckout config={theme} locale={locale} method={selected} step="pay" amountMinor={payable} reference={doc.reference} onLanguage={()=>router.push('/'+(bn?'en':'bn')+'/'+(doc.kind==='invoices'?'invoice':'pay')+'/'+token)}>
+ if(doc?.kind==="invoices"&&(doc.status==="cancelled"||doc.status==="draft"))return <main data-customer-checkout="true" className="customer-pay-screen" lang={locale}><div className="customer-pay-shell" style={{padding:32,textAlign:"center"}}><h1>{doc.status==="draft"?t("Invoice draft","ইনভয়েস খসড়া"):t("Invoice cancelled","ইনভয়েস বাতিল হয়েছে")}</h1><p>{doc.status==="draft"?t("This invoice has not been issued yet. Payment is unavailable.","ইনভয়েসটি এখনো ইস্যু হয়নি। পেমেন্ট করা যাবে না।"):t("This invoice is void. No payment can be made.","এই ইনভয়েসটি বাতিল। কোনো পেমেন্ট করা যাবে না।")}</p><a href={"/invoice/"+token}>{t("View invoice","ইনভয়েস দেখুন")}</a></div></main>;
+ if(theme&&doc)return <ThemedCheckout config={theme} locale={locale} method={selected} step="pay" amountMinor={payable} reference={doc.reference} onLanguage={()=>{document.cookie=`ekmivo-locale=${bn?'en':'bn'}; Path=/; Max-Age=31536000; SameSite=Lax`;window.location.reload()}}>
   <h2 className="tk-h">{t('How would you like to pay?','কীভাবে পরিশোধ করতে চান?')}</h2><form onSubmit={pay} className="tk-document-form"><div className="tk-ms">{methods.map(m=><button className="tk-m" key={m} type="button" disabled={locked} aria-pressed={selected===m} onClick={()=>setSelected(m)}><WalletToken method={m}/><span className="tk-mt">{m==='bkash'?'bKash':m==='nagad'?'Nagad':'Rocket'}</span><i className="tk-rd"/></button>)}</div>
   {theme.info&&([['name','Full name','পুরো নাম'],['email','Email','ইমেইল'],['addr','Address','ঠিকানা'],['note','Order note','অর্ডার নোট']] as const).filter(([key])=>theme.f[key]).map(([key,en,be])=><label className="tk-fl" key={key}>{t(en,be)}<input className="tk-in" type={key==='email'?'email':'text'} maxLength={key==='note'?1000:254} disabled={locked} value={customerDetails[key]||''} onChange={e=>setCustomerDetails(d=>({...d,[key]:e.target.value}))}/></label>)}
   {doc.kind==='payment-links'&&(doc.body.max_quantity||1)>1&&<label className="tk-fl">{t('Quantity','পরিমাণ')}<input className="tk-in" type="number" required min={1} max={doc.body.max_quantity} disabled={locked} value={quantity} onChange={e=>setQuantity(Number(e.target.value))}/></label>}
@@ -119,7 +119,7 @@ export function PublicDocument({locale,token,standalone=false}:{locale:"en"|"bn"
   <div className="customer-pay-shell">
    <div className="customer-pay-toolbar">
     <button type="button" onClick={back} aria-label={t("Go back","ফিরে যান")}>←</button>
-    <div className="customer-pay-toolbar-right"><button type="button" className="customer-pay-lang" onClick={()=>router.push("/"+(bn?"en":"bn")+"/pay/"+token)}>{bn?"EN":"বাং"}</button><button type="button" onClick={back} aria-label={t("Close checkout","চেকআউট বন্ধ করুন")}>×</button></div>
+    <div className="customer-pay-toolbar-right"><button type="button" className="customer-pay-lang" onClick={()=>{document.cookie=`ekmivo-locale=${bn?"en":"bn"}; Path=/; Max-Age=31536000; SameSite=Lax`;window.location.reload()}}>{bn?"EN":"বাং"}</button><button type="button" onClick={back} aria-label={t("Close checkout","চেকআউট বন্ধ করুন")}>×</button></div>
    </div>
    {loading?<div className="customer-pay-loading" role="status">{t("Loading payment details…","পেমেন্টের তথ্য লোড হচ্ছে…")}</div>
     :doc?<>
