@@ -265,6 +265,7 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
   }catch(reason){setSourceError(short((reason as {code?:string}).code||"",bn));}
   finally{setSourceBusy(false);}
  }
+ const selectedRequest=data.find(item=>item.id===selected);
  const visible=data.filter(item=>(statusFilter==="all"||item.state===statusFilter)
    &&(item.merchant_reference||"").toLowerCase().includes(search.trim().toLowerCase()));
  return <section className="pg05-merchant ekv3-requests">
@@ -357,7 +358,7 @@ export function PaymentRequests({locale,userId,workspaceId,environment,canWrite}
     
    <div className="ekv3-modal-footer"><button type="button" onClick={()=>setSourceOpen(false)}>{bn?"বাতিল":"Cancel"}</button></div></fieldset></form>
   </dialog>
-  <RefModal open={Boolean(selected)} drawer title={bn?"রিকোয়েস্টের বিস্তারিত":"Request details"} onClose={()=>selectDetail("")} footer={<button className="ib" onClick={()=>selectDetail("")}>{bn?"বন্ধ করুন":"Close"}</button>}>{selected&&<PaymentRequestDetail key={selected} id={selected} workspaceId={workspaceId} environment={environment} locale={locale} onClose={()=>selectDetail("")}/>}</RefModal>
+  <RefModal open={Boolean(selected)} drawer title={bn?"রিকোয়েস্টের বিস্তারিত":"Request details"} onClose={()=>selectDetail("")} footer={<><button className="ib" onClick={()=>selectDetail("")}>{bn?"বন্ধ করুন":"Close"}</button>{selectedRequest&&<button className="ib" type="button" onClick={()=>void navigator.clipboard.writeText(location.origin+"/"+locale+"/checkout/"+selectedRequest.checkout_token).then(()=>setCopied(selectedRequest.id)).catch(()=>setError(bn?"লিংক কপি হয়নি।":"Unable to copy link."))}>{bn?"লিংক কপি":"Copy link"}</button>}{selectedRequest&&canWrite&&["requires_payer","awaiting_payment"].includes(selectedRequest.state)&&<button className="ib dg" type="button" disabled={Boolean(acting)} onClick={()=>void cancel(selectedRequest.id)}>{bn?"রিকোয়েস্ট বাতিল":"Cancel request"}</button>}</>}>{selected&&<PaymentRequestDetail key={selected} id={selected} workspaceId={workspaceId} environment={environment} locale={locale} onClose={()=>selectDetail("")}/>}</RefModal>
   {(notice||copied)&&<div role="status" className="ekv3-toast">{notice||(bn?"লিংক কপি হয়েছে":"Link copied")}</div>}
  </section>;
 }
