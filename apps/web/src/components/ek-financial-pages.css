@@ -49,9 +49,9 @@
 .ek-page-scope .go2{background:var(--btn);color:var(--btnt);border-color:transparent;height:38px;padding:0 28px}
 .ek-page-scope .go2:hover{background:var(--btn);opacity:.9}
 .ek-page-scope .meta{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--mu2);font-size:12.5px;margin:0 2px 10px}
-.ek-page-scope .hero{display:grid;grid-template-columns:1.7fr 1fr;margin-bottom:12px}
-.ek-page-scope .hero>div{padding:22px 24px}
-.ek-page-scope .hero>div+div{border-left:1px solid var(--line)}
+.ek-page-scope .fin-volume-card{display:grid;grid-template-columns:1.7fr 1fr;margin-bottom:12px}
+.ek-page-scope .fin-volume-card>div{padding:22px 24px}
+.ek-page-scope .fin-volume-card>div+div{border-left:1px solid var(--line)}
 .ek-page-scope .lbl{color:var(--mu);font-size:13px}
 .ek-page-scope .num{font-size:36px;font-weight:700;letter-spacing:-.025em;line-height:1.15;font-variant-numeric:tabular-nums;margin:2px 0}
 .ek-page-scope .num.md{font-size:22px}
@@ -137,7 +137,7 @@
 .ek-page-scope .finance-decision .confirm{flex-direction:row}
 .ek-page-scope .finance-decision .decision-actions{display:flex;justify-content:flex-end;gap:8px}
 @media(max-width:900px){.ek-page-scope{padding:24px 16px 40px}.ek-page-scope .fgrid{grid-template-columns:1fr 1fr}.ek-page-scope .go2{grid-column:1/-1}}
-@media(max-width:720px){.ek-page-scope .hero{grid-template-columns:1fr}.ek-page-scope .hero>div+div{border-left:0;border-top:1px solid var(--line)}.ek-page-scope .leg{grid-template-columns:1fr}.ek-page-scope .num{font-size:30px}.ek-page-scope .hero>div,.ek-page-scope .pb{padding:18px}.ek-page-scope .stats{grid-template-columns:1fr}.ek-page-scope .find{margin-left:0;width:100%}.ek-page-scope .refund-table thead{display:none}.ek-page-scope .refund-table tbody tr{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:14px 16px;border-top:1px solid var(--line)}.ek-page-scope .refund-table td{border:0;padding:0}.ek-page-scope .refund-table td:nth-child(1){grid-column:1}.ek-page-scope .refund-table td:nth-child(5){grid-column:2;grid-row:1}.ek-page-scope .refund-table td:nth-child(2){grid-column:1}.ek-page-scope .refund-table td:nth-child(3){grid-column:1;color:var(--mu)}.ek-page-scope .refund-table td:nth-child(4){grid-column:2;grid-row:2;justify-self:end}.ek-page-scope .refund-table td:nth-child(6){display:none}.ek-page-scope .dh,.ek-page-scope .df{padding:14px 16px}.ek-page-scope .db{padding:16px}.ek-page-scope .kv{grid-template-columns:1fr}.ek-page-scope .kv div{text-align:left}}
+@media(max-width:720px){.ek-page-scope .fin-volume-card{grid-template-columns:1fr}.ek-page-scope .fin-volume-card>div+div{border-left:0;border-top:1px solid var(--line)}.ek-page-scope .leg{grid-template-columns:1fr}.ek-page-scope .num{font-size:30px}.ek-page-scope .fin-volume-card>div,.ek-page-scope .pb{padding:18px}.ek-page-scope .stats{grid-template-columns:1fr}.ek-page-scope .find{margin-left:0;width:100%}.ek-page-scope .refund-table thead{display:none}.ek-page-scope .refund-table tbody tr{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:14px 16px;border-top:1px solid var(--line)}.ek-page-scope .refund-table td{border:0;padding:0}.ek-page-scope .refund-table td:nth-child(1){grid-column:1}.ek-page-scope .refund-table td:nth-child(5){grid-column:2;grid-row:1}.ek-page-scope .refund-table td:nth-child(2){grid-column:1}.ek-page-scope .refund-table td:nth-child(3){grid-column:1;color:var(--mu)}.ek-page-scope .refund-table td:nth-child(4){grid-column:2;grid-row:2;justify-self:end}.ek-page-scope .refund-table td:nth-child(6){display:none}.ek-page-scope .dh,.ek-page-scope .df{padding:14px 16px}.ek-page-scope .db{padding:16px}.ek-page-scope .kv{grid-template-columns:1fr}.ek-page-scope .kv div{text-align:left}}
 @media(max-width:480px){.ek-page-scope .fgrid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.ek-page-scope *{transition:none!important;animation:none!important}}
 @media print{.ek-page-scope .acts,.ek-page-scope #fl,.ek-page-scope .toast{display:none!important}.ek-page-scope{background:white!important;color:black!important;padding:0}}
@@ -178,3 +178,31 @@ html[lang="bn"] .ek-page-scope :is(button,input,select,textarea,option),
 .ek-page-scope .find input{box-shadow:none!important;min-height:0!important;padding:0!important}
 .ek-page-scope .fd .inp{min-width:0}
 .ek-page-scope .rf-reference,.ek-page-scope .er-reference{background:var(--bg)}
+
+
+/* Reports graph cannot inherit the global marketing homepage .hero scene. */
+.ek-page-scope .fin-volume-card{
+ display:grid!important;
+ grid-template-columns:minmax(0,1.7fr) minmax(230px,1fr)!important;
+ place-items:stretch!important;
+ position:static!important;
+ isolation:auto!important;
+ width:100%!important;
+ min-width:0!important;
+ min-height:0!important;
+ height:auto!important;
+ padding:0!important;
+ margin:0 0 12px!important;
+ overflow:hidden!important;
+ background:var(--panel)!important;
+}
+.ek-page-scope .fin-volume-card>div{min-width:0;padding:22px 24px;align-self:stretch}
+.ek-page-scope .fin-volume-card>div+div{border-left:1px solid var(--line)}
+.ek-page-scope .fin-volume-card .bars{height:80px;max-height:80px;margin-top:20px;min-width:0}
+.ek-page-scope .fin-volume-card .bars button{min-width:2px;max-height:80px}
+.ek-page-scope .fin-volume-card .num{margin:2px 0}
+@media(max-width:720px){
+ .ek-page-scope .fin-volume-card{grid-template-columns:minmax(0,1fr)!important}
+ .ek-page-scope .fin-volume-card>div+div{border-left:0;border-top:1px solid var(--line)}
+ .ek-page-scope .fin-volume-card>div{padding:18px}
+}
