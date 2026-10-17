@@ -80,6 +80,8 @@ dependencies {
  implementation("androidx.camera:camera-lifecycle:1.4.1")
  implementation("androidx.camera:camera-view:1.4.1")
  implementation("com.google.mlkit:barcode-scanning:17.3.0")
+ // Disabled Inbox groundwork: Firebase project config is not shipped.
+ implementation("com.google.firebase:firebase-messaging:24.1.1")
  debugImplementation("androidx.compose.ui:ui-tooling")
  debugImplementation("androidx.compose.ui:ui-test-manifest")
  androidTestImplementation(platform("androidx.compose:compose-bom:2024.12.01"))
