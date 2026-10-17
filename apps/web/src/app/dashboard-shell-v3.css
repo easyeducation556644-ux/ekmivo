@@ -191,3 +191,22 @@
 .ds-app[data-service="payments"] .ekv3-row-popover .ekv3-danger-menu{color:var(--color-danger)}
 .ds-app[data-service="payments"] .ekv3-row-popover :is(button,a){justify-content:flex-start;text-align:left}
 .ds-app[data-service="payments"] .ekv2-links-table{overflow:visible}
+
+
+/* Fixed sidebar header/footer with independently scrollable, keyboard-accessible navigation. */
+.ds-app[data-service="payments"] :is(.ds-sidebar,.ds-mobile-dialog){min-height:0;overflow:hidden}
+.ds-app[data-service="payments"] :is(.ds-sidebar,.ds-mobile-dialog) .ds-brand-row,
+.ds-app[data-service="payments"] :is(.ds-sidebar,.ds-mobile-dialog) .ds-business-block{flex:none}
+.ds-app[data-service="payments"] :is(.ds-sidebar,.ds-mobile-dialog) .ds-navigation{display:block;flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:transparent transparent;scrollbar-gutter:stable;padding:5px 2px 12px;overscroll-behavior:contain}
+.ds-app[data-service="payments"] :is(.ds-sidebar,.ds-mobile-dialog) .ds-navigation:is(:hover,:focus-within){scrollbar-color:var(--color-border) transparent}
+.ds-app[data-service="payments"] :is(.ds-sidebar,.ds-mobile-dialog) .ds-navigation::-webkit-scrollbar{display:block;width:5px}
+.ds-app[data-service="payments"] :is(.ds-sidebar,.ds-mobile-dialog) .ds-navigation::-webkit-scrollbar-thumb{border-radius:8px;background:transparent}
+.ds-app[data-service="payments"] :is(.ds-sidebar,.ds-mobile-dialog) .ds-navigation:is(:hover,:focus-within)::-webkit-scrollbar-thumb{background:var(--color-border)}
+.ds-app[data-service="payments"] :is(.ds-sidebar,.ds-mobile-dialog) .ds-nav-section{margin-bottom:12px}
+.ds-app[data-service="payments"] :is(.ds-sidebar,.ds-mobile-dialog) .ds-nav-section h2{margin-top:5px;margin-bottom:3px}
+.ds-app[data-service="payments"] :is(.ds-sidebar,.ds-mobile-dialog) .ds-nav-section a{min-height:32px;height:32px;max-height:32px;padding-block:5px;scroll-margin-block:10px}
+.ds-app[data-service="payments"] :is(.ds-sidebar,.ds-mobile-dialog) .ds-nav-fixed-bottom{flex:none;margin-top:0;padding:9px 2px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--color-border);background:var(--color-surface)}
+.ds-app[data-service="payments"] :is(.ds-sidebar,.ds-mobile-dialog) .ds-nav-fixed-bottom a{display:flex;align-items:center;gap:9px;height:35px;padding:7px 10px;border-radius:8px;color:var(--color-text-muted);font-size:13px;text-decoration:none}
+.ds-app[data-service="payments"] :is(.ds-sidebar,.ds-mobile-dialog) .ds-nav-fixed-bottom a:hover{background:var(--color-hover);color:var(--color-text)}
+.ds-app[data-service="payments"] :is(.ds-sidebar,.ds-mobile-dialog) .ds-nav-fixed-bottom a.is-current{background:var(--color-primary-soft);color:var(--color-primary);font-weight:500}
+.ds-app[data-service="payments"] :is(.ds-sidebar,.ds-mobile-dialog) .ds-nav-fixed-bottom svg{width:16px;height:16px;flex:none}
