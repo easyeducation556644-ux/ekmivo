@@ -14,7 +14,7 @@ export function ApiKeyManager({locale,userId,workspaceId,environment,keys,enable
  const [showCreate,setShowCreate]=useState(false),[selected,setSelected]=useState<ApiKeyRow|null>(null),[operation,setOperation]=useState<{kind:'rotate'|'revoke';key:ApiKeyRow}|null>(null),[secret,setSecret]=useState(''),[message,setMessage]=useState('');
  const [createEnvironment,setCreateEnvironment]=useState<PaymentEnvironment>(environment),[name,setName]=useState(''),[expiry,setExpiry]=useState('30'),[permissions,setPermissions]=useState(['payments:read','payments:write']),[query,setQuery]=useState(''),[filter,setFilter]=useState('all');
  const handled=useRef<{create:KeyActionState|null;rotate:KeyActionState|null}>({create:null,rotate:null}),handledRevoke=useRef<KeyActionState|null>(null);
- const draftKey=`ekmivo:pg03-key-draft:v1:${userId}:${workspaceId}:${environment}`;
+ const draftKey=`ekmivo:pg03-key-draft:v1:${userId}:${workspaceId}:${createEnvironment}`;
  const draft=useRef({name,expiresDays:expiry,scopes:permissions});useEffect(()=>{draft.current={name,expiresDays:expiry,scopes:permissions}},[name,expiry,permissions]);
  const saveDraft=()=>{try{sessionStorage.setItem(draftKey,JSON.stringify(draft.current));setMessage(t('Draft saved.','খসড়া সংরক্ষিত।'));return true}catch{setMessage(t('Could not save draft.','খসড়া রাখা যায়নি।'));return false}};
  const discardDraft=useCallback(()=>{try{sessionStorage.removeItem(draftKey)}catch{}setName('');setExpiry('30');setPermissions(['payments:read','payments:write'])},[draftKey]);
