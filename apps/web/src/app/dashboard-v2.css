@@ -653,3 +653,6 @@
 .ekv3-methods .ek-ref-selected-provider>button{border:0;border-radius:999px;background:var(--ref-chip);color:var(--ref-accent);font:inherit;font-size:12px;padding:7px 12px;cursor:pointer}
 .ekv3-methods button:focus-visible,.ekv3-methods input:focus-visible{outline:2px solid var(--ref-accent);outline-offset:2px}
 @media(max-width:600px){.ekv3-methods .ek-ref-cards{grid-template-columns:1fr}.ekv3-methods .ek-ref-toolbar{align-items:stretch}.ekv3-methods .ek-ref-tabs{width:100%;justify-content:space-between}.ekv3-methods .ek-ref-tabs button{padding:0 9px}}
+
+.ekv3-methods .ek-ref-logo svg{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain}
+.ekv3-methods .ek-ref-provider .ek-ref-logo svg{width:100%;height:100%}
