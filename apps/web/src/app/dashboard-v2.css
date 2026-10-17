@@ -809,3 +809,19 @@
 .ds-app[data-service="payments"] .ekv3-methods .ek-ref-modal .pg-phone-actions .ekv3-primary{height:40px;min-height:40px;border:0;padding:0 18px;background:var(--pm-primary);color:var(--pm-primary-fg);font-size:14px;font-weight:600}
 .ds-app[data-service="payments"] .ekv3-methods .ek-ref-modal .pg-phone-actions .ekv3-primary:disabled{background:var(--pm-line);color:var(--pm-muted3);cursor:not-allowed}
 @media(max-width:600px){.ds-app[data-service="payments"] .ekv3-methods{padding:24px 16px 40px!important}}
+
+
+/* Use the actual reference <img> elements, not image nodes inside an SVG. */
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-provider-image{
+ display:block;flex:none;width:88px;height:44px;max-width:100%;object-fit:contain;
+ filter:none;transform:none;
+}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-provider .ek-ref-provider-image{width:80px;height:40px}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-selected-provider .ek-ref-provider-image{width:84px;height:42px}
+:root[data-theme="dark"] .ds-app[data-service="payments"] .ekv3-methods .ek-ref-provider-image{
+ filter:invert(.93) hue-rotate(180deg) saturate(1.35) brightness(1.05);
+}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-account .ek-ref-logo{background:transparent!important;overflow:visible!important}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-modal .ek-ref-logo{background:transparent!important}
+.ds-app[data-service="payments"] .ekv3-methods .ek-ref-modal::backdrop{background:rgba(20,20,40,.42)!important}
+:root[data-theme="dark"] .ds-app[data-service="payments"] .ekv3-methods .ek-ref-modal::backdrop{background:rgba(5,5,10,.72)!important}
