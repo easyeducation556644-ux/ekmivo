@@ -25,3 +25,19 @@
 .ref-api-key-page .ref-dashboard .ref-api-keys-toolbar>.ref-api-realm-picker button:disabled{opacity:.45;cursor:not-allowed}
 .ref-api-key-page .ref-dashboard .ref-api-keys-toolbar>.ref-api-realm-picker button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 @media(max-width:600px){.ref-api-key-page .ref-dashboard .ref-api-keys-toolbar>.searchbox{flex-basis:100%;min-width:0}.ref-api-key-page .ref-dashboard .ref-api-keys-toolbar>.ref-api-realm-picker{margin-right:auto}}
+
+
+/* One shared RefModal drawer layout for payment documents, SMS and API credentials. */
+.ref-dashboard .ref-native-dialog.ov.dr{width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;padding:0;overflow:hidden;justify-content:flex-end;box-sizing:border-box}
+.ref-dashboard .ref-native-dialog.dr .dw{box-sizing:border-box;width:min(480px,100vw);max-width:100vw;height:100%;max-height:100dvh;min-height:0;min-width:0;margin:0;padding:0;display:flex;flex-direction:column;overflow:hidden;overflow-x:hidden;background:var(--panel);border-left:1px solid var(--line)}
+.ref-dashboard .ref-native-dialog.dr .dw>.mh{flex:none;position:relative;top:auto;z-index:1;display:flex;align-items:center;min-width:0;margin:0;padding:20px 24px;border-bottom:1px solid var(--line);background:var(--panel)}
+.ref-dashboard .ref-native-dialog.dr .dw>.mb{box-sizing:border-box;flex:1 1 auto;min-height:0;min-width:0;width:100%;margin:0;padding:20px 24px 28px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+.ref-dashboard .ref-native-dialog.dr .dw>.mf{flex:none;position:relative;bottom:auto;box-sizing:border-box;margin:0;min-width:0;padding:16px 24px calc(16px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--panel)}
+.ref-dashboard .ref-native-dialog.dr .dw>.mb *{min-width:0;max-width:100%;box-sizing:border-box}
+.ref-dashboard .ref-native-dialog.dr .dw>.mb :is(.detail-intro,.drawer-group,.kv,.keyv,p,span,b,strong,dd,dt,a,code,.mono){overflow-wrap:anywhere;word-break:break-word}
+.ref-dashboard .ref-native-dialog.dr .dw>.mb .kv{display:flex;gap:12px;align-items:flex-start;margin-left:0;margin-right:0}
+.ref-dashboard .ref-native-dialog.dr .dw>.mb .kv>span:last-child{flex:1;max-width:none;text-align:right;white-space:normal}
+.ref-dashboard .ref-native-dialog.dr .dw>.mb :is(.detail-intro,.drawer-group,.card,.keyv){margin-left:0;margin-right:0}
+.ref-dashboard .ref-native-dialog.dr .dw>.mb :is(table,pre){max-width:100%;overflow-wrap:anywhere}
+.ref-dashboard .ref-native-dialog.dr .dw>.mb .drawer-group{width:100%}
+@media(max-width:600px){.ref-dashboard .ref-native-dialog.dr .dw{width:100vw;border-left:0}.ref-dashboard .ref-native-dialog.dr .dw>.mh{padding:16px}.ref-dashboard .ref-native-dialog.dr .dw>.mb{padding:16px 16px 24px}.ref-dashboard .ref-native-dialog.dr .dw>.mf{padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px))}}
