@@ -91,3 +91,9 @@ Production ledger check: nine migrations `0069` through `0077` are recorded in t
 - The table now displays expiry, matching reference (`da93d6a`). Customers listing also uses reference Status/Details headers and actual status data (`19eed79`).
 - Production Neon READ ONLY: workspace environment census found four active Sandbox workspace entries, three active Live entries, and one suspended Live entry. No credentials created, rotated, revoked or revealed for testing.
 - Vercel deploy for `1bc3423`: READY (Next.js build). **Not yet accepted:** use an authenticated owner to issue an actual Sandbox key; copy the one-time secret; call a sandbox-only request; refresh and verify the record; rotate and revoke; check simultaneous Live key separation and viewer forbidden state. A real browser→API→DB→refresh test is required before marking this complete. GitHub Foundation CI runner startup remains separately blocked.
+
+### Reference reconciliation / API-key modal after source comparison
+
+The attached `Ekmivo_Dashboard_Premium(2).html` source defines the Customers table as Customer, Phone, Payments, **Last payment**, and an unlabeled chevron action. The separate issue screenshot differs. Following the owner's explicit rule that HTML is source of truth, commit `5331328` restores the Last payment column and chevron, undoing the earlier screenshot-driven Status/Details column changes. This is a source comparison, not an end-to-end visual acceptance.
+
+The HTML API-key create modal contains its own Sandbox/Live environment choice. Commits `7f320e1` / `fbf038e` / `1bc3423` implement the authorized realm selector, and `7a9be7c` / `909f3f1` switch to the created realm after the one-time secret is dismissed. The latter deployment reported Vercel success. Secret values remain generated server-side, never hardcoded. Real key creation/verification remains manual pending.
