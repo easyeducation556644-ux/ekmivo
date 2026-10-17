@@ -287,16 +287,27 @@ func (s *Service) HandleDocuments(w http.ResponseWriter, r *http.Request) {
 				action = "edit"
 			}
 		}
+		autoReference := res == "invoices" && action == "create" && b.Reference == ""
+		if autoReference {
+			b.Reference = "INV-PENDING"
+		}
 		if action == "create" || action == "edit" || action == "correct" {
 			if e = b.validate(res); e != nil {
 				fail(w, 422, "INVALID_DOCUMENT_FIELDS")
 				return
 			}
 		}
+		if autoReference {
+			b.Reference = ""
+		}
 		body, _ := json.Marshal(b)
 		token := s.token(ws, realm, "document:"+res+":"+key)
+		requestHash := digest(res+"|"+id+"|"+action+"|"+string(body))
 		e = s.pipelineScoped(r.Context(), ws, realm, func(tx pgx.Tx) error {
-			return tx.QueryRow(r.Context(), "SELECT pg10_write($1::uuid,$2,$3,$4::uuid,$5,$6::jsonb,$7,$8,$9,$10::uuid)", ws, realm, res, nullableID(id), action, string(body), key, digest(res+"|"+id+"|"+action+"|"+string(body)), digest(token), nullableID(actor)).Scan(&raw)
+			if autoReference {
+				return tx.QueryRow(r.Context(), "SELECT pg10_invoice_auto_create($1::uuid,$2,$3::jsonb,$4,$5,$6,$7::uuid)", ws, realm, string(body), key, requestHash, digest(token), nullableID(actor)).Scan(&raw)
+			}
+			return tx.QueryRow(r.Context(), "SELECT pg10_write($1::uuid,$2,$3,$4::uuid,$5,$6::jsonb,$7,$8,$9,$10::uuid)", ws, realm, res, nullableID(id), action, string(body), key, requestHash, digest(token), nullableID(actor)).Scan(&raw)
 		})
 	}
 	if e != nil {
