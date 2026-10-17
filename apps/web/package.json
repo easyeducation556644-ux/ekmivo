@@ -6,7 +6,7 @@
     "predev": "node scripts/sync-tokens.mjs",
     "dev": "next dev",
     "prebuild": "node scripts/sync-tokens.mjs",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint src scripts",
     "payment:generate": "node scripts/generate-payment-extensions.mjs && node scripts/generate-payment-sdk.mjs",
