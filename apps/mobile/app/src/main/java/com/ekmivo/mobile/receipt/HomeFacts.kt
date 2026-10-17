@@ -44,8 +44,9 @@ object HomeContent {
 /** Call on Dispatchers.IO. Never display sample values when storage is empty. */
 fun homeData(context:Context):HomeData=runCatching{
  ReceiptStore(context.applicationContext).use{store->
-  val room=ReceivedSmsRoom.get(context.applicationContext).messages()
-   .unacknowledged(500).associateBy{it.id}
+  val dao=ReceivedSmsRoom.get(context.applicationContext).messages()
+  val lastAckAt=dao.latestAckAt()
+  val room=dao.unacknowledged(500).associateBy{it.id}
   val history=store.recent(120)
   val entries=history.map{r->
    val id=r.optString("id");val sms=r.optString("evidence");val stage=room[id]
@@ -61,8 +62,8 @@ fun homeData(context:Context):HomeData=runCatching{
   val forwarded=entries.filter{it.state==FeedState.SENT}
   val numeric=forwarded.mapNotNull{it.amount?.toDoubleOrNull()}
   HomeData(
-   entries,forwarded.size,store.count(),entries.count{it.state==FeedState.FAILED},
-   forwarded.maxOfOrNull{it.timestamp},
+   entries,forwarded.size,store.count(),room.values.count{it.status=="failed"},
+   lastAckAt,
    if(forwarded.isNotEmpty()&&numeric.size==forwarded.size)numeric.sum() else null
   )
  }

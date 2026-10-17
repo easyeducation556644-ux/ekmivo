@@ -159,7 +159,7 @@ fun EkmivoLiveHome(bn:Boolean,state:ConnectionState,needsAttention:Boolean,onFix
     Text(when{
      data==null->if(bn)"SMS লোড হচ্ছে" else "Loading SMS"
      current.unavailable->if(bn)"রিসিপ্টের তথ্য পাওয়া যায়নি" else "Receipt history unavailable"
-     current.lastForwarded==null->if(bn)"এখনো কোনো SMS পাঠানো হয়নি" else "No SMS forwarded yet"
+     current.lastForwarded==null->if(bn)"পাঠানোর সর্বশেষ সময় জানা নেই" else "Last forwarding time unavailable"
      else->(if(bn)"শেষ SMS পাঠানো হয়েছে " else "Last SMS forwarded ")+relative(current.lastForwarded,bn)
     },style=EkmivoType.heroNote,color=p.secondary,textAlign=TextAlign.Center)
    }
@@ -168,7 +168,7 @@ fun EkmivoLiveHome(bn:Boolean,state:ConnectionState,needsAttention:Boolean,onFix
    Row(Modifier.fillMaxWidth().padding(start=16.dp,end=16.dp,top=12.dp,bottom=4.dp),
     horizontalArrangement=Arrangement.spacedBy(8.dp)){
     HomeStat(digits(current.acknowledged.toString(),bn),
-     if(bn)"পাঠানো" else "Forwarded",false,Modifier.weight(1f)){filter=null}
+     if(bn)"সম্প্রতি" else "Recent sent",false,Modifier.weight(1f)){filter=null}
     HomeStat(digits(current.pending.toString(),bn),
      if(bn)"অপেক্ষায়" else "Pending",false,Modifier.weight(1f)){
      filter=if(filter==FeedState.PENDING)null else FeedState.PENDING
@@ -191,11 +191,13 @@ fun EkmivoLiveHome(bn:Boolean,state:ConnectionState,needsAttention:Boolean,onFix
   if(pendingRows.isEmpty())item{
    Column(Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=24.dp),
     horizontalAlignment=Alignment.CenterHorizontally){
-    Text(if(bn)"এখনো কোনো SMS নেই" else "No payment SMS yet",
+    Text(if(current.unavailable)(if(bn)"SMS তালিকা পাওয়া যায়নি" else "Receipt history unavailable")
+      else (if(bn)"এখনো কোনো SMS নেই" else "No payment SMS yet"),
      style=EkmivoType.shop,color=p.text)
     Spacer(Modifier.height(6.dp))
-    Text(if(bn)"পেমেন্টের SMS এলে এখানে পাঠানোর অবস্থা দেখা যাবে।"
-     else "Incoming payment SMS and forwarding status appear here.",
+    Text(if(current.unavailable)(if(bn)"আবার অ্যাপ খুলে দেখুন।" else "Reopen the app to retry.")
+     else (if(bn)"পেমেন্টের SMS এলে এখানে পাঠানোর অবস্থা দেখা যাবে।"
+     else "Incoming payment SMS and forwarding status appear here."),
      style=EkmivoType.body,color=p.secondary,textAlign=TextAlign.Center)
    }
   }else items(pendingRows,key={it.id}){receipt->
