@@ -135,3 +135,20 @@ The HTML API-key create modal contains its own Sandbox/Live environment choice. 
 - **PASS in isolated Neon Sandbox, rolled back:** both Draft and Void invoice capabilities were rejected by `pg10_visit` (no checkout intents), while their public preview can be read after migration 0080; sanitization removes private_notes.
 - Go source test `backend/internal/checkout/invoice_delivery_test.go` now checks escaping and Paid-vs-Pay in generated invoice email. It has **not been executed** because no Go CI runner was allocated.
 - Migrations 0078, 0079, 0080 ledger checksum/readiness checked in both production Live and Sandbox financial DBs. All changed Go/Next code awaits fresh compile/build, not an acceptance pass. Vercel reported deployment failure due to subscription `build-rate-limit` rather than compiler output; GitHub Foundation jobs did not run.
+
+
+### Follow-up continuation after canonical routing correction — 2026-10-17
+
+Additional source fixes on `main`:
+- `ff84733` fixes invoice email URL contract-test fixtures to the current language-neutral public routes; no `/en` or `/bn` path prefixes are used.
+- `9681700` allows saved raster data URI logos in the hosted invoice (PNG/JPEG/WebP only).
+- `3402a3d` preserves the existing ability to email a fully paid *issued* invoice; the HTML template displays verified confirmation, not a Pay CTA.
+- `9dca7e3`, `b6c6a68`, `6497aa1` add persisted Checkout Theme merchant title/validated logo, issue date and recipient details to HTML invoice email while preserving text fallback; no database schema change.
+- `ba41bac`, `76d866f` change Invoice Print to use the public invoice page, not the dashboard drawer, and invoke print after public invoice data loads.
+- `7ec0d50` styles read-only invoice financial summary and separately grouped invoice payment capabilities using existing dashboard color and spacing tokens.
+
+**Observed deploy/build evidence:** Connected Render service `ekmivo-go-api` auto-deploys from `main`. Deploy `dep-db9hdvv2d8hs73d7c8hg` at commit `6497aa1` reached **live** with a successful Go build log. This is Go binary compilation/deployment, **not** `go test` passing. The latest web commits remain blocked by Vercel `build-rate-limit` (not a compiler failure), and GitHub Foundation workflow jobs failed at runner setup before any test steps.
+
+**Read-only production database evidence:** Live: 1 issued invoice, 1 linked invoice intent, 0 verified invoice allocations; Sandbox: 0 issued invoices and 0 verified allocations. Thus there is **no** real verified invoice receipt in these databases with which to demonstrate end-to-end Paid sync. The sandbox rollback database contract checks were successful in earlier sections, but they are not live receipt/checkout E2E tests. Live/Sandbox production ledger entries for `0078`–`0081` are present with matching SHA-256 values.
+
+**Release blockers still open:** authenticated browser visual comparison and interactive behavior for all original pages, Next.js production build/lint/type-check, Go unit and integration tests, SMTP delivery to a real inbox and provider-verified invoice payment lifecycle. No 100% acceptance claim.
