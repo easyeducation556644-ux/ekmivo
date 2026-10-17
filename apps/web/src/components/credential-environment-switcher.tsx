@@ -10,7 +10,7 @@ export function CredentialEnvironmentSwitcher({locale,userId,workspaceId,initial
  const available=enabled.includes(realm);
  return <div className="ref-credentials-environments">
   <div className="seg" role="group" aria-label={locale==="bn"?"API key পরিবেশ":"API key environment"} style={{display:"inline-flex",margin:"0 0 16px"}}>
-   {(["sandbox","live"] as const).map(environment=><button key={environment} type="button" className={realm===environment?"on":""} aria-pressed={realm===environment} onClick={()=>setRealm(environment)}>{environment==="sandbox"?"Sandbox":"Live"}</button>)}
+   {(["sandbox","live"] as const).map(environment=><button key={environment} type="button" className={realm===environment?"on":""} aria-pressed={realm===environment} onClick={()=>setRealm(environment)}>{environment==="sandbox"?(locale==="bn"?"স্যান্ডবক্স":"Sandbox"):(locale==="bn"?"লাইভ":"Live")}</button>)}
   </div>
   {available&&realm==="sandbox"&&<p className="notice" role="status">{locale==="bn"?"Sandbox key দিয়ে শুধু পরীক্ষামূলক ডেটা ব্যবহার করা যায়। এখানে আসল টাকা লেনদেন হয় না।":"Sandbox keys use test data. No real money is involved."}</p>}
   {!available?<div className="notice ref-errors" role="status">{locale==="bn"?`${realm==="sandbox"?"Sandbox":"Live"} পরিবেশটি এই workspace-এ সক্রিয় নেই। এটি চালু হলে এখানে API key তৈরি করা যাবে।`:`${realm==="sandbox"?"Sandbox":"Live"} environment is not active for this workspace. Enable it before issuing keys.`}</div>:<>
