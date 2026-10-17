@@ -23,7 +23,7 @@ function DocumentActions({row,kind,canWrite,canManage,busy,t,onEdit:edit,onDupli
   {kind==="invoices"&&canManage&&row.status==="issued"&&<><button className="ib" disabled={busy} onClick={()=>setConfirming({mode:"send",row})}>{t("Send invoice","ইনভয়েস পাঠান")}</button><button className="ib" disabled={busy} onClick={()=>setConfirming({mode:"remind",row})}>{t("Send reminder","রিমাইন্ডার পাঠান")}</button></>}
   {kind==="invoices"&&canWrite&&["draft","issued"].includes(row.status)&&<button className="ib dg" disabled={busy||row.paid_minor>0} onClick={()=>setConfirming({mode:"cancel",row})}>{t("Cancel invoice","ইনভয়েস বাতিল")}</button>}
   {row.public_token&&["active","issued"].includes(row.status)&&<><Link className="ib" href={publicPath(row)} target="_blank">{t("Open checkout","চেকআউট খুলুন")}</Link><button className="ib" onClick={()=>void copy(location.origin+publicPath(row))}>{t("Copy link","লিংক কপি")}</button></>}
-  {kind==="invoices"&&<button className="ib" onClick={()=>window.print()}>{t("Print","প্রিন্ট")}</button>}
+  {kind==="invoices"&&row.public_token&&<Link className="ib" href={publicPath(row)+"?print=1"} target="_blank" rel="noopener noreferrer">{t("Print","প্রিন্ট")}</Link>}
  </>}
 
 export function PaymentDocuments({kind,workspaceId,environment,locale,userId,canWrite,canManage,detailId}:{kind:Kind;workspaceId:string;environment:string;locale:"en"|"bn";userId:string;canWrite:boolean;canManage:boolean;detailId?:string}){
