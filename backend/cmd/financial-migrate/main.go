@@ -295,7 +295,7 @@ func main() {
   ctx,cancel:=context.WithTimeout(context.Background(),3*time.Minute)
   defer cancel()
   if err:=migrateDashboardReference(ctx);err!=nil {log.Fatal(err)}
-  log.Print("Dashboard reference migrations 0069–0077 verified; no base migrations executed")
+  log.Print("Dashboard reference migrations 0069–0081 verified; no base migrations executed")
   return
  }
 
