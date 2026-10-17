@@ -291,6 +291,14 @@ func migratePG05Control(ctx context.Context, raw, filename string) error {
 }
 
 func main() {
+ if os.Getenv("DASHBOARD_REFERENCE_ALLOW_MIGRATION") == "true" {
+  ctx,cancel:=context.WithTimeout(context.Background(),3*time.Minute)
+  defer cancel()
+  if err:=migrateDashboardReference(ctx);err!=nil {log.Fatal(err)}
+  log.Print("Dashboard reference migrations 0069–0077 verified; no base migrations executed")
+  return
+ }
+
 	if os.Getenv("PAYMENT_PLANS_ALLOW_MIGRATION") == "true" {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 		defer cancel()

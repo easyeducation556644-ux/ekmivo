@@ -45,7 +45,7 @@ async function change(localeRaw:string,operation:Operation,_previous:KeyActionSt
  const scopes=selected.filter((v):v is string=>typeof v==="string");
  if(operation==="create" && (
   name.length<2||name.length>80||/[\u0000-\u001F\u007F]/.test(name)||
-  ![7,30,90].includes(days)||scopes.length<1||scopes.length>9||
+  ![0,7,30,90,365].includes(days)||scopes.length<1||scopes.length>9||
   new Set(scopes).size!==scopes.length||scopes.some(scope=>!SCOPES.has(scope))
  ))return error(bn,"bad");
  try{
@@ -83,7 +83,7 @@ async function change(localeRaw:string,operation:Operation,_previous:KeyActionSt
      AND occurred_at>now()-interval '1 hour'`;
     if(Number(recent[0].total)>=10)return {code:"limit" as const};
    }
-   let nextName=name,nextScopes=scopes,nextExpires=new Date(Date.now()+days*86400000);
+   let nextName=name,nextScopes=scopes,nextExpires:Date|string=days===0?"infinity":new Date(Date.now()+days*86400000);
    if(operation!=="create"){
     const existing=await tx`SELECT id,name,scopes,expires_at,revoked_at FROM merchant_api_keys
      WHERE id=${oldId}::uuid AND workspace_id=${workspace}::uuid AND environment=${environment}
@@ -91,7 +91,7 @@ async function change(localeRaw:string,operation:Operation,_previous:KeyActionSt
     if(existing.length!==1||existing[0].revoked_at||new Date(existing[0].expires_at).getTime()<=Date.now())return {code:"missing" as const};
     nextName=String(existing[0].name);
     nextScopes=[...existing[0].scopes] as string[];
-    nextExpires=new Date(existing[0].expires_at);
+    nextExpires=String(existing[0].expires_at)==="infinity"?"infinity":new Date(existing[0].expires_at);
     await tx`UPDATE merchant_api_keys SET revoked_at=now() WHERE id=${oldId}::uuid AND revoked_at IS NULL`;
     await tx`INSERT INTO merchant_api_key_audit(workspace_id,environment,key_id,actor_id,action)
      VALUES(${workspace}::uuid,${environment},${oldId}::uuid,${actor.id}::uuid,${operation==="rotate"?"rotated":"revoked"})`;

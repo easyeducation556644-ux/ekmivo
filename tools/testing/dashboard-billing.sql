@@ -1,0 +1,52 @@
+-- Isolated Neon branch only. Synthetic billing proofs exercise the database
+-- contract, not real wallet transfers or production payment acceptance.
+DO $test$
+DECLARE a uuid:=gen_random_uuid();outsider uuid:=gen_random_uuid();w uuid:=gen_random_uuid();w2 uuid:=gen_random_uuid();suffix text:=left(replace(gen_random_uuid()::text,'-',''),10);
+ low text;high text;free_plan text;t jsonb;invoice jsonb;q jsonb;again jsonb;effective jsonb;before_end timestamptz;proof uuid:=gen_random_uuid();BEGIN
+ low:='ui-low-'||suffix;high:='ui-high-'||suffix;free_plan:='ui-free-'||suffix;
+ INSERT INTO app_users(id,email,display_name,password_hash) VALUES(a,'dashboard-'||suffix||'@example.invalid','Dashboard billing verification','invalid-test-only'),(outsider,'dashboard-outside-'||suffix||'@example.invalid','Outside test user','invalid-test-only');
+ INSERT INTO platform_administrators(user_id,role) VALUES(a,'super_admin');
+ INSERT INTO workspaces(id,name,service_mode,created_by) VALUES(w,'Dashboard billing verification '||suffix,'commerce',a),(w2,'Dashboard upgrade verification '||suffix,'commerce',a);
+ INSERT INTO workspace_members(workspace_id,user_id,role) VALUES(w,a,'owner'),(w2,a,'owner');
+ t:=jsonb_build_object('name','Verification plan','name_bn','পরীক্ষার প্ল্যান','description','','description_bn','','kind','paid','amount_minor',10000,'period_days',30,'grace_days',0,'free_days',NULL,'payment_limit',500,'quota_period','billing','active_checkout_limit',20,'create_per_minute',120,'features',jsonb_build_object('invoices',true,'payment_links',true,'reports',true,'exports',true),'limits',jsonb_build_object('api_keys',NULL,'team_members',NULL,'devices',NULL,'payment_methods',NULL),'badge','','badge_bn','','contact_url','');
+ PERFORM payment_plan_admin(a,'save',jsonb_build_object('id',low,'terms',t,'status','published','visibility','public','reason','Isolated dashboard billing verification'));
+ PERFORM payment_plan_admin(a,'save',jsonb_build_object('id',high,'terms',t||'{"amount_minor":25000,"payment_limit":2000}'::jsonb,'status','published','visibility','public','reason','Isolated dashboard billing verification'));
+ PERFORM payment_plan_admin(a,'save',jsonb_build_object('id',free_plan,'terms',t||'{"kind":"free","amount_minor":0,"payment_limit":50}'::jsonb,'status','published','visibility','public','reason','Isolated dashboard billing verification'));
+ invoice:=pg13_billing_issue(w,a,high,'initial-high-'||suffix);
+ PERFORM pg13_billing_verified(w,(invoice->>'id')::uuid,proof,25000,now());
+ before_end:=(SELECT paid_until FROM pg13_subscriptions WHERE workspace_id=w);
+ PERFORM dashboard_billing_change(w,a,low);
+ IF NOT EXISTS(SELECT 1 FROM pg13_subscriptions WHERE workspace_id=w AND plan_id=high AND next_version_id IS NOT NULL AND paid_until=before_end) THEN RAISE EXCEPTION 'Downgrade changed current entitlement';END IF;
+ BEGIN PERFORM dashboard_billing_quote(w,a,low,1);RAISE EXCEPTION 'Early paid downgrade accepted';EXCEPTION WHEN check_violation THEN NULL;END;
+ PERFORM dashboard_billing_change(w,a,NULL,true);
+ IF EXISTS(SELECT 1 FROM pg13_subscriptions WHERE workspace_id=w AND next_version_id IS NOT NULL) THEN RAISE EXCEPTION 'Undo failed';END IF;
+ q:=dashboard_billing_quote(w,a,high,3);
+ IF (q->>'amount_minor')::bigint<>75000 OR (q->>'cycle_count')::integer<>3 THEN RAISE EXCEPTION 'Renewal quote mismatch';END IF;
+ invoice:=dashboard_billing_issue(w,a,(q->>'id')::uuid,'renewal-three-'||suffix);
+ again:=dashboard_billing_issue(w,a,(q->>'id')::uuid,'renewal-three-'||suffix);
+ IF invoice->>'id'<>again->>'id' THEN RAISE EXCEPTION 'Duplicate invoice issued';END IF;
+ proof:=gen_random_uuid();PERFORM pg13_billing_verified(w,(invoice->>'id')::uuid,proof,75000,now());
+ IF (SELECT paid_until FROM pg13_subscriptions WHERE workspace_id=w)<>before_end+interval '90 days' THEN RAISE EXCEPTION 'Renewal did not extend exact paid term';END IF;
+ before_end:=(SELECT paid_until FROM pg13_subscriptions WHERE workspace_id=w);
+ PERFORM pg13_billing_verified(w,(invoice->>'id')::uuid,proof,75000,now());
+ IF (SELECT paid_until FROM pg13_subscriptions WHERE workspace_id=w)<>before_end THEN RAISE EXCEPTION 'Duplicate proof extended twice';END IF;
+ invoice:=pg13_billing_issue(w2,a,low,'initial-low-'||suffix);
+ PERFORM pg13_billing_verified(w2,(invoice->>'id')::uuid,gen_random_uuid(),10000,now());
+ before_end:=(SELECT paid_until FROM pg13_subscriptions WHERE workspace_id=w2);
+ q:=dashboard_billing_quote(w2,a,high,1);
+ IF q->>'operation'<>'upgrade' OR (q->>'amount_minor')::bigint NOT BETWEEN 14999 AND 15000 OR (q->>'entitlement_end')::timestamptz<>before_end THEN RAISE EXCEPTION 'Proration quote mismatch';END IF;
+ invoice:=dashboard_billing_issue(w2,a,(q->>'id')::uuid,'upgrade-'||suffix);
+ PERFORM pg13_billing_verified(w2,(invoice->>'id')::uuid,gen_random_uuid(),(q->>'amount_minor')::bigint,now());
+ IF (SELECT paid_until FROM pg13_subscriptions WHERE workspace_id=w2)<>before_end OR (SELECT plan_id FROM pg13_subscriptions WHERE workspace_id=w2)<>high THEN RAISE EXCEPTION 'Upgrade changed paid term';END IF;
+ q:=dashboard_billing_quote(w2,a,high,1);PERFORM dashboard_billing_change(w2,a,low);
+ BEGIN PERFORM dashboard_billing_issue(w2,a,(q->>'id')::uuid,'stale-'||suffix);RAISE EXCEPTION 'Stale quote accepted';EXCEPTION WHEN serialization_failure THEN NULL;END;
+ BEGIN PERFORM dashboard_billing_change(w,outsider,low);RAISE EXCEPTION 'Outside member changed plan';EXCEPTION WHEN insufficient_privilege THEN NULL;END;
+ PERFORM dashboard_billing_change(w,a,free_plan);
+ UPDATE pg13_subscriptions SET paid_until=now()-interval '1 second',grace_until=now()-interval '1 second' WHERE workspace_id=w;
+ effective:=payment_plan_effective(w);
+ IF effective->>'plan_id'<>free_plan OR effective->>'access_until'<>'infinity' OR effective->>'active'<>'true' THEN RAISE EXCEPTION 'Scheduled free plan failed';END IF;
+ IF (SELECT count(*) FROM payment_subscription_audit WHERE workspace_id=w AND action='subscription.scheduled_free')<>1 THEN RAISE EXCEPTION 'Scheduled free audit missing';END IF;
+ PERFORM payment_plan_effective(w);
+ IF (SELECT count(*) FROM payment_subscription_audit WHERE workspace_id=w AND action='subscription.scheduled_free')<>1 THEN RAISE EXCEPTION 'Schedule applied twice';END IF;
+ RAISE NOTICE 'PASS: scheduled downgrade, existing-term preservation, undo, three-cycle renewal, invoice replay, verified-proof replay, prorated upgrade, stale quote rejection, tenant authorization, period-end free switch once';
+END $test$;

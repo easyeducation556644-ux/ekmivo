@@ -82,12 +82,15 @@ func (s *Service) HandleNotifications(w http.ResponseWriter, r *http.Request) {
 			return tx.QueryRow(r.Context(), "SELECT pg13_notification_list($1::uuid,$2,$3::uuid)", ws, realm, actor).Scan(&raw)
 		})
 	} else {
-		if !originAllowed(r) || !uuidPattern.MatchString(r.PathValue("notificationID")) {
+		if !originAllowed(r) || (r.PathValue("notificationID") != "all" && !uuidPattern.MatchString(r.PathValue("notificationID"))) {
 			fail(w, 403, "ACTION_DENIED")
 			return
 		}
 		var accepted bool
 		e = s.pipelineScoped(r.Context(), ws, realm, func(tx pgx.Tx) error {
+			if r.PathValue("notificationID") == "all" {
+				return tx.QueryRow(r.Context(), "SELECT pg13_notification_read_all($1::uuid,$2,$3::uuid)", ws, realm, actor).Scan(&accepted)
+			}
 			return tx.QueryRow(r.Context(), "SELECT pg13_notification_read($1::uuid,$2,$3::uuid,$4::uuid)", ws, realm, r.PathValue("notificationID"), actor).Scan(&accepted)
 		})
 		raw = []byte(`{"read":true}`)

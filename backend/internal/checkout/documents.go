@@ -665,11 +665,16 @@ func (s *Service) HandlePublicDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		Fields   map[string]any `json:"fields"`
-		Quantity int            `json:"quantity"`
+		Fields          map[string]any    `json:"fields"`
+		CustomerDetails map[string]string `json:"customer_details"`
+		Quantity        int               `json:"quantity"`
 	}
 	if decodeBounded(w, r, &b, 49152) != nil || validateFieldValues(doc.Body.Fields, b.Fields) != nil {
 		fail(w, 422, "INVALID_CUSTOM_FIELDS")
+		return
+	}
+	if validateCheckoutCustomerDetails(business.Brand, b.CustomerDetails) != nil {
+		fail(w, 422, "INVALID_CUSTOMER_DETAILS")
 		return
 	}
 	if b.Quantity == 0 {
@@ -685,6 +690,9 @@ func (s *Service) HandlePublicDocument(w http.ResponseWriter, r *http.Request) {
 	}
 	if b.Fields == nil {
 		b.Fields = map[string]any{}
+	}
+	if len(b.CustomerDetails) > 0 {
+		b.Fields["_customer_details"] = b.CustomerDetails
 	}
 	b.Fields["_quantity"] = b.Quantity
 	fields, _ := json.Marshal(b.Fields)

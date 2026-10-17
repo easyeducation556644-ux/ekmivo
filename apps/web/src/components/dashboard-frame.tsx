@@ -74,6 +74,7 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
   document.addEventListener("keydown",onEscape);document.addEventListener("mousedown",onOutside);
   return()=>{document.removeEventListener("keydown",onEscape);document.removeEventListener("mousedown",onOutside)};
  },[]);
+ const [unreadNotifications,setUnreadNotifications]=useState(0);
  const groups=navigation[service];
  const foundGroups=searchableNavigation(service,globalQuery);
  const foundKeys=foundGroups.flatMap(group=>group.items);
@@ -311,8 +312,8 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
      <button type="button" className="ds-global-search-button" aria-label={bn?"পৃষ্ঠা, ব্যবসা বা পেমেন্ট রেকর্ড খুঁজুন":"Search pages, businesses or payment records"} onClick={()=>{searchReturnFocus.current=document.activeElement instanceof HTMLElement?document.activeElement:null;setSearchOpen(true);setGlobalQuery("");setActiveResult(0);}}><Icon name="search"/><span>{bn?"খুঁজুন":"Search"}</span><kbd>⌘ K</kbd></button>
      <SiteControls locale={locale} initialTheme={theme} compactThemeToggle/>
      <details className="ds-notifications" open={noticeOpen} onToggle={event=>setNoticeOpen(event.currentTarget.open)}>
-      <summary className="ds-icon-button" aria-label={bn?"নোটিফিকেশন":"Notifications"}><Icon name="bell"/></summary>
-      <div className="ds-notifications-menu">{service==="payments"&&paymentContext?<PaymentNotifications key={workspace.id+paymentContext.environment} locale={locale} workspaceId={workspace.id} environment={paymentContext.environment} open={noticeOpen}/>:<p>{bn?"এই সেবার নোটিফিকেশন এখনো সংযুক্ত হয়নি।":"Notifications for this service are not connected yet."}</p>}</div>
+      <summary className="ds-icon-button" aria-label={bn?"নোটিফিকেশন":"Notifications"}><Icon name="bell"/>{unreadNotifications>0&&<span className="ref-notification-dot"/>}</summary>
+      <div className="ref-notification-anchor">{service==="payments"&&paymentContext?<PaymentNotifications key={workspace.id+paymentContext.environment} locale={locale} workspaceId={workspace.id} environment={paymentContext.environment} open={noticeOpen} onUnread={setUnreadNotifications}/>:<p>{bn?"এই সেবার নোটিফিকেশন এখনো সংযুক্ত হয়নি।":"Notifications for this service are not connected yet."}</p>}</div>
      </details>
      <Link className="ds-help-link" href={contextHref("help")} aria-label={bn?"সহায়তা":"Help"}><Icon name="help"/></Link>
      <details className="ds-profile-menu">

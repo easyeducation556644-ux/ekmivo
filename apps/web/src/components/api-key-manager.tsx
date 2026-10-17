@@ -1,175 +1,46 @@
 "use client";
-import {useActionState,useEffect,useRef,useState} from "react";
+import {useActionState,useCallback,useEffect,useRef,useState} from "react";
 import {registerDraft} from "../lib/client/draft-navigation";
-import {DashboardIcon} from "./dashboard-icon";
-import {useFormStatus} from "react-dom";
 import {createMerchantKey,rotateMerchantKey,revokeMerchantKey,type KeyActionState} from "../actions/merchant-keys";
+import {RefIcon,RefModal,RefStatus} from "./reference-ui";
 import type {Locale,PaymentEnvironment} from "../lib/dashboard-navigation";
-
-export type ApiKeyRow={
- id:string;publicId:string;name:string;scopes:string[];expired:boolean;
- createdAt:string;expiresAt:string;revokedAt:string|null;lastUsedAt:string|null
-};
+export type ApiKeyRow={id:string;publicId:string;name:string;scopes:string[];expired:boolean;createdAt:string;expiresAt:string;revokedAt:string|null;lastUsedAt:string|null};
 const initial:KeyActionState={status:"idle",message:""};
-const possibleScopes=[
- "payments:read","payments:write","customers:read","customers:write",
- "invoices:read","invoices:write","refunds:read","refunds:write","webhooks:manage"
-];
-function SaveButton({label}:{label:string}){
- const {pending}=useFormStatus();
- return <button className="ek-action" type="submit" disabled={pending} aria-busy={pending}>
-  {pending?"…":label}
- </button>;
-}
-function SecretOnce({secret,locale}:{secret:string;locale:Locale}){
- const [hidden,setHidden]=useState(false);
- const [copied,setCopied]=useState(false);
- const bn=locale==="bn";
- if(hidden)return <p role="status">{bn?"গোপন কীটি বন্ধ করা হয়েছে। পৃষ্ঠা ছাড়ার পর আর দেখা যাবে না।":"Secret hidden. It cannot be recovered after leaving this page."}</p>;
- return <div className="ds-key-secret" role="status">
-  <strong>{bn?"এই কী আর কখনো দেখানো হবে না।":"You will not see this key again."}</strong>
-  <code>{secret}</code>
-  <div className="ds-key-actions">
-   <button type="button" onClick={async()=>{try{await navigator.clipboard.writeText(secret);setCopied(true);}catch{setCopied(false);}}}>{copied?(bn?"কপি হয়েছে":"Copied"):(bn?"কপি করুন":"Copy key")}</button>
-   <button type="button" onClick={()=>{setHidden(true);setCopied(false);}}>{bn?"লুকান":"Hide secret"}</button>
-  </div>
-  <small>{bn?"Server-side environment variable বা secret manager-এ রাখুন। Browser storage, URL বা public frontend-এ রাখবেন না।":"Keep this in a server-side secret manager. Never store it in URLs, browser storage or public frontend code."}</small>
- </div>;
-}
-function Result({state,locale}:{state:KeyActionState;locale:Locale}){
- return <>{state.status!=="idle"&&<p className={state.status==="error"?"ek-form-error":"ek-account-success"} role={state.status==="error"?"alert":"status"}>{state.message}</p>}
- {state.status==="success"&&state.rawSecret&&<SecretOnce key={state.keyId} secret={state.rawSecret} locale={locale}/>}</>;
-}
-function KeyControls({locale,workspaceId,environment,keyItem}:{locale:Locale;workspaceId:string;environment:PaymentEnvironment;keyItem:ApiKeyRow}){
- const [rotate,rotateAction]=useActionState(rotateMerchantKey.bind(null,locale),initial);
- const [revoke,revokeAction]=useActionState(revokeMerchantKey.bind(null,locale),initial);
- const [operation,setOperation]=useState<"rotate"|"revoke"|null>(null);
- const dialog=useRef<HTMLDialogElement>(null),bn=locale==="bn";
- const inactive=!!keyItem.revokedAt||keyItem.expired;
- useEffect(()=>{const d=dialog.current;if(operation&&!d?.open)d?.showModal();if(!operation&&d?.open)d.close()},[operation]);
- if(inactive)return <span className="ek-key-inactive">—</span>;
- const chosen=operation==="rotate"?rotateAction:revokeAction;
- const state=operation==="rotate"?rotate:revoke;
- return <div className="ek-key-row-actions">
-  <details className="ekv3-row-menu"><summary aria-label={bn?"Key-এর অপশন":"Key actions"} title={bn?"অপশন":"Actions"}>⋯</summary><div className="ekv3-row-popover"><button type="button" onClick={e=>{e.currentTarget.closest("details")?.removeAttribute("open");setOperation("rotate")}}>{bn?"রোটেট":"Rotate"}</button><button type="button" className="ekv3-danger-menu" onClick={e=>{e.currentTarget.closest("details")?.removeAttribute("open");setOperation("revoke")}}>{bn?"বাতিল করুন":"Revoke"}</button></div></details>
-  <dialog ref={dialog} className="ekv2-export-dialog ek-key-confirm-dialog" aria-label={bn?"নিশ্চিত করুন":"Confirm key action"} onClose={()=>setOperation(null)} onClick={e=>{if(e.target===e.currentTarget)setOperation(null)}}>
-   {operation&&<form action={chosen} className="ds-key-confirm">
-    <h2>{operation==="rotate"?(bn?"Key রোটেট করুন":"Rotate key"):(bn?"Key বাতিল করুন":"Revoke key")}</h2>
-    <p>{operation==="rotate"?(bn?"আগের key বাতিল হবে এবং নতুন key একবার দেখানো হবে।":"The old key will be revoked. A new key is shown once."):(bn?"এই key ব্যবহারকারী অ্যাপগুলো সঙ্গে সঙ্গে কাজ করা বন্ধ করবে।":"Applications using this key stop working immediately.")}</p>
-    <input type="hidden" name="workspaceId" value={workspaceId}/><input type="hidden" name="environment" value={environment}/><input type="hidden" name="keyId" value={keyItem.id}/>
-    <label>{bn?"বর্তমান পাসওয়ার্ড":"Current password"}<input name="password" type="password" required autoComplete="current-password" maxLength={256}/></label>
-    <div className="ek-key-confirm-actions"><button type="button" onClick={()=>setOperation(null)}>{bn?"বাতিল":"Cancel"}</button><SaveButton label={operation==="revoke"?(bn?"Key বাতিল নিশ্চিত":"Confirm revoke"):(bn?"Key রোটেট করুন":"Rotate key")}/></div>
-    <Result state={state} locale={locale}/>
-   </form>}
-  </dialog>
- </div>;
-}
-export function ApiKeyManager({locale,userId,workspaceId,environment,keys}:{
- locale:Locale;userId:string;workspaceId:string;environment:PaymentEnvironment;keys:ApiKeyRow[]
-}){
- const [state,action]=useActionState(createMerchantKey.bind(null,locale),initial);
- const [showCreate,setShowCreate]=useState(false),bn=locale==="bn";
- const createDialog=useRef<HTMLDialogElement>(null),detailsDialog=useRef<HTMLDialogElement>(null);
- const [selected,setSelected]=useState<ApiKeyRow|null>(null);
- const [draftName,setDraftName]=useState("");
- const [draftExpiry,setDraftExpiry]=useState("30");
- const [draftScopes,setDraftScopes]=useState<string[]>(["payments:read"]);
- const [saved,setSaved]=useState({name:"",expiresDays:"30",scopes:["payments:read"] as string[]});
- const [draftNotice,setDraftNotice]=useState("");
- const key=`ekmivo:pg03-key-draft:v1:${userId}:${workspaceId}:${environment}`;
- const draft={name:draftName,expiresDays:draftExpiry,scopes:draftScopes};
- const dirty=showCreate && (
-  draft.name!==saved.name||draft.expiresDays!==saved.expiresDays||
-  draft.scopes.join(",")!==saved.scopes.join(",")
- );
- const saveDraft=()=>{
-  try{
-   // Never persist passwords, bearer tokens, key IDs or response secrets.
-   window.sessionStorage.setItem(key,JSON.stringify(draft));
-   setSaved({name:draftName,expiresDays:draftExpiry,scopes:[...draftScopes]});
-   setDraftNotice(bn?"শুধু নাম, মেয়াদ ও অনুমতি এই ট্যাবে রাখা হয়েছে।":"Only the name, expiry and scopes were saved in this tab.");
-   return true;
-  }catch{
-   setDraftNotice(bn?"এই ট্যাবে খসড়া রাখা যাচ্ছে না।":"This tab cannot save drafts.");
-   return false;
-  }
- };
- const discardDraft=()=>{
-  try{window.sessionStorage.removeItem(key);}catch{/* Optional storage. */}
-  setDraftName("");setDraftExpiry("30");setDraftScopes(["payments:read"]);
-  setSaved({name:"",expiresDays:"30",scopes:["payments:read"]});
-  setDraftNotice(bn?"খসড়া বাতিল করা হয়েছে।":"Draft discarded.");
- };
- const restoreDraft=()=>{
-  try{
-   const value=window.sessionStorage.getItem(key);
-   if(!value)throw Error("missing");
-   const parsed=JSON.parse(value) as {name?:unknown;expiresDays?:unknown;scopes?:unknown};
-   if(typeof parsed.name!=="string"||parsed.name.length>80||
-    !["7","30","90"].includes(String(parsed.expiresDays))||
-    !Array.isArray(parsed.scopes)||parsed.scopes.some(x=>typeof x!=="string"||!possibleScopes.includes(x))
-   )throw Error("invalid");
-   const next={name:parsed.name,expiresDays:String(parsed.expiresDays),scopes:parsed.scopes as string[]};
-   setDraftName(next.name);setDraftExpiry(next.expiresDays);setDraftScopes(next.scopes);setSaved(next);
-   setDraftNotice(bn?"খসড়া ফিরিয়ে আনা হয়েছে।":"Draft restored.");
-  }catch{setDraftNotice(bn?"বৈধ খসড়া পাওয়া যায়নি।":"No valid draft found.");}
- };
- useEffect(()=>{
-  return registerDraft({
-   id:`pg03-key:${userId}:${workspaceId}:${environment}`,
-   isDirty:()=>dirty,
-   save:async()=>saveDraft(),
-   discard:discardDraft
-  });
- });
- useEffect(()=>{const d=createDialog.current;if(showCreate&&!d?.open)d?.showModal();if(!showCreate&&d?.open)d.close()},[showCreate]);
- const openDetails=(keyItem:ApiKeyRow)=>{setSelected(keyItem);detailsDialog.current?.showModal()};
- const showDate=(raw:string)=>new Intl.DateTimeFormat(bn?"bn-BD-u-nu-latn":"en-US",{timeZone:"Asia/Dhaka",dateStyle:"medium"}).format(new Date(raw));
- return <div className="ds-api-key-manager">
-  <div className="ds-panel-heading ek-key-toolbar">
-   <button className="ek-action" type="button" onClick={()=>setShowCreate(!showCreate)} aria-expanded={showCreate}>
-    {showCreate?(bn?"ফর্ম বন্ধ":"Close form"):(bn?"নতুন API key":"Create API key")}
-   </button>
-  </div>
-  <dialog ref={createDialog} className="ekv2-export-dialog ek-key-create-dialog" aria-label={bn?"API key তৈরি করুন":"Create API key"} onClose={()=>setShowCreate(false)} onClick={event=>{if(event.target===event.currentTarget)setShowCreate(false)}}>{showCreate&&<form className="ds-key-create" action={action}>
-   <input type="hidden" name="workspaceId" value={workspaceId}/>
-   <input type="hidden" name="environment" value={environment}/>
-   <label>{bn?"Key-এর নাম":"Key name"}
-    <input name="name" type="text" minLength={2} maxLength={80} required value={draftName} onChange={event=>setDraftName(event.target.value)} placeholder={bn?"যেমন: স্টোর backend":"e.g. Store backend"}/>
-   </label>
-   <label>{bn?"মেয়াদ":"Expiry"}
-    <select name="expiresDays" value={draftExpiry} onChange={event=>setDraftExpiry(event.target.value)}>
-     <option value="7">{bn?"৭ দিন":"7 days"}</option>
-     <option value="30">{bn?"৩০ দিন":"30 days"}</option>
-     <option value="90">{bn?"৯০ দিন":"90 days"}</option>
-    </select>
-   </label>
-   <fieldset><legend>{bn?"অনুমতি — শুধু প্রয়োজনীয়গুলো বেছে নিন":"Scopes — grant the minimum required"}</legend>
-    <div className="ds-key-scopes">{possibleScopes.map(scope=><label key={scope}>
-     <input name="scopes" value={scope} type="checkbox" checked={draftScopes.includes(scope)} onChange={event=>setDraftScopes(current=>event.target.checked?[...current,scope]:current.filter(x=>x!==scope))}/>
-     <code>{scope}</code>
-    </label>)}</div>
-   </fieldset>
-   <label>{bn?"নিশ্চিত করতে বর্তমান পাসওয়ার্ড":"Confirm current password"}
-    <input name="password" type="password" required autoComplete="current-password" maxLength={256}/>
-   </label>
-   <SaveButton label={bn?"API key তৈরি করুন":"Issue API key"}/>
-   <div className="ds-key-actions">
-    <button type="button" disabled={!dirty} onClick={()=>{saveDraft();}}>{bn?"খসড়া সংরক্ষণ":"Save draft"}</button>
-    <button type="button" onClick={restoreDraft}>{bn?"খসড়া ফিরিয়ে আনুন":"Restore draft"}</button>
-    <button type="button" onClick={discardDraft}>{bn?"খসড়া বাতিল":"Discard draft"}</button>
-   </div>
-   {draftNotice&&<p data-feedback="success" role="status">{draftNotice}</p>}
-   <Result state={state} locale={locale}/>
-  </form>}</dialog>
-  {!keys.length?<div className="ekv3-empty" role="status">{bn?"এই পরিবেশে কোনো key নেই।":"No API keys yet."}</div>:<div className="ekv3-table-scroller ek-key-table"><table className="ekv3-table"><thead><tr><th>{bn?"নাম":"Name"}</th><th>Key</th><th>{bn?"অনুমতি":"Scopes"}</th><th>{bn?"মেয়াদ":"Expires"}</th><th>{bn?"শেষ ব্যবহার":"Last used"}</th><th>{bn?"অবস্থা":"Status"}</th><th aria-label="Actions"/></tr></thead><tbody>
-   {keys.map(keyItem=><tr key={keyItem.id} className="ekv3-clickable" tabIndex={0} onClick={()=>openDetails(keyItem)} onKeyDown={e=>{if(e.target===e.currentTarget&&(e.key==="Enter"||e.key===" ")){e.preventDefault();openDetails(keyItem)}}}>
-    <td><strong>{keyItem.name}</strong></td>
-    <td><code className="ek-key-ref">{environment==="sandbox"?"ek_test_":"ek_live_"}{keyItem.publicId.slice(0,8)}…{keyItem.publicId.slice(-4)}</code><button type="button" className="ekv3-copy" aria-label={bn?"Public reference কপি":"Copy public reference"} title={bn?"এটি secret নয়":"Not the secret"} onClick={e=>{e.stopPropagation();void navigator.clipboard.writeText(keyItem.publicId)}}><DashboardIcon name="copy" width={16} height={16}/></button></td>
-    <td title={keyItem.scopes.join(", ")}>{keyItem.scopes.length} {bn?"স্কোপ":"scopes"}</td><td>{showDate(keyItem.expiresAt)}</td><td>{keyItem.lastUsedAt?showDate(keyItem.lastUsedAt):"—"}</td>
-    <td><span className="ekv3-status" data-tone={keyItem.revokedAt||keyItem.expired?"neutral":"success"}>{keyItem.revokedAt?(bn?"বাতিল":"Revoked"):keyItem.expired?(bn?"মেয়াদ শেষ":"Expired"):(bn?"সক্রিয়":"Active")}</span></td>
-    <td onClick={e=>e.stopPropagation()}><KeyControls locale={locale} workspaceId={workspaceId} environment={environment} keyItem={keyItem}/></td>
-   </tr>)}</tbody></table></div>}
-  <dialog ref={detailsDialog} className="ekv3-drawer" aria-label={bn?"Key-এর বিবরণ":"Key details"} onClose={()=>setSelected(null)} onClick={e=>{if(e.target===e.currentTarget)e.currentTarget.close()}}>{selected&&<div className="ekv3-drawer-content"><div className="ekv3-drawer-heading"><h2>{selected.name}</h2><button type="button" aria-label="Close" onClick={()=>detailsDialog.current?.close()}>×</button></div><div className="ekv3-drawer-list"><div><span>{bn?"অবস্থা":"Status"}</span><strong>{selected.revokedAt?"Revoked":selected.expired?"Expired":"Active"}</strong></div><div><span>{bn?"মেয়াদ":"Expires"}</span><strong>{showDate(selected.expiresAt)}</strong></div></div><h3>{bn?"অনুমতিসমূহ":"Scopes"}</h3><div className="ek-key-scope-tags">{selected.scopes.map(scope=><span key={scope}>{scope}</span>)}</div></div>}</dialog>
- </div>;
+const scopes=["payments:read","payments:write","customers:read","customers:write","invoices:read","invoices:write","refunds:read","refunds:write","webhooks:manage"];
+export function ApiKeyManager({locale,userId,workspaceId,environment,keys}:{locale:Locale;userId:string;workspaceId:string;environment:PaymentEnvironment;keys:ApiKeyRow[]}){
+ const bn=locale==='bn',t=(en:string,be:string)=>bn?be:en;
+ const [create,createAction,creating]=useActionState(createMerchantKey.bind(null,locale),initial),[rotate,rotateAction,rotating]=useActionState(rotateMerchantKey.bind(null,locale),initial),[revoke,revokeAction,revoking]=useActionState(revokeMerchantKey.bind(null,locale),initial);
+ const busy=creating||rotating||revoking;
+ const [showCreate,setShowCreate]=useState(false),[selected,setSelected]=useState<ApiKeyRow|null>(null),[operation,setOperation]=useState<{kind:'rotate'|'revoke';key:ApiKeyRow}|null>(null),[secret,setSecret]=useState(''),[message,setMessage]=useState('');
+ const [name,setName]=useState(''),[expiry,setExpiry]=useState('30'),[permissions,setPermissions]=useState(['payments:read','payments:write']),[query,setQuery]=useState(''),[filter,setFilter]=useState('all');
+ const handled=useRef(''),handledRevoke=useRef<KeyActionState|null>(null);
+ const draftKey=`ekmivo:pg03-key-draft:v1:${userId}:${workspaceId}:${environment}`;
+ const draft=useRef({name,expiresDays:expiry,scopes:permissions});useEffect(()=>{draft.current={name,expiresDays:expiry,scopes:permissions}},[name,expiry,permissions]);
+ const saveDraft=()=>{try{sessionStorage.setItem(draftKey,JSON.stringify(draft.current));setMessage(t('Draft saved.','খসড়া সংরক্ষিত।'));return true}catch{setMessage(t('Could not save draft.','খসড়া রাখা যায়নি।'));return false}};
+ const discardDraft=useCallback(()=>{try{sessionStorage.removeItem(draftKey)}catch{}setName('');setExpiry('30');setPermissions(['payments:read','payments:write'])},[draftKey]);
+ const restoreDraft=()=>{try{const d=JSON.parse(sessionStorage.getItem(draftKey)||'null');if(!d||typeof d.name!=='string'||d.name.length>80||!['7','30','90','365','0'].includes(d.expiresDays)||!Array.isArray(d.scopes)||d.scopes.some((s:unknown)=>typeof s!=='string'||!scopes.includes(s)))throw Error();setName(d.name);setExpiry(d.expiresDays);setPermissions(d.scopes);setMessage(t('Draft restored.','খসড়া ফিরিয়ে আনা হয়েছে।'))}catch{setMessage(t('No valid draft found.','বৈধ খসড়া পাওয়া যায়নি।'))}};
+ useEffect(()=>registerDraft({id:draftKey,isDirty:()=>showCreate&&Boolean(draft.current.name||draft.current.expiresDays!=='30'||draft.current.scopes.join(',')!=='payments:read,payments:write'),save:async()=>saveDraft(),discard:discardDraft}));
+ useEffect(()=>{const r=[create,rotate].find(s=>s.status==='success'&&s.rawSecret&&s.keyId!==handled.current);if(!r)return;handled.current=r.keyId||'';void Promise.resolve().then(()=>{setSecret(r.rawSecret!);setShowCreate(false);setOperation(null);setSelected(null);discardDraft()})},[create,rotate,discardDraft]);
+ useEffect(()=>{if(revoke.status==='success'&&handledRevoke.current!==revoke){handledRevoke.current=revoke;void Promise.resolve().then(()=>{setMessage(revoke.message);setOperation(null);setSelected(null)})}},[revoke]);
+ const copy=async(value:string)=>{try{await navigator.clipboard.writeText(value);setMessage(t('Copied','কপি হয়েছে'))}catch{setMessage(t('Copy failed. Select the value manually.','কপি হয়নি। মানটি নির্বাচন করুন।'))}};
+ const date=(value:string)=>value==='infinity'?t('Never','কখনো না'):new Intl.DateTimeFormat(bn?'bn-BD':'en-GB',{dateStyle:'medium'}).format(new Date(value));
+ const status=(key:ApiKeyRow)=>key.revokedAt?'revoked':key.expired?'expired':'active';
+ const visible=keys.filter(k=>(filter==='all'||status(k)===filter)&&`${k.name} ${k.publicId} ${k.scopes.join(' ')}`.toLowerCase().includes(query.toLowerCase()));
+ const result=operation?.kind==='rotate'?rotate:revoke;
+ return <div className="ref-dashboard"><div className="ref-page">
+  <div className="top"><h1>{t('API keys','API key')}</h1><div className="acts"><button className="ib pri" onClick={()=>setShowCreate(true)}><RefIcon name="plus"/>{t('Create key','API key তৈরি')}</button></div><p>{t('Server credentials — never expose a secret in client code.','সার্ভার ক্রেডেনশিয়াল — ক্লায়েন্ট কোডে সিক্রেট রাখবেন না।')}</p></div>
+  {message&&<p className="notice" role="status" data-feedback="success">{message}</p>}
+  <div className="card"><div className="toolbar"><input className="in searchbox" aria-label={t('Search API keys','API key খুঁজুন')} placeholder={t('Search API keys…','API key খুঁজুন…')} value={query} onChange={e=>setQuery(e.target.value)}/><select className="in" aria-label={t('Key status','Key-এর অবস্থা')} value={filter} onChange={e=>setFilter(e.target.value)}>{[['all',t('All','সব')],['active',t('Active','সক্রিয়')],['revoked',t('Revoked','বাতিল')],['expired',t('Expired','মেয়াদ শেষ')]].map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></div>
+  <div className="tw"><table><thead><tr><th>{t('Name','নাম')}</th><th>Key prefix</th><th>{t('Scopes','স্কোপ')}</th><th>{t('Last used','শেষ ব্যবহার')}</th><th>{t('Status','অবস্থা')}</th><th/></tr></thead><tbody>{visible.map(k=><tr className="rowclick" key={k.id} tabIndex={0} onClick={()=>setSelected(k)} onKeyDown={e=>{if(e.target===e.currentTarget&&(e.key==='Enter'||e.key===' ')){e.preventDefault();setSelected(k)}}}><td><span className="itemtitle">{k.name}</span></td><td><span className="chip"><span className="mono">{environment==='sandbox'?'ek_test_':'ek_live_'}{k.publicId.slice(0,8)}…{k.publicId.slice(-4)}</span><button aria-label={t('Copy public reference','Public reference কপি')} title={t('Public reference, not the secret','Public reference, secret নয়')} onClick={e=>{e.stopPropagation();void copy(k.publicId)}}><RefIcon name="copy"/></button></span></td><td className="mut" title={k.scopes.join(', ')}>{k.scopes.length} {t('scopes','স্কোপ')}</td><td className="mut">{k.lastUsedAt?date(k.lastUsedAt):t('Never','কখনো না')}</td><td><RefStatus status={status(k)} label={status(k)==='active'?t('Active','সক্রিয়'):status(k)==='expired'?t('Expired','মেয়াদ শেষ'):t('Revoked','বাতিল')}/></td><td className="num"><RefIcon name="chevron"/></td></tr>)}</tbody></table></div>{!visible.length&&<div className="table-empty"><div className="empty-art"><RefIcon name="lock"/></div><b>{t('No keys found','Key পাওয়া যায়নি')}</b><p>{t('Create a production key on the live backend.','লাইভ backend থেকে key তৈরি করুন।')}</p></div>}</div>
+ </div>
+ <RefModal open={showCreate} title={t('Create API key','API key তৈরি')} width={520} busy={busy} onClose={()=>setShowCreate(false)} footer={<><button className="ib" disabled={busy} onClick={()=>setShowCreate(false)}>{t('Cancel','বাতিল')}</button><button form="ref-key-create" className={`ib pri ${creating?'ld':''}`} disabled={busy||!permissions.length} type="submit">{t('Create API key','API key তৈরি')}</button></>}>
+  <form id="ref-key-create" action={createAction}><input type="hidden" name="workspaceId" value={workspaceId}/><input type="hidden" name="environment" value={environment}/><div className="fld"><label htmlFor="ref-key-name">{t('Key name','Key-এর নাম')}</label><input className="in w" id="ref-key-name" name="name" required minLength={2} maxLength={80} value={name} onChange={e=>setName(e.target.value)} placeholder={t('e.g. Production backend','যেমন Production backend')}/></div><div className="fld"><label htmlFor="ref-key-expiry">{t('Expiration','মেয়াদ')}</label><select className="in w" id="ref-key-expiry" name="expiresDays" value={expiry} onChange={e=>setExpiry(e.target.value)}>{[['30',t('30 days','৩০ দিন')],['90',t('90 days','৯০ দিন')],['365',t('1 year','১ বছর')],['0',t('Never','কখনো না')],['7',t('7 days','৭ দিন')]].map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></div><div className="fld"><span className="lb">{t('Permissions','অনুমতি')}</span><div className="scp">{scopes.map(scope=><label key={scope}><input type="checkbox" name="scopes" value={scope} checked={permissions.includes(scope)} onChange={e=>setPermissions(v=>e.target.checked?[...v,scope]:v.filter(x=>x!==scope))}/>{scope}</label>)}</div></div><div className="fld"><label htmlFor="ref-key-password">{t('Confirm current password','বর্তমান পাসওয়ার্ড নিশ্চিত করুন')}</label><input className="in w" id="ref-key-password" type="password" name="password" required maxLength={256} autoComplete="current-password"/></div><details className="ref-more"><summary>{t('Draft options','খসড়ার অপশন')}</summary><div className="actionline" style={{marginTop:10}}><button type="button" className="ib" onClick={saveDraft}>{t('Save draft','খসড়া সংরক্ষণ')}</button><button type="button" className="ib" onClick={restoreDraft}>{t('Restore draft','খসড়া ফিরিয়ে আনুন')}</button><button type="button" className="ib" onClick={discardDraft}>{t('Discard','বাতিল')}</button></div></details>{create.status==='error'&&<p className="ref-errors" role="alert">{create.message}</p>}</form>
+ </RefModal>
+ <RefModal open={Boolean(secret)} title={t('Copy your key now','এখনই key কপি করুন')} onClose={()=>setSecret('')} footer={<button className="ib pri" onClick={()=>setSecret('')}>{t('Done','সম্পন্ন')}</button>}><div className="keyv"><span className="mono">{secret}</span><button className="ib i" aria-label={t('Copy secret','সিক্রেট কপি')} onClick={()=>void copy(secret)}><RefIcon name="copy"/></button></div><p className="modal-desc">{t('You will not see this key again.','এই key আর দেখা যাবে না।')}</p></RefModal>
+ <RefModal open={Boolean(selected)} title={t('Details','বিস্তারিত')} drawer onClose={()=>setSelected(null)} footer={<><button className="ib" onClick={()=>setSelected(null)}>{t('Close','বন্ধ করুন')}</button>{selected&&!selected.expired&&!selected.revokedAt&&<><button className="ib" onClick={()=>{setOperation({kind:'rotate',key:selected});setSelected(null)}}>{t('Rotate key','Key রোটেট')}</button><button className="ib dg" onClick={()=>{setOperation({kind:'revoke',key:selected});setSelected(null)}}>{t('Revoke key','Key বাতিল')}</button></>}</>}>
+  {selected&&<><div className="detail-intro">{selected.name}</div><div className="drawer-group">{[[t('Key prefix','Key prefix'),selected.publicId],[t('Status','অবস্থা'),status(selected)],[t('Expires','মেয়াদ'),date(selected.expiresAt)],[t('Last used','শেষ ব্যবহার'),selected.lastUsedAt?date(selected.lastUsedAt):t('Never','কখনো না')]].map(([key,value])=><div className="kv" key={key}><span>{key}</span><span>{value}</span></div>)}<h4>{t('Scopes','স্কোপ')}</h4><div className="cfs">{selected.scopes.map(scope=><span className="chp mono" key={scope}>{scope}</span>)}</div></div></>}
+ </RefModal>
+ <RefModal open={Boolean(operation)} title={t('Confirm credential change','ক্রেডেনশিয়াল পরিবর্তন নিশ্চিত')} busy={busy} onClose={()=>setOperation(null)} footer={<><button className="ib" disabled={busy} onClick={()=>setOperation(null)}>{t('Cancel','বাতিল')}</button><button className="ib dgb" form="ref-key-change" type="submit" disabled={busy}>{operation?.kind==='revoke'?t('Revoke key','Key বাতিল'):t('Rotate key','Key রোটেট')}</button></>}>
+  {operation&&<form id="ref-key-change" action={operation.kind==='rotate'?rotateAction:revokeAction}><p>{t('This will affect integrations using the current credential.','বর্তমান ক্রেডেনশিয়াল ব্যবহারকারী ইন্টিগ্রেশন প্রভাবিত হতে পারে।')}</p><input type="hidden" name="workspaceId" value={workspaceId}/><input type="hidden" name="environment" value={environment}/><input type="hidden" name="keyId" value={operation.key.id}/><div className="fld"><label htmlFor="ref-key-change-password">{t('Current password','বর্তমান পাসওয়ার্ড')}</label><input className="in w" id="ref-key-change-password" name="password" required maxLength={256} autoComplete="current-password" type="password"/></div>{result.status==='error'&&<p className="ref-errors" role="alert">{result.message}</p>}</form>}
+ </RefModal></div>;
 }

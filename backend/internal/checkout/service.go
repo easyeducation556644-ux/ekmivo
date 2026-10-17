@@ -520,6 +520,9 @@ func (s *Service) HandleMerchant(w http.ResponseWriter, r *http.Request) {
 			fail(w, 503, "INVALID_FINANCIAL_RESULT")
 			return
 		}
+		if id := r.PathValue("intentID"); id != "" {
+			s.recordCheckoutCheck(ws, realm, id)
+		}
 		attachTokens(s, ws, realm, data)
 		if id := r.PathValue("intentID"); id != "" {
 			var options []byte
@@ -836,7 +839,8 @@ func (s *Service) HandlePublic(w http.ResponseWriter, r *http.Request) {
 			fail(w, 404, "NOT_FOUND")
 			return
 		}
-		if _, err = s.publicBusiness(r, initial); err != nil {
+		business, businessErr := s.publicBusinessInfo(r, initial)
+		if businessErr != nil {
 			fail(w, 503, "MERCHANT_UNAVAILABLE")
 			return
 		}
@@ -863,10 +867,15 @@ func (s *Service) HandlePublic(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var body struct {
-			Payer  string `json:"payer_number"`
-			Method string `json:"method"`
+			Payer           string            `json:"payer_number"`
+			Method          string            `json:"method"`
+			CustomerDetails map[string]string `json:"customer_details"`
 		}
 		if !decode(w, r, &body) {
+			return
+		}
+		if validateCheckoutCustomerDetails(business.Brand, body.CustomerDetails) != nil {
+			fail(w, 422, "INVALID_CUSTOMER_DETAILS")
 			return
 		}
 		payer, ok := NormalizePayer(body.Payer)
@@ -886,8 +895,21 @@ func (s *Service) HandlePublic(w http.ResponseWriter, r *http.Request) {
 		if checkoutRealm(initial) == "live" {
 			lockSQL = "SELECT pg10_lock_route($1,$2,$3,$4)"
 		}
-		err = pool.QueryRow(r.Context(), lockSQL,
+		tx, beginErr := pool.Begin(r.Context())
+		if beginErr != nil {
+			mapped(w, beginErr)
+			return
+		}
+		defer tx.Rollback(r.Context())
+		err = tx.QueryRow(r.Context(), lockSQL,
 			digest(token), hex.EncodeToString(mac(s.PayerKey, payer)), payer[len(payer)-4:], body.Method).Scan(&raw)
+		if err == nil && len(body.CustomerDetails) > 0 {
+			encoded, _ := json.Marshal(body.CustomerDetails)
+			_, err = tx.Exec(r.Context(), "SELECT pg75_checkout_details($1,$2::jsonb)", digest(token), string(encoded))
+		}
+		if err == nil {
+			err = tx.Commit(r.Context())
+		}
 		if err != nil {
 			mapped(w, err)
 			return
@@ -981,6 +1003,11 @@ func (s *Service) publicResult(w http.ResponseWriter, r *http.Request, raw []byt
 	if err := s.publicDestination(data); err != nil {
 		fail(w, 503, "RECEIVING_SOURCE_UNAVAILABLE")
 		return
+	}
+	if r.Method == "GET" {
+		if id, ok := data["id"].(string); ok {
+			s.recordCheckoutCheck(ws, checkoutRealm(raw), id)
+		}
 	}
 	delete(data, "workspace_id")
 	// Tell customers whether a signed phone is actually online independently

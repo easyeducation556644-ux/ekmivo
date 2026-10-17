@@ -1,4 +1,5 @@
 "use client";
+import {RefModal,RefIcon,RefStatus} from "./reference-ui";
 import {useDashboardInitialData} from "./dashboard-initial-data";
 import {useSearchParams} from "next/navigation";
 import {PaymentLoadingSkeleton} from "./payment-loading-skeleton";
@@ -32,13 +33,13 @@ export function PaymentTransactionWorkspace({locale,workspaceId,environment,reso
  const [filtersOpen,setFiltersOpen]=useState(false);
  const [columns,setColumns]=useState([true,true,true,true,true,true]);
  const [hideNumbers,setHideNumbers]=useState(true);
- useEffect(()=>{if(!incoming)return;try{const s=localStorage.getItem("ekmivo-hide-numbers:"+workspaceId);setHideNumbers(!canManage||s==="1")}catch{setHideNumbers(true)}},[incoming,workspaceId,canManage]);
+ useEffect(()=>{if(!incoming)return;const timer=setTimeout(()=>{try{const s=localStorage.getItem("ekmivo-hide-numbers:"+workspaceId);setHideNumbers(!canManage||s==="1")}catch{setHideNumbers(true)}},0);return()=>clearTimeout(timer)},[incoming,workspaceId,canManage]);
  const displayPhone=(value?:string)=>{if(!value)return "—";const digits=value.replace(/\D/g,"");const local=digits.startsWith("880")?digits.slice(3):digits.startsWith("0")?digits.slice(1):digits;return (!canManage||incoming&&hideNumbers)?"+880 1••• ••"+local.slice(-4):local.length===10?"+880 "+local.slice(0,4)+" "+local.slice(4):value};
  const columnLabels=[incoming?t("Received device","প্রাপ্তির ডিভাইস"):t("Reference","রেফারেন্স"),t("Payer number","প্রেরকের নম্বর"),t("TrxID","ট্রানজেকশন আইডি"),t("Method","মাধ্যম"),t("Status","অবস্থা"),t("Amount","পরিমাণ")];
  const [accounts,setAccounts]=useState<{id:string;method?:string;display_suffix?:string}[]>(accountSeed?.data?.items??[]);
- const detailDialog=useRef<HTMLDialogElement|null>(null);
+
  const [selected,setSelected]=useState<Item|null>(null);
- const openDetail=(item:Item)=>{setSelected(item);detailDialog.current?.showModal()};
+ const openDetail=(item:Item)=>setSelected(item);
  const [accountError,setAccountError]=useState(false);
  const [online,setOnline]=useState(true);
  useEffect(()=>{const fn=()=>setOnline(navigator.onLine);fn();window.addEventListener("online",fn);window.addEventListener("offline",fn);return()=>{window.removeEventListener("online",fn);window.removeEventListener("offline",fn)}},[]);
@@ -108,10 +109,36 @@ export function PaymentTransactionWorkspace({locale,workspaceId,environment,reso
  };
  const title=incoming?t("SMS Data","SMS ডাটা"):t("Payments","পেমেন্ট");
  const statuses=incoming?["matched","unmatched","ambiguous","pending","invalid","duplicate","cancelled"]:["verified"];
+ const details=(
+  <RefModal open={Boolean(selected)} title={incoming?t("SMS details","SMS বিবরণ"):t("Details","বিস্তারিত")} drawer onClose={()=>setSelected(null)} footer={<><button className="ib" onClick={()=>setSelected(null)}>{t("Close","বন্ধ করুন")}</button>{selected&&<button className="ib" onClick={()=>void navigator.clipboard.writeText(incoming&&selected.sms_text?selected.sms_text:selected.id).then(()=>setNotice(t("Copied","কপি হয়েছে"))).catch(()=>setNotice(t("Copy failed","কপি হয়নি")))}><RefIcon name="copy"/>{incoming?t("Copy SMS","SMS কপি"):t("Copy ID","আইডি কপি")}</button>}{selected&&incoming&&canManage&&["unmatched","ambiguous"].includes(selected.status||"")&&<button className="ib pri" disabled={Boolean(busy)||!online} onClick={()=>void reprocess(selected.id).then(()=>setSelected(null))}>{t("Recheck","আবার যাচাই করুন")}</button>}</>}>
+   {selected&&<><div className="detail-intro">{money(selected.verified_amount_minor??selected.amount_minor,locale)}</div><div className="drawer-group">
+    {[[t("Status","অবস্থা"),<RefStatus key="state" status={selected.status||"verified"} label={statusName(selected.status||"verified",bn)}/>],[t("Payment ID","পেমেন্ট আইডি"),selected.id],[t("Reference","রেফারেন্স"),selected.merchant_reference||"—"],[t("Payer number","প্রেরকের নম্বর"),displayPhone(selected.payer_number)],[t("Transaction ID","ট্রানজেকশন আইডি"),selected.transaction_id||"—"],[t("Method","মাধ্যম"),selected.method||"—"],[t("Transaction time","লেনদেনের সময়"),dt(selected.original_transaction_at,locale)],[incoming?t("Received","প্রাপ্তির সময়"):t("Verified","যাচাইয়ের সময়"),dt(incoming?selected.received_at:selected.verified_at,locale)],...(selected.reason?[[t("Reason","কারণ"),selected.reason]]:[])].map(([key,value],i)=><div className="kv" key={i}><span>{key}</span><span>{value}</span></div>)}{selected.sms_text&&<div className="drawer-group"><h4>{t("Original SMS","মূল SMS")}</h4><p>{selected.sms_text}</p></div>}
+   </div></>}
+  </RefModal>
+ );
+ if(incoming)return <div className="ref-dashboard"><div className="ref-page" aria-busy={loading}>
+  <div className="top"><h1>{title}</h1><div className="acts"><label className="ey mut" style={{fontSize:12,whiteSpace:'nowrap'}}><DashboardSwitch checked={hideNumbers} label={t("Hide numbers","নম্বর লুকান")} onChange={value=>{setHideNumbers(!canManage||value);try{localStorage.setItem("ekmivo-hide-numbers:"+workspaceId,value?"1":"0")}catch{}}}/>{t("Hide numbers","নম্বর লুকান")}</label><button className="ib i" type="button" disabled={loading} aria-label={t("Refresh","রিফ্রেশ")} onClick={()=>setNonce(n=>n+1)}><RefIcon name="refresh"/></button></div><p>{t("Incoming payment messages and matching results.","আসা পেমেন্ট মেসেজ ও ম্যাচিংয়ের অবস্থা।")}</p></div>
+  {!online&&<p className="notice" role="status">{t("You are offline. Data may be outdated.","ইন্টারনেট সংযোগ নেই; তথ্য পুরোনো হতে পারে।")}</p>}
+  {error&&<div className="notice ref-errors" role="alert">{t("Unable to load records.","রেকর্ড পাওয়া যাচ্ছে না।")} <button className="ib" onClick={()=>setNonce(n=>n+1)}>{t("Retry","আবার চেষ্টা")}</button></div>}
+  {notice&&<p className="notice" role="status">{notice}</p>}
+  <div className="card"><div className="toolbar"><form onSubmit={apply} className="ref-sms-search"><input className="in searchbox" name="q" aria-label={t("Search receipts","রিসিপ্ট খুঁজুন")} placeholder={t("Search receipts…","রিসিপ্ট খুঁজুন…")} value={draft.q} maxLength={96} onChange={e=>setDraft(v=>({...v,q:e.target.value}))}/><button type="submit" className="ib">{t("Search","খুঁজুন")}</button></form><div className="seg">{['','matched','unmatched'].map(value=><button key={value} type="button" className={filters.status===value?'on':''} onClick={()=>{const next={...filters,status:value};setDraft(next);setFilters(next);rememberFilters(next)}}>{value?statusName(value,bn):t("All","সব")}</button>)}</div><div className="sp"/><button className="ib" type="button" aria-expanded={filtersOpen} aria-controls="payment-filters" onClick={()=>setFiltersOpen(v=>!v)}>{t("Filters","ফিল্টার")}</button></div>
+  <form id="payment-filters" className="opw-filters ref-sms-filters" onSubmit={apply} hidden={!filtersOpen}>
+
+   <label><span>{t("Status","অবস্থা")}</span><select name="status" value={draft.status} onChange={e=>setDraft(v=>({...v,status:e.target.value}))}><option value="">{t("All statuses","সব অবস্থা")}</option>{statuses.map(x=><option key={x} value={x}>{statusName(x,bn)}</option>)}</select></label>
+   <label><span>{t("Method","মাধ্যম")}</span><select name="method" value={draft.method} onChange={e=>setDraft(v=>({...v,method:e.target.value}))}><option value="">{t("All methods","সব মাধ্যম")}</option>{["bkash","nagad","rocket"].map(x=><option key={x} value={x}>{x==="bkash"?"bKash":x==="nagad"?"Nagad":"Rocket"}</option>)}</select></label>
+   <label><span>{t("Receiving account","অ্যাকাউন্ট")}</span><select name="account" value={draft.account} disabled={accountError} onChange={e=>setDraft(v=>({...v,account:e.target.value}))}><option value="">{t("All accounts","সব অ্যাকাউন্ট")}</option>{accounts.map(a=><option key={a.id} value={a.id}>{a.method||t("Account","অ্যাকাউন্ট")} · ••••{a.display_suffix||""}</option>)}</select></label>
+   <div className="opw-filter-actions"><button type="submit" disabled={loading}>{t("Apply","প্রয়োগ")}</button><button type="button" onClick={()=>{setDraft(initial);setFilters(initial);rememberFilters(initial);setFilterError("");setNonce(n=>n+1)}}>{t("Reset","রিসেট")}</button></div>
+   <details className="opw-dates" open><summary>{t("Date range","তারিখ অনুযায়ী")}</summary><div><label><span>{t("From","শুরু")}</span><DashboardDateTimePicker locale={locale} value={draft.from} label={t("From","শুরু")} onChange={from=>setDraft(v=>({...v,from}))}/></label><label><span>{t("Until","শেষ")}</span><DashboardDateTimePicker locale={locale} value={draft.to} label={t("Until","শেষ")} onChange={to=>setDraft(v=>({...v,to}))}/></label></div></details>
+  </form>
+  {filterError&&<p className="notice ref-errors" role="alert">{filterError}</p>}
+  <div className="tw" role="region" tabIndex={0} aria-label={title}><table><thead><tr><th>{t("Receipt","রিসিপ্ট")}</th><th>{t("Sender number","প্রেরকের নম্বর")}</th><th className="num">{t("Amount","পরিমাণ")}</th><th>{t("Match","ম্যাচ")}</th><th>{t("Received","প্রাপ্ত")}</th><th/></tr></thead><tbody>{rows.map(row=><tr className="rowclick" key={row.id} tabIndex={0} onClick={()=>openDetail(row)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openDetail(row)}}><td><span className="itemtitle mono">{row.id}</span><span className="rmeta">{row.method==='bkash'?'bKash':row.method==='nagad'?'Nagad':row.method==='rocket'?'Rocket':row.method||'—'}</span></td><td className="mono">{displayPhone(row.payer_number)}</td><td className="num">{money(row.amount_minor,locale)}</td><td><RefStatus status={row.status||'pending'} label={statusName(row.status||'pending',bn)}/></td><td className="mut">{dt(row.received_at,locale)}</td><td className="num"><RefIcon name="chevron"/></td></tr>)}</tbody></table></div>
+  {loading&&rows.length===0?<div className="empty" role="status">{t("Loading receipts…","রিসিপ্ট লোড হচ্ছে…")}</div>:!error&&rows.length===0?<div className="empty"><b>{t("No receipts found","রিসিপ্ট পাওয়া যায়নি")}</b><p>{t("Try another search.","অন্যভাবে খুঁজুন।")}</p></div>:null}
+  {cursor&&<div className="pager"><span>{rows.length} {t("loaded","লোড হয়েছে")}</span><button className="ib" type="button" disabled={moreLoading} onClick={()=>void loadMore()}>{moreLoading?t("Loading…","লোড হচ্ছে…"):t("Load more","আরও দেখুন")}</button></div>}
+  </div>{details}</div></div>;
  return <div className="opw-workbench">
   <header className="opw-header"><div><h1>{title}</h1><p>{incoming?t("Review matched and unmatched provider receipts.","পাওয়া রসিদ ও অমিলগুলো পর্যালোচনা করুন।"):t("Verified payments, source details and delivery status.","যাচাইকৃত লেনদেন, উৎস ও webhook অবস্থা।")}</p></div>
    <div className="opw-heading-actions">{incoming&&<label className="doc-hide-numbers"><DashboardSwitch checked={hideNumbers} label={t("Hide numbers","নম্বর লুকান")} onChange={value=>{setHideNumbers(!canManage||value);try{localStorage.setItem("ekmivo-hide-numbers:"+workspaceId,value?"1":"0")}catch{}}}/>{t("Hide numbers","নম্বর লুকান")}</label>}<button onClick={()=>setNonce(n=>n+1)} disabled={loading} className="opw-refresh" type="button" aria-label={t("Refresh","রিফ্রেশ")}><DashboardIcon name="refresh" width={16} height={16}/></button></div></header>
-  <div className="ref-table-tools">
+  <div className="opw-record-card"><div className="ref-table-tools">
    <form onSubmit={apply}><label className="sr-only" htmlFor="payment-search">{t("Search records","রেকর্ড খুঁজুন")}</label><input id="payment-search" name="q" value={draft.q} maxLength={96} onChange={e=>setDraft(v=>({...v,q:e.target.value}))} placeholder={incoming?t("Search device or reason…","ডিভাইস বা কারণ খুঁজুন…"):t("Search reference or payer…","রেফারেন্স বা প্রেরক খুঁজুন…")}/><button type="submit">{t("Search","খুঁজুন")}</button></form>
    <button type="button" onClick={()=>setFiltersOpen(v=>!v)} aria-expanded={filtersOpen} aria-controls="payment-filters">{t("Filters","ফিল্টার")}{hasFilter?" · "+Object.values(filters).filter(Boolean).length:""}</button>
    <details className="ref-columns"><summary>{t("Columns","কলাম")}</summary><div>{columnLabels.map((label,i)=><label key={label}><input type="checkbox" checked={columns[i]} disabled={i===0} onChange={e=>setColumns(v=>v.map((x,n)=>n===i?e.target.checked:x))}/>{label}</label>)}</div></details>
@@ -139,27 +166,8 @@ export function PaymentTransactionWorkspace({locale,workspaceId,environment,reso
     <td hidden={!columns[5]} className="opw-num">{money(r.verified_amount_minor??r.amount_minor,locale)}</td>
    </tr>)}</tbody></table>
   </div>}
-  <dialog className="ekv2-record-dialog" ref={detailDialog} aria-label={t("Payment details","পেমেন্টের বিস্তারিত")} onClose={()=>setSelected(null)} onClick={e=>{if(e.target===e.currentTarget)detailDialog.current?.close()}}>
-   {selected&&<div className="ekv2-detail">
-    <div className="ekv2-detail-head"><h2>{incoming?t("SMS details","SMS বিবরণ"):t("Payment details","পেমেন্টের বিস্তারিত")}</h2><button type="button" aria-label={t("Close","বন্ধ করুন")} onClick={()=>detailDialog.current?.close()}>×</button></div>
-    <div className="ekv2-detail-amount">{money(selected.verified_amount_minor??selected.amount_minor,locale)}</div>
-    <span className="opw-status" data-status={selected.status||"verified"}>{statusName(selected.status||(incoming?"pending":"verified"),bn)}</span>
-    <dl className="ekv2-detail-list">
-      <div><dt>{t("Reference","রেফারেন্স")}</dt><dd>{selected.merchant_reference||selected.id}</dd></div>
-      <div><dt>{t("Payer number","প্রেরকের নম্বর")}</dt><dd>{displayPhone(selected.payer_number)}</dd></div>
-      <div><dt>{t("Transaction ID","ট্রানজেকশন আইডি")}</dt><dd>{selected.transaction_id||"—"}</dd></div>
-      <div><dt>{t("Method","মাধ্যম")}</dt><dd>{selected.method||"—"}</dd></div>
-      <div><dt>{t("Transaction time","লেনদেনের সময়")}</dt><dd>{dt(selected.original_transaction_at,locale)}</dd></div>
-      <div><dt>{incoming?t("Received","প্রাপ্তির সময়"):t("Verified","যাচাইয়ের সময়")}</dt><dd>{dt(incoming?selected.received_at:selected.verified_at,locale)}</dd></div>
-      {selected.reason&&<div><dt>{t("Reason","কারণ")}</dt><dd>{selected.reason}</dd></div>}
-      {selected.sms_text&&<div className="ekv2-sms"><dt>{t("SMS","SMS")}</dt><dd>{selected.sms_text}</dd></div>}
-    </dl>
-    <div className="ekv2-detail-actions"><button type="button" onClick={()=>detailDialog.current?.close()}>{t("Close","বন্ধ করুন")}</button>
-      {incoming&&canManage&&["unmatched","ambiguous"].includes(selected.status||"")&&<button type="button" className="ekv2-primary" disabled={Boolean(busy)||!online} onClick={()=>void reprocess(selected.id).then(()=>detailDialog.current?.close())}>{t("Recheck","আবার যাচাই করুন")}</button>}
-    </div>
-   </div>}
-  </dialog>
+  {details}
   {incoming&&<div className="opw-table-count">{new Intl.NumberFormat(locale).format(rows.length)}{cursor?"+":""} {t("records loaded","টি রেকর্ড")}</div>}
   {cursor&&<div className="opw-pagination"><span>{rows.length} {t("loaded","লোড হয়েছে")}</span><button type="button" disabled={moreLoading} onClick={()=>void loadMore()}>{moreLoading?t("Loading…","লোড হচ্ছে…"):t("Load more","আরও দেখুন")}</button></div>}
- </div>;
+ </div></div>;
 }

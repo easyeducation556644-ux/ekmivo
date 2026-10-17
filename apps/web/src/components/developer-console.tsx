@@ -1,7 +1,7 @@
 import {database} from "../lib/server/db";
 import {AutomaticWebhookSecret} from "./automatic-webhook-secret";
 import {ApiKeyManager,type ApiKeyRow} from "./api-key-manager";
-import {ApiKeyEnvironmentTabs} from "./api-key-environment-tabs";
+
 import type {Locale,PaymentEnvironment} from "../lib/dashboard-navigation";
 import type {Workspace} from "../lib/server/auth";
 
@@ -12,7 +12,7 @@ export async function DeveloperConsole({locale,workspace,environment,userId}:{
 }){
  const bn=locale==="bn",allowed=workspace.role==="owner"||workspace.role==="admin";
  const keys:{live:ApiKeyRow[];sandbox:ApiKeyRow[]}={live:[],sandbox:[]};
- let availableEnvironments:PaymentEnvironment[]=[environment];
+
  let unavailable=false;
  if(allowed){
   try{
@@ -23,12 +23,12 @@ export async function DeveloperConsole({locale,workspace,environment,userId}:{
       AND EXISTS(SELECT 1 FROM workspace_environments e WHERE e.workspace_id=${workspace.id}::uuid AND e.environment=${realm} AND e.status='active')
       ORDER BY created_at DESC LIMIT 100`)
    ]);
-   availableEnvironments=environments.map(r=>String(r.environment) as PaymentEnvironment);
+   void environments;
    for(const [index,realm] of (["live","sandbox"] as const).entries())keys[realm]=groups[index].map(row=>({
     id:String(row.id),publicId:String(row.public_id).trim(),
     name:String(row.name),scopes:(row.scopes as string[]),
     createdAt:new Date(row.created_at).toISOString(),
-    expiresAt:new Date(row.expires_at).toISOString(),
+    expiresAt:String(row.expires_at)==="infinity"?"infinity":new Date(row.expires_at).toISOString(),
     revokedAt:row.revoked_at?new Date(row.revoked_at).toISOString():null,
     lastUsedAt:row.last_used_at?new Date(row.last_used_at).toISOString():null,
     expired:Boolean(row.expired)
@@ -45,5 +45,5 @@ export async function DeveloperConsole({locale,workspace,environment,userId}:{
    <h3>{bn?"Credential service পাওয়া যাচ্ছে না":"Credential service unavailable"}</h3>
    <p>{bn?"ডাটাবেস migration এবং service readiness নিশ্চিত করতে হবে। কোনো demo কী দেখানো হচ্ছে না।":"Database migration and service readiness must be checked. No demo keys are shown."}</p>
   </div>:<><ApiKeyManager key={`${userId}:${workspace.id}:${realm}`} locale={locale} userId={userId} workspaceId={workspace.id} environment={realm} keys={keys[realm]}/><AutomaticWebhookSecret key={realm} workspaceId={workspace.id} environment={realm} locale={locale}/></>;
- return <section className="int-workspace"><header className="int-intro"><h1>{bn?"API key":"API keys"}</h1><p>{bn?"নিজের সার্ভারের key তৈরি ও পরিচালনা করুন। Secret browser বা APK-তে রাখবেন না।":"Create and manage credentials for your server. Never embed secrets in browser code or an APK."}</p></header><ApiKeyEnvironmentTabs locale={locale} sandbox={availableEnvironments.includes("sandbox")?keyPanel("sandbox"):null} live={availableEnvironments.includes("live")?keyPanel("live"):null}/></section>;
+ return <section className="ref-api-key-page">{keyPanel(environment)}</section>;
 }

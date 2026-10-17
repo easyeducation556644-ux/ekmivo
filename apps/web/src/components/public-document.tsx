@@ -3,6 +3,8 @@ import {useRouter} from "next/navigation";
 import Image from "next/image";
 import {useEffect,useRef,useState} from "react";
 import {ProviderMark,isPayMethod,payMethods,type PayMethod} from "./provider-mark";
+import {parseCheckoutTheme} from "../lib/checkout-theme";
+import {ThemedCheckout,WalletToken} from "./themed-checkout";
 import type {MerchantBrandInfo} from "./merchant-brand";
 
 type Field={id:string;label:string;type:string;required:boolean;options:string[]};
@@ -17,6 +19,7 @@ export function PublicDocument({locale,token,standalone=false}:{locale:"en"|"bn"
  const bn=locale==="bn",t=(en:string,bengali:string)=>bn?bengali:en;
  const [doc,setDoc]=useState<Document|null>(null),[error,setError]=useState(""),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[quantity,setQuantity]=useState(1),[values,setValues]=useState<Record<string,string|string[]>>({});
  const [selected,setSelected]=useState<PayMethod|null>(null);
+ const [customerDetails,setCustomerDetails]=useState<Record<string,string>>({});
  const key=useRef<string|null>(null),pendingBody=useRef<string|null>(null),completedToken=useRef<string|null>(null);
  const [unconfirmed,setUnconfirmed]=useState(false);
  // Reuse the same immutable checkout capability for this browser tab across
@@ -63,7 +66,7 @@ export function PublicDocument({locale,token,standalone=false}:{locale:"en"|"bn"
    setError(t("Choose all required options.","প্রয়োজনীয় অপশন নির্বাচন করুন।"));return;
   }
   // Single immutable submission and idempotency key for lost-response recovery.
-  pendingBody.current??=JSON.stringify({fields:values,quantity});
+  pendingBody.current??=JSON.stringify({fields:values,quantity,customer_details:customerDetails});
   key.current??=crypto.randomUUID();
   try{sessionStorage.setItem("ekmivo:document:"+token,JSON.stringify({key:key.current,body:pendingBody.current,checkout:completedToken.current}))}catch{}
   setBusy(true);setUnconfirmed(true);setError("");
@@ -100,6 +103,17 @@ export function PublicDocument({locale,token,standalone=false}:{locale:"en"|"bn"
  const amount=(payable/100).toLocaleString(bn?"bn-BD":"en-BD",{maximumFractionDigits:2});
  const support=safeUrl(doc?.brand?.support_url),email=doc?.brand?.support_email||"";
  const logo=safeUrl(doc?.brand?.logo_url);
+ const theme=parseCheckoutTheme(doc?.brand?.checkout_theme);
+ if(theme&&doc)return <ThemedCheckout config={theme} locale={locale} method={selected} step="pay" amountMinor={payable} reference={doc.reference} onLanguage={()=>router.push('/'+(bn?'en':'bn')+'/'+(doc.kind==='invoices'?'invoice':'pay')+'/'+token)}>
+  <h2 className="tk-h">{t('How would you like to pay?','কীভাবে পরিশোধ করতে চান?')}</h2><form onSubmit={pay} className="tk-document-form"><div className="tk-ms">{methods.map(m=><button className="tk-m" key={m} type="button" disabled={locked} aria-pressed={selected===m} onClick={()=>setSelected(m)}><WalletToken method={m}/><span className="tk-mt">{m==='bkash'?'bKash':m==='nagad'?'Nagad':'Rocket'}</span><i className="tk-rd"/></button>)}</div>
+  {theme.info&&([['name','Full name','পুরো নাম'],['email','Email','ইমেইল'],['addr','Address','ঠিকানা'],['note','Order note','অর্ডার নোট']] as const).filter(([key])=>theme.f[key]).map(([key,en,be])=><label className="tk-fl" key={key}>{t(en,be)}<input className="tk-in" type={key==='email'?'email':'text'} maxLength={key==='note'?1000:254} disabled={locked} value={customerDetails[key]||''} onChange={e=>setCustomerDetails(d=>({...d,[key]:e.target.value}))}/></label>)}
+  {doc.kind==='payment-links'&&(doc.body.max_quantity||1)>1&&<label className="tk-fl">{t('Quantity','পরিমাণ')}<input className="tk-in" type="number" required min={1} max={doc.body.max_quantity} disabled={locked} value={quantity} onChange={e=>setQuantity(Number(e.target.value))}/></label>}
+       {doc.body.fields?.map(f=><div className="customer-pay-field" key={f.id}>
+        {f.type==="checkbox"||f.type==="radio"?<fieldset disabled={locked}><legend>{f.label}{f.required?" *":""}</legend>{f.options.map(option=><label key={option}><input type={f.type} name={"field-"+f.id} required={f.type==="radio"&&f.required} checked={f.type==="radio"?values[f.id]===option:Array.isArray(values[f.id])&&values[f.id].includes(option)} onChange={e=>setValues(v=>{if(f.type==="radio")return{...v,[f.id]:option};const list=Array.isArray(v[f.id])?v[f.id] as string[]:[];return{...v,[f.id]:e.target.checked?[...list,option]:list.filter(x=>x!==option)}})}/>{option}</label>)}</fieldset>:<><label htmlFor={"customer-field-"+f.id}>{f.label}{f.required?" *":""}</label>{f.type==="file"?<><input id={"customer-field-"+f.id} type="file" required={f.required&&!values[f.id]} accept="image/jpeg,image/png,application/pdf" disabled={locked} onChange={e=>{const file=e.target.files?.[0];if(file)void upload(f.id,file)}}/>{values[f.id]&&<span>{t("Uploaded","আপলোড হয়েছে")}</span>}</>:f.type==="select"?<select id={"customer-field-"+f.id} required={f.required} value={String(values[f.id]||"")} disabled={locked} onChange={e=>setValues(v=>({...v,[f.id]:e.target.value}))}><option value="">{t("Select","বেছে নিন")}</option>{f.options.map(option=><option key={option}>{option}</option>)}</select>:f.type==="textarea"?<textarea id={"customer-field-"+f.id} required={f.required} maxLength={2000} disabled={locked} value={String(values[f.id]||"")} onChange={e=>setValues(v=>({...v,[f.id]:e.target.value}))}/>:<input id={"customer-field-"+f.id} required={f.required} maxLength={2000} disabled={locked} value={String(values[f.id]||"")} onChange={e=>setValues(v=>({...v,[f.id]:e.target.value}))}/>}</>}
+       </div>)}
+
+  <button className="tk-cta" type="submit" disabled={busy||terminal||!selectedReady||payable<=0}>{busy?t('Preparing checkout…','চেকআউট তৈরি হচ্ছে…'):unconfirmed?t('Retry same checkout','একই checkout আবার চেষ্টা করুন'):!selected?t('Choose a wallet to pay','পরিশোধের মাধ্যম বেছে নিন'):t('Pay ৳'+amount,'৳'+amount+' পরিশোধ করুন')}</button></form>{selected&&!selectedReady&&<p className="tk-err" role="alert">{t('Payment verification is not ready. Do not send money.','পেমেন্ট যাচাই প্রস্তুত নয়। টাকা পাঠাবেন না।')}</p>}{error&&<p className="tk-err" role="alert">{error}</p>}{doc.body.notes&&<p className="tk-sub">{doc.body.notes}</p>}
+ </ThemedCheckout>;
  return <main data-customer-checkout="true" className="customer-pay-screen" data-standalone={standalone} lang={locale}>
   <div className="customer-pay-shell">
    <div className="customer-pay-toolbar">

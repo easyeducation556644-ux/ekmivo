@@ -7,6 +7,8 @@ import type {MerchantBrandInfo} from "./merchant-brand";
 import {ProviderMark,isPayMethod,payMethods,payNames,type PayMethod} from "./provider-mark";
 import Image from "next/image";
 import {useRouter} from "next/navigation";
+import {parseCheckoutTheme} from "../lib/checkout-theme";
+import {ThemedCheckout,ThemedResult,WalletToken,type ThemeStep} from "./themed-checkout";
 import {normalizeBangladeshPayer,payerLocalDigits} from "../lib/bd-payer-number";
 type Locale="en"|"bn";
 type Checkout={
@@ -64,6 +66,7 @@ export function CheckoutExperience({locale,token,initialMethod}:{locale:Locale;t
  const [serverAnchor,setServerAnchor]=useState({time:0,monotonic:0});
  const [updated,setUpdated]=useState<number|null>(null);
  const [copied,setCopied]=useState(false);
+ const [customerDetails,setCustomerDetails]=useState<Record<string,string>>({}),[methodChosen,setMethodChosen]=useState(Boolean(initialMethod));
  const live=useRef(true);
  const sequence=useRef(0);
  const latest=useRef<Checkout|null>(null);
@@ -117,7 +120,7 @@ export function CheckoutExperience({locale,token,initialMethod}:{locale:Locale;t
   setLocking(true);setCode("");
   try{
    const response=await fetch(route,{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({payer_number:canonical,method}),credentials:"same-origin"});
+    body:JSON.stringify({payer_number:canonical,method,customer_details:customerDetails}),credentials:"same-origin"});
    const json=await response.json();
    if(!response.ok)throw {code:json.error?.code||json.code,status:response.status};
    const timestamp=Date.parse((json as Checkout).server_time);
@@ -158,6 +161,20 @@ export function CheckoutExperience({locale,token,initialMethod}:{locale:Locale;t
  }
  function leave(){const target=state==="cancelled"?info?.cancel_url:info?.return_url;if(target){window.location.assign(target);return}if(window.history.length>1)router.back();else router.push("/")}
  async function copyReceiving(){if(!info?.destination)return;try{await navigator.clipboard.writeText(info.destination);setDestinationCopied(true)}catch{setCode("COPY_FAILED")}}
+ const theme=parseCheckoutTheme(info?.brand?.checkout_theme);
+ if(theme&&info&&status==="ready"){
+  const themeStep:ThemeStep=state==="completed"?"success":state==="cancelled"?"cancelled":state==="expired"?"expired":state==="requires_payer"?(step==="payer"?"payer":"pay"):"waiting";
+  const selected=state==="requires_payer"&&!methodChosen?null:selectedMethod;
+  const seconds=Math.max(0,Math.ceil((Date.parse(info.expires_at)-serverClock)/1000));
+  const tr=(en:string,be:string)=>bn?be:en;
+  return <ThemedCheckout config={theme} locale={locale} step={themeStep} method={selected} amountMinor={info.amount_minor} reference={info.source_reference||info.merchant_reference} seconds={seconds} onLanguage={()=>router.push('/'+(bn?'en':'bn')+'/checkout/'+token+(initialMethod?'?method='+initialMethod:''))}>
+   {themeStep==='pay'?<><h2 className="tk-h">{tr('How would you like to pay?','কীভাবে পরিশোধ করতে চান?')}</h2><div className="tk-ms">{payMethods.filter(m=>info.methods.includes(m)).map(m=><button type="button" className="tk-m" key={m} aria-pressed={methodChosen&&method===m} onClick={()=>{setMethod(m);setMethodChosen(true)}}><WalletToken method={m}/><span className="tk-mt">{methods[m]}</span><i className="tk-rd"/></button>)}</div>{theme.info&&([['name','Full name','পুরো নাম'],['email','Email','ইমেইল'],['addr','Address','ঠিকানা'],['note','Order note','অর্ডার নোট']] as const).filter(([key])=>theme.f[key]).map(([key,en,be])=><label className="tk-fl" key={key}>{tr(en,be)}<input className="tk-in" type={key==='email'?'email':'text'} maxLength={key==='note'?1000:254} value={customerDetails[key]||''} onChange={e=>setCustomerDetails(d=>({...d,[key]:e.target.value}))}/></label>)}<button type="button" className="tk-cta" disabled={!canLock||!availableSelected||!methodChosen} onClick={()=>setStep('payer')}>{!methodChosen?tr('Choose a wallet to pay','পরিশোধের মাধ্যম বেছে নিন'):tr('Pay ৳'+amount,'৳'+amount+' পরিশোধ করুন')}</button>{!canLock&&<p className="tk-err" role="alert">{tr('Payment verification is not available. Do not send money.','পেমেন্ট যাচাই প্রস্তুত নয়। টাকা পাঠাবেন না।')}</p>}</>:
+   themeStep==='payer'?<><div className="tk-prov"><WalletToken method={selectedMethod}/>{methods[selectedMethod]}</div><h2 className="tk-h">{tr('Which '+methods[selectedMethod]+' number will you pay from?','কোন '+methods[selectedMethod]+' নম্বর থেকে পরিশোধ করবেন?')}</h2><p className="tk-sub">{tr('We use it to match your payment, so it is confirmed automatically.','এই নম্বর দিয়েই আপনার পেমেন্ট মিলিয়ে নিজে থেকেই নিশ্চিত করা হবে।')}</p><form onSubmit={lock} noValidate><label className="tk-fl"><input className="tk-in" type="tel" inputMode="tel" maxLength={20} placeholder="01XXXXXXXXX" autoComplete="tel-national" aria-label={tr('Your sending number','আপনার প্রেরক নম্বর')} aria-invalid={payerInvalid} disabled={locking} value={payer} onBlur={()=>setPayerTouched(true)} onChange={e=>{setPayer(e.target.value);setCode('')}}/></label>{payerInvalid&&<p className="tk-err" role="alert">{tr('Please enter a valid mobile number, like 01712345678.','সঠিক মোবাইল নম্বর দিন, যেমন 01712345678।')}</p>}<div className="tk-act"><button className="tk-gh" type="button" disabled={locking} onClick={()=>setStep('methods')}>{tr('Back','পিছনে')}</button><button className="tk-cta" type="submit" disabled={locking}>{locking?tr('Confirming…','নিশ্চিত হচ্ছে…'):tr('Continue','এগিয়ে যান')}</button></div></form></>:
+   themeStep==='waiting'?<><div className="tk-prov"><WalletToken method={selectedMethod}/>{methods[selectedMethod]}</div><h2 className="tk-h">{tr('Send ৳'+amount+' on '+methods[selectedMethod],methods[selectedMethod]+'-এ ৳'+amount+' পাঠান')}</h2>{info.environment==='live'&&info.source_online===false&&<p className="tk-err" role="alert">{tr('Receiving phone is offline. If you already paid, do not pay again.','গ্রহণকারী ফোন অফলাইনে। টাকা পাঠিয়ে থাকলে আবার পাঠাবেন না।')}</p>}<div className="tk-box"><div><small>{tr('Send to this number','এই নম্বরে পাঠান')}</small><strong data-testid="checkout-receiving-number">{info.destination||'—'}</strong></div><button className="tk-cp" type="button" disabled={!info.destination} onClick={()=>void copyReceiving()}>{destinationCopied?'✓':tr('Copy','কপি')}</button></div><div className="tk-box"><div><small>{tr('Amount to send','যে পরিমাণ পাঠাবেন')}</small><strong>৳{amount}</strong></div><button className="tk-cp" type="button" onClick={()=>void navigator.clipboard.writeText(String(info.amount_minor/100)).catch(()=>setCode('COPY_FAILED'))}>{tr('Copy','কপি')}</button></div><ol className="tk-ol"><li>{tr('Open the '+methods[selectedMethod]+' app and tap Send Money',methods[selectedMethod]+' অ্যাপ খুলে “সেন্ড মানি” চাপুন')}</li><li>{tr('Enter the number above and send exactly ৳'+amount+', no more, no less','উপরের নম্বরে ঠিক ৳'+amount+' পাঠান, কম বা বেশি নয়')}</li><li>{tr('Stay on this page. We will confirm it the moment it arrives.','এই পেজেই থাকুন। টাকা পৌঁছানো মাত্র আমরা নিশ্চিত করব।')}</li></ol><div className="tk-st" role="status"><i className="tk-dot"/><span>{state==='processing'?tr('Verification in progress','যাচাই চলছে'):tr('Waiting for your payment','আপনার পেমেন্টের অপেক্ষায়')}</span>{theme.theme!=='dial'&&<b>{remaining(info.expires_at,serverClock)}</b>}</div><button className="tk-gh tk-cx" disabled={cancelling} onClick={()=>void cancelPayment()}>{tr('Cancel this payment','এই পেমেন্ট বাতিল করুন')}</button></>:
+   <ThemedResult locale={locale} step={themeStep} amountMinor={info.amount_minor} method={selectedMethod} reference={info.source_reference||info.merchant_reference} store={theme.store.name} onReturn={leave}/>}
+   {code&&<p className="tk-err" role="alert">{describe(code,bn)}</p>}
+  </ThemedCheckout>;
+ }
  if(info&&status==="ready"&&state==="completed")return <PaymentSuccess method={selectedMethod} returnUrl={info.return_url} bn={bn}/>;
  if(info&&status==="ready"&&state==="cancelled")return <main data-customer-checkout="true" className="provider-checkout pg05-checkout pg05-standalone" lang={locale}>
   <section className="provider-result" role="status" style={{minHeight:"100dvh",display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",textAlign:"center",gap:16,padding:32,background:"#faf9f6",color:"#2a2625"}}>

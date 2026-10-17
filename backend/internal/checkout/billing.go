@@ -53,6 +53,10 @@ func (s *Service) HandleBilling(w http.ResponseWriter, r *http.Request) {
 			mapped(w, e)
 			return
 		}
+		if r.PathValue("billingAction") == "usage" {
+			s.billingUsage(w, r, ws, raw)
+			return
+		}
 		d, usageErr := s.attachPlanUsage(r.Context(), ws, raw)
 		if usageErr != nil {
 			fail(w, 503, "PLAN_USAGE_UNAVAILABLE")
@@ -115,6 +119,35 @@ func (s *Service) HandleBilling(w http.ResponseWriter, r *http.Request) {
 		write(w, 200, d)
 		return
 	}
+
+	if action := r.PathValue("billingAction"); action == "quote" || action == "schedule" || action == "undo" {
+		var b struct {
+			Plan   string `json:"plan_id"`
+			Cycles int    `json:"cycles"`
+		}
+		if decodeBounded(w, r, &b, 1024) != nil {
+			fail(w, 422, "INVALID_BILLING_REQUEST")
+			return
+		}
+		if action == "quote" {
+			if b.Cycles == 0 {
+				b.Cycles = 1
+			}
+			e = s.Auth.DB.QueryRowContext(r.Context(), "SELECT dashboard_billing_quote($1::uuid,$2::uuid,$3,$4)", ws, actor.UserID, b.Plan, b.Cycles).Scan(&raw)
+		} else {
+			e = s.Auth.DB.QueryRowContext(r.Context(), "SELECT dashboard_billing_change($1::uuid,$2::uuid,$3,$4)", ws, actor.UserID, b.Plan, action == "undo").Scan(&raw)
+		}
+		if e != nil {
+			mapped(w, e)
+			return
+		}
+		write(w, 200, json.RawMessage(raw))
+		return
+	}
+	if r.PathValue("billingAction") != "" && r.PathValue("billingAction") != "reconcile" {
+		fail(w, 404, "NOT_FOUND")
+		return
+	}
 	platform := os.Getenv("PLATFORM_BILLING_WORKSPACE_ID")
 	if !s.pipelineReady() || s.Pipeline.Live == nil || !uuidPattern.MatchString(platform) || platform == ws {
 		fail(w, 503, "PLATFORM_RECEIVING_UNAVAILABLE")
@@ -154,10 +187,12 @@ func (s *Service) HandleBilling(w http.ResponseWriter, r *http.Request) {
 		var proofRaw []byte
 		e = s.Pipeline.Live.QueryRow(r.Context(), "SELECT pg13_platform_payment($1)", digest(cap)).Scan(&proofRaw)
 		var proof struct {
-			ID        string    `json:"id"`
-			Amount    int64     `json:"amount_minor"`
-			Workspace string    `json:"workspace_id"`
-			At        time.Time `json:"verified_at"`
+			ID          string    `json:"id"`
+			Method      string    `json:"method"`
+			PayerSuffix string    `json:"payer_suffix"`
+			Amount      int64     `json:"amount_minor"`
+			Workspace   string    `json:"workspace_id"`
+			At          time.Time `json:"verified_at"`
 		}
 		_ = json.Unmarshal(proofRaw, &proof)
 		if e != nil || proof.Workspace != platform || proof.Amount != invoice.Amount || !uuidPattern.MatchString(proof.ID) {
@@ -165,7 +200,7 @@ func (s *Service) HandleBilling(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var saved bool
-		e = s.Auth.DB.QueryRowContext(r.Context(), "SELECT pg13_billing_verified($1::uuid,$2::uuid,$3::uuid,$4,$5)", ws, invoice.ID, proof.ID, proof.Amount, proof.At).Scan(&saved)
+		e = s.Auth.DB.QueryRowContext(r.Context(), "SELECT dashboard_billing_verified($1::uuid,$2::uuid,$3::uuid,$4,$5,$6,$7)", ws, invoice.ID, proof.ID, proof.Amount, proof.At, proof.Method, proof.PayerSuffix).Scan(&saved)
 		if e != nil {
 			mapped(w, e)
 			return
@@ -174,14 +209,31 @@ func (s *Service) HandleBilling(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		Plan string `json:"plan_id"`
+		Plan    string `json:"plan_id"`
+		QuoteID string `json:"quote_id"`
 	}
 	key := r.Header.Get("Idempotency-Key")
 	if decodeBounded(w, r, &b, 1024) != nil || !keyPattern.MatchString(key) {
 		fail(w, 422, "INVALID_BILLING_REQUEST")
 		return
 	}
-	e = s.Auth.DB.QueryRowContext(r.Context(), "SELECT pg13_billing_issue($1::uuid,$2::uuid,$3,$4)", ws, actor.UserID, b.Plan, key).Scan(&raw)
+	if b.QuoteID == "" {
+		e = s.Auth.DB.QueryRowContext(r.Context(), "SELECT dashboard_billing_quote($1::uuid,$2::uuid,$3,1)", ws, actor.UserID, b.Plan).Scan(&raw)
+		if e != nil {
+			mapped(w, e)
+			return
+		}
+		var q struct {
+			ID string `json:"id"`
+		}
+		_ = json.Unmarshal(raw, &q)
+		b.QuoteID = q.ID
+	}
+	if !uuidPattern.MatchString(b.QuoteID) {
+		fail(w, 422, "INVALID_BILLING_REQUEST")
+		return
+	}
+	e = s.Auth.DB.QueryRowContext(r.Context(), "SELECT dashboard_billing_issue($1::uuid,$2::uuid,$3::uuid,$4)", ws, actor.UserID, b.QuoteID, key).Scan(&raw)
 	if e != nil {
 		mapped(w, e)
 		return
@@ -197,4 +249,72 @@ func (s *Service) HandleBilling(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	write(w, 201, map[string]any{"invoice_id": invoice.ID, "checkout_token": cap, "amount_minor": invoice.Amount, "currency": "BDT"})
+}
+
+// Usage is authorized by pg13_billing_read before querying the isolated Live realm.
+func (s *Service) billingUsage(w http.ResponseWriter, r *http.Request, ws string, raw []byte) {
+	var data struct {
+		Effective struct {
+			Start string `json:"period_start"`
+			End   string `json:"period_end"`
+			Terms struct {
+				Quota string `json:"quota_period"`
+			} `json:"terms"`
+		} `json:"effective"`
+	}
+	if json.Unmarshal(raw, &data) != nil {
+		fail(w, 503, "BILLING_USAGE_UNAVAILABLE")
+		return
+	}
+	start, err := time.Parse(time.RFC3339Nano, data.Effective.Start)
+	end, endErr := time.Parse(time.RFC3339Nano, data.Effective.End)
+	if err != nil || endErr != nil || !end.After(start) {
+		fail(w, 409, "SUBSCRIPTION_REQUIRED")
+		return
+	}
+	if r.URL.Query().Get("period") == "previous" {
+		if data.Effective.Terms.Quota == "calendar" {
+			location, _ := time.LoadLocation("Asia/Dhaka")
+			end = start
+			start = start.In(location).AddDate(0, -1, 0)
+		} else {
+			length := end.Sub(start)
+			end = start
+			start = start.Add(-length)
+		}
+	} else if p := r.URL.Query().Get("period"); p != "" && p != "current" {
+		fail(w, 422, "INVALID_USAGE_PERIOD")
+		return
+	}
+	var usage []byte
+	err = s.scoped(r.Context(), ws, "live", func(tx pgx.Tx) error {
+		return tx.QueryRow(r.Context(), "SELECT dashboard_billing_usage($1::uuid,'live',$2,$3)", ws, start, end).Scan(&usage)
+	})
+	if err != nil {
+		mapped(w, err)
+		return
+	}
+	write(w, 200, json.RawMessage(usage))
+}
+
+// Observability is bounded and cannot delay or change payment verification.
+// Usage exposes when recording began rather than inventing historical checks.
+func (s *Service) recordCheckoutCheck(ws, realm, id string) {
+	if !uuidPattern.MatchString(ws) || !uuidPattern.MatchString(id) || realm != "live" {
+		return
+	}
+	select {
+	case activitySlots <- struct{}{}:
+	default:
+		return
+	}
+	go func() {
+		defer func() { <-activitySlots }()
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		_ = s.scoped(ctx, ws, realm, func(tx pgx.Tx) error {
+			_, err := tx.Exec(ctx, "SELECT dashboard_record_checkout_check($1::uuid,$2,$3::uuid)", ws, realm, id)
+			return err
+		})
+	}()
 }

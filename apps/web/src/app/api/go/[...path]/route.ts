@@ -7,8 +7,8 @@ const adminPlanPath=/^platform\/workspaces\/[0-9a-f-]{36}\/payment-usage$/i;
 const operationPath=/^workspaces\/[0-9a-f-]{36}\/operations\/(payments|incoming|gateways|devices|webhooks|deliveries|events|parsers|overview|notices)(?:\/[0-9a-f-]{36}(?:\/(revoke|rename|reprocess|enable|disable|rotate|activate_rotation|revoke_previous|replay|retry))?)?$/i;
 const workspacePath = /^workspaces\/[0-9a-f-]{36}\/(access|settings|(?:payment-intents(?:\/[0-9a-f-]{36}(?:\/cancel)?)?|linked-sources))$/i;
 const phonePath=/^workspaces\/[0-9a-f-]{36}\/phones(?:\/[0-9a-f-]{36}\/(?:attach|detach|rename|revoke|edit-account))?$/i;
-const documentPath=/^workspaces\/[0-9a-f-]{36}\/(?:documents\/(?:customers|invoices|payment-links)(?:\/(?:[0-9a-f-]{36}|commands)(?:\/(?:publish|archive|issue|cancel|correct|send|remind|import|import-preview|export))?)?|refunds(?:\/[0-9a-f-]{36}(?:\/(?:review|approve|reject|report-returned|cancel))?)?|reconciliation(?:\/(?:statement-preview|statement-import|settlement-link))?)$/i;
-const extensionPath=/^(?:workspace-invites\/accept-invite|workspaces\/[0-9a-f-]{36}\/(?:automatic-webhook-secret|activity\/(?:audit|api|exports)|sandbox\/(?:scenarios|runs|reset)|exports(?:\/[0-9a-f-]{36}(?:\/download)?)?|billing(?:\/free|\/[0-9a-f-]{36}\/reconcile)?|reports(?:\/ledger)?|privacy(?:\/[0-9a-f-]{36}\/cancel)?|notifications(?:\/[0-9a-f-]{36}\/read)?|integrations(?:\/[0-9a-f-]{36}\/(?:enable|disable|edit))?|workspace-tools\/(?:team|settings|help|invite|resend-invite|revoke-invite|remove-member|change-role|grants|transfer-owner)(?:\/[0-9a-f-]{36})?))$/i;
+const documentPath=/^workspaces\/[0-9a-f-]{36}\/(?:documents\/(?:customers|invoices|payment-links)(?:\/(?:[0-9a-f-]{36}|commands)(?:\/(?:publish|archive|disable|delete|issue|cancel|correct|send|remind|import|import-preview|export))?)?|refunds(?:\/[0-9a-f-]{36}(?:\/(?:review|approve|reject|report-returned|cancel))?)?|reconciliation(?:\/(?:statement-preview|statement-import|settlement-link))?)$/i;
+const extensionPath=/^(?:workspace-invites\/accept-invite|workspaces\/[0-9a-f-]{36}\/(?:automatic-webhook-secret|activity\/(?:audit|api|exports)|sandbox\/(?:scenarios|runs|reset)|exports(?:\/[0-9a-f-]{36}(?:\/download)?)?|billing(?:\/(?:free|usage|quote|schedule|undo)|\/[0-9a-f-]{36}\/reconcile)?|reports(?:\/ledger)?|privacy(?:\/[0-9a-f-]{36}\/cancel)?|notifications(?:\/(?:[0-9a-f-]{36}|all)\/read)?|integrations(?:\/[0-9a-f-]{36}\/(?:enable|disable|edit))?|workspace-tools\/(?:team|settings|help|invite|resend-invite|revoke-invite|remove-member|change-role|grants|transfer-owner)(?:\/[0-9a-f-]{36})?))$/i;
 async function forward(request: Request, context: { params: Promise<{ path: string[] }> }) {
  const path = (await context.params).path.join("/");
  const read = request.method === "GET";
@@ -32,7 +32,7 @@ async function forward(request: Request, context: { params: Promise<{ path: stri
   return Response.json({ code: sandboxTools?"SANDBOX_TOOLS_UNAVAILABLE":"PROXY_CONFIG_INVALID" }, { status: 503 });
  const target = new URL("/v1/" + path, base);
  const incoming = new URL(request.url);
- for (const key of ["environment", "capability", "cursor", "status", "account", "method", "from", "to", "q"]) {
+ for (const key of ["environment", "capability", "cursor", "status", "account", "method", "from", "to", "q", "period"]) {
   if(incoming.searchParams.getAll(key).length>1)return Response.json({code:"INVALID_SCOPE"},{status:400});
   const value = incoming.searchParams.get(key);
   if (value) target.searchParams.set(key, value);

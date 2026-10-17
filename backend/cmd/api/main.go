@@ -87,6 +87,11 @@ func newHandlerWithCheckout(repo *authz.Repository, pay *checkout.Service) http.
 	mux.HandleFunc("POST /v1/workspace-invites/{tool}", pay.HandleWorkspaceTools)
 	mux.HandleFunc("POST /v1/platform/payment-support/{ticketID}/reply", pay.HandleSupportReply)
 	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/billing", pay.HandleBilling)
+	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/billing/usage", func(w http.ResponseWriter, r *http.Request) {
+		r.SetPathValue("billingAction", "usage")
+		pay.HandleBilling(w, r)
+	})
+	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/billing/{billingAction}", pay.HandleBilling)
 	mux.HandleFunc("GET /v1/workspaces/{workspaceID}/privacy", pay.HandlePrivacy)
 	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/privacy", pay.HandlePrivacy)
 	mux.HandleFunc("POST /v1/workspaces/{workspaceID}/privacy/{requestID}/cancel", pay.HandlePrivacy)

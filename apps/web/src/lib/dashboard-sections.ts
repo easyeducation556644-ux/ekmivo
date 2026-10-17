@@ -29,6 +29,7 @@ export const sections={
  products:{en:"Products",bn:"পণ্য",detail:{en:"Catalog, variations, availability and pricing.",bn:"পণ্যতালিকা, ভ্যারিয়েন্ট, মজুত ও মূল্য।"},group:"commerce"},
  inventory:{en:"Inventory",bn:"মজুত",detail:{en:"Warehouse stock and reservations.",bn:"ওয়্যারহাউস ও স্টক রিজার্ভেশন।"},group:"commerce"},
  orders:{en:"Orders",bn:"অর্ডার",detail:{en:"Confirmed, pending and returned orders.",bn:"নিশ্চিত, অপেক্ষমাণ ও ফেরত অর্ডার।"},group:"commerce"},
+ "checkout-themes":{en:"Checkout themes",bn:"চেকআউট থিম",detail:{en:"Choose the design used for customer payment pages.",bn:"গ্রাহকের পেমেন্ট পেজের ডিজাইন বেছে নিন।"},group:"commerce"},
  transactions:{en:"Payments",bn:"পেমেন্ট",detail:{en:"Evidence-based verification, pending items and exceptions.",bn:"প্রমাণভিত্তিক যাচাই, অপেক্ষমাণ ও ব্যতিক্রমী পেমেন্ট।"},group:"commerce"},
  "payment-links":{en:"Payment links",bn:"পেমেন্ট লিংক",detail:{en:"Links and hosted payment requests.",bn:"পেমেন্ট লিংক ও পেমেন্ট রিকোয়েস্ট।"},group:"commerce"},
  invoices:{en:"Invoices",bn:"ইনভয়েস",detail:{en:"Customer invoices, receipts and statements.",bn:"ইনভয়েস, রসিদ ও হিসাবের বিবরণ।"},group:"commerce"},
