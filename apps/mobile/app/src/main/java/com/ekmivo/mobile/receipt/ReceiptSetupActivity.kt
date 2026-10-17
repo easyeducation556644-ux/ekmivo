@@ -17,7 +17,7 @@ class ReceiptSetupActivity:ComponentActivity(){
   super.onCreate(savedInstanceState)
   val preferences=AppPreferences(applicationContext)
   setContent{
-   val language by preferences.language.collectAsState(initial=Language.BN)
+   val language by preferences.language.collectAsState(initial=Language.EN)
    val appearance by preferences.appearance.collectAsState(initial=Appearance.SYSTEM)
    val dark=when(appearance){Appearance.SYSTEM->isSystemInDarkTheme();Appearance.DARK->true;Appearance.LIGHT->false}
    EkmivoApp(preferences)

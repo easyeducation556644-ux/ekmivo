@@ -114,3 +114,13 @@ following docs/design/ekmivo-phase-prompts.md; no UI changes in Phase 1.
 - Code entry represents a real 43-character capability across eight grouped visual cells instead of fake eight-character demo value; long tokens necessarily differ from reference's 8-cell single-character placeholder. 'Paste code' link was required by Final Prompt §3.3c.
 - Phase 2 icon tile and screen hierarchy follow spec 3.3/3.3a/3.3b and web-derived theme tokens. Real-camera device photos/screenshot match table at 360dp and 412dp still NOT VERIFIED; user will review generated APK.
 - Fork Android-only CI will build `:app:assembleDebug :app:testDebugUnitTest`; its debug APK is for testing, not a release signing/distribution claim. Do not copy fork CI-skip workflow upstream.
+
+## Phase 2 polishing — eight-character physical phone pairing
+- New pairing issuance is exactly 8 symbols from 32 non-confusable symbols with crypto/rand (40 bits); digest storage and existing PostgreSQL 5-minute, one-time claim behaviour remain unchanged.
+- Legacy 43-char pairing capability validation remains accepted on the server for short-lived compatibility, but newly displayed phone codes are 8 chars. No historical migration.
+- Web SMS devices pairing modal displays eight individual responsive cells and a separate Copy button. QR uses identical eight symbols.
+- Android shows eight one-character cells backed by one invisible native editor; typing moves continuously across cells, paste distributes across all eight, and completion automatically proceeds to generic confirmation. Server claim still happens ONLY after explicit consent.
+- Language switch EN/BN in top-right header; new installs default English. System appearance remains the default; dark colours matched to attached HTML reference #0F0F0E, #181817, #222220.
+- Simplified setup steps to SMS devices / Connect phone. No generic text fields in 8-cell code UI.
+- CI fork: Android assembleDebug + testDebugUnitTest, targeted Go code-generator test and targeted QR/UI/expiry assertions. No full Go/web/Docker runs. This fork-only CI filter must not be promoted to upstream.
+- APK device visual review by owner is pending. Backend must be deployed before a new 8-digit code can be issued by the live dashboard; a new APK alone cannot change an old server.

@@ -44,14 +44,20 @@ fun EkmivoApp(preferences:AppPreferences, incomingPairingLink:String?=null){
  val appContext=LocalContext.current.applicationContext
  var paired by remember { mutableStateOf(ReceiptStore(appContext).use { it.phone()!=null || it.enrollment()!=null }) }
  val appearance by preferences.appearance.collectAsState(initial=Appearance.SYSTEM)
- val language by preferences.language.collectAsState(initial=Language.BN)
+ val language by preferences.language.collectAsState(initial=Language.EN)
  val bn=language==Language.BN
  val dark=when(appearance){Appearance.SYSTEM->isSystemInDarkTheme();Appearance.DARK->true;Appearance.LIGHT->false}
  val scope=rememberCoroutineScope()
  var tab by rememberSaveable{mutableStateOf(Tab.FORWARDER)}
  EkmivoTheme(dark=dark){
   if (!paired) {
-   PairingFlow(bn=bn, incomingLink=incomingPairingLink, onPaired={paired=true})
+   PairingFlow(
+    bn=bn, incomingLink=incomingPairingLink,
+    onLanguageChange={ toBn ->
+     scope.launch { preferences.updateLanguage(if(toBn) Language.BN else Language.EN) }
+    },
+    onPaired={paired=true}
+   )
   } else Scaffold(
    containerColor=MaterialTheme.colorScheme.background,
    bottomBar={
@@ -96,6 +102,10 @@ fun EkmivoApp(preferences:AppPreferences, incomingPairingLink:String?=null){
      }
      Spacer(Modifier.width(10.dp))
      Text("ekmivo",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+     Spacer(Modifier.weight(1f))
+     EkmivoLanguageSwitch(bn=bn,onChange={ toBn ->
+      scope.launch { preferences.updateLanguage(if(toBn) Language.BN else Language.EN) }
+     })
     }
     AnimatedContent(targetState=tab,transitionSpec={
      fadeIn(tween(170)) togetherWith fadeOut(tween(100))
