@@ -61,44 +61,20 @@ function ScopedLedger({locale,workspaceId,environment,period,canReveal}:{
   void run();
   return()=>controller.abort();
  },[workspaceId,environment,period.from,period.to,period.account,canReveal,cursor,refresh,locale,t]);
- return <section className="er-ledger-workbench" aria-label={t("Verified payment ledger","যাচাইকৃত পেমেন্টের তালিকা")}>
-  <div className="er-ledger-head">
-   <div><h2>{t("Verified payment ledger","যাচাইকৃত পেমেন্টের তালিকা")}</h2>
-    <p>{t("Real payer numbers from verified receipts","যাচাইকৃত রসিদ থেকে প্রকৃত প্রেরকের নম্বর")}</p>
-   </div>
-   <div className="er-ledger-actions">
-    {canReveal&&<button type="button" disabled={!rows.length||busy} onClick={()=>downloadCsv(rows,period)}>{t("Export loaded rows","লোড হওয়া সারি ডাউনলোড")}</button>}
-    {canReveal&&<button type="button" disabled={busy} onClick={()=>{setCursor(null);setNext(null);setRefresh(x=>x+1)}}>{t("Reload","রিফ্রেশ")}</button>}
-   </div>
-  </div>
-  {!canReveal?<p className="er-ledger-state">{t("Full payer information is available to workspace owners and admins.","প্রেরকের সম্পূর্ণ নম্বর শুধুমাত্র ওয়ার্কস্পেস Owner ও Admin দেখতে পারবেন।")}</p>:<>
-   {error&&<div className="er-ledger-error" role="alert">{error} <button type="button" onClick={()=>setRefresh(x=>x+1)}>{t("Retry","আবার চেষ্টা")}</button></div>}
-   {busy&&!rows.length&&<p className="er-ledger-state" role="status">{t("Loading verified transactions…","যাচাইকৃত লেনদেন লোড হচ্ছে…")}</p>}
-   {!busy&&!error&&!rows.length&&<p className="er-ledger-state">{t("No verified payments for this period.","এই সময়ে যাচাইকৃত পেমেন্ট নেই।")}</p>}
-   {rows.length>0&&<div className="er-payer-table-wrap" role="region" tabIndex={0} aria-label={t("Verified payer payments","যাচাইকৃত প্রেরকের পেমেন্ট")}>
-    <table className="er-payer-table"><thead><tr>
-     <th scope="col">{t("Reference","রেফারেন্স")}</th>
-     <th scope="col">{t("Payer number","প্রেরকের নম্বর")}</th>
-     <th scope="col">{t("Method","মাধ্যম")}</th>
-     <th scope="col" className="er-num">{t("Amount","পরিমাণ")}</th>
-     <th scope="col">{t("Original transaction","লেনদেনের সময়")}</th>
-     <th scope="col">{t("Verified","যাচাই হয়েছে")}</th>
-    </tr></thead><tbody>
-     {rows.map(r=><tr key={r.id}>
-      <td><Link href={"/w/"+workspaceId+"/payments/transactions/"+r.id}>{r.merchant_reference||r.id.slice(0,8)}</Link></td>
-      <td><span className="er-payer-phone">{r.payer_number||t("Not recoverable","পাওয়া যাচ্ছে না")}</span></td>
-      <td>{r.method||"—"}</td>
-      <td className="er-num">{money(r.verified_amount_minor,locale)}</td>
-      <td>{date(r.original_transaction_at,locale)}</td>
-      <td>{date(r.verified_at,locale)}</td>
-     </tr>)}
-    </tbody></table>
-   </div>}
-   {next&&<div className="er-ledger-pagination">
-    <span>{t("Loaded","লোড হয়েছে")}: {rows.length}</span>
-    <button type="button" disabled={busy} onClick={()=>setCursor(next)}>{busy?t("Loading…","লোড হচ্ছে…"):t("Load more","আরও দেখুন")}</button>
-   </div>}
-   {rows.length>0&&!next&&<div className="er-ledger-pagination"><span>{rows.length} {t("verified transactions loaded","টি যাচাইকৃত লেনদেন দেখানো হয়েছে")}</span></div>}
+ return <section className="reference-ledger" aria-label={t("Verified payment ledger","যাচাইকৃত পেমেন্টের তালিকা")}>
+  {!canReveal?<div className="empty">{t("You do not have access to payment details.","পেমেন্টের বিস্তারিত দেখার অনুমতি নেই।")}</div>:<>
+   {error&&<div className="financial-error" role="alert">{error}<button type="button" onClick={()=>setRefresh(x=>x+1)}>{t("Retry","আবার চেষ্টা")}</button></div>}
+   {busy&&!rows.length&&<div className="financial-status" role="status">{t("Loading verified transactions…","যাচাইকৃত লেনদেন লোড হচ্ছে…")}</div>}
+   {!busy&&!error&&!rows.length&&<div className="empty"><b>{t("No verified payments in this period","এই সময়ে কোনো যাচাইকৃত পেমেন্ট নেই")}</b>{t("Try a longer period or a different account.","আরও বড় সময়সীমা বা অন্য অ্যাকাউন্ট বেছে নিন।")}</div>}
+   {rows.length>0&&<div className="tw" role="region" tabIndex={0} aria-label={t("Verified payer payments","যাচাইকৃত প্রেরকের পেমেন্ট")}>
+    <table><thead><tr><th>{t("Transaction ID","লেনদেন আইডি")}</th><th>{t("Date","তারিখ")}</th><th>{t("Method","মাধ্যম")}</th><th className="r">{t("Amount","পরিমাণ")}</th></tr></thead>
+     <tbody>{rows.map(r=><tr key={r.id}><td><Link className="mono" href={"/w/"+workspaceId+"/payments/transactions/"+r.id}>{r.merchant_reference||r.id.slice(0,12)}</Link><span className="sub mono" dir="ltr">{r.payer_number||t("Payer number unavailable","প্রেরকের নম্বর পাওয়া যায়নি")}</span></td><td>{date(r.original_transaction_at||r.verified_at,locale)}</td><td>{r.method||"—"}</td><td className="r amt">{money(r.verified_amount_minor,locale)}</td></tr>)}</tbody>
+    </table></div>}
+   {rows.length>0&&<div className="reference-ledger-footer"><span>{rows.length} {t("verified transactions loaded","টি যাচাইকৃত লেনদেন দেখানো হয়েছে")}</span><div>
+    <button type="button" disabled={busy} onClick={()=>{setCursor(null);setNext(null);setRefresh(x=>x+1)}}>{t("Reload","রিফ্রেশ")}</button>
+    <button type="button" disabled={!rows.length||busy} onClick={()=>downloadCsv(rows,period)}>{t("Export loaded","লোড হওয়া ডাউনলোড")}</button>
+    {next&&<button type="button" disabled={busy} onClick={()=>setCursor(next)}>{busy?t("Loading…","লোড হচ্ছে…"):t("Load more","আরও দেখুন")}</button>}
+   </div></div>}
   </>}
  </section>;
 }
