@@ -174,8 +174,8 @@ func (w *InvoiceNoticeWorker) Work(ctx context.Context, job *river.Job[InvoiceNo
 	if w.Control.QueryRow(ctx,"SELECT name FROM workspaces WHERE id=$1::uuid",n.Workspace).Scan(&seller)!=nil {
 		return errors.New("invoice merchant unavailable")
 	}
-	invoiceURL := origin+"/bn/invoice/"+token
-	message := receiptnotice.Message{MerchantRequestedDocument: true, Workspace: n.Workspace, Environment: w.Realm, MessageID: n.ID, Subject: "Invoice / ইনভয়েস " + n.Reference, Text: "Invoice / ইনভয়েস: " + invoiceURL + "\nPayment is verified only by the server. / সার্ভার যাচাই ছাড়া পরিশোধ নিশ্চিত নয়।", HTML: renderInvoiceEmail(seller,n.Reference,string(email),invoiceURL,origin+"/bn/pay/"+token,invoice), Recipient: receiptnotice.Recipient{Workspace: n.Workspace, Environment: w.Realm, Email: string(email), ConsentedAt: n.Created}}
+	invoiceURL := origin+"/invoice/"+token
+	message := receiptnotice.Message{MerchantRequestedDocument: true, Workspace: n.Workspace, Environment: w.Realm, MessageID: n.ID, Subject: "Invoice / ইনভয়েস " + n.Reference, Text: "Invoice / ইনভয়েস: " + invoiceURL + "\nPayment is verified only by the server. / সার্ভার যাচাই ছাড়া পরিশোধ নিশ্চিত নয়।", HTML: renderInvoiceEmail(seller,n.Reference,string(email),invoiceURL,origin+"/pay/"+token,invoice), Recipient: receiptnotice.Recipient{Workspace: n.Workspace, Environment: w.Realm, Email: string(email), ConsentedAt: n.Created}}
 	e = receiptnotice.SendSMTP(ctx, *w.SMTP, message)
 	if errors.Is(e, receiptnotice.ErrOutcomeUnknown) {
 		return finish("unknown")
