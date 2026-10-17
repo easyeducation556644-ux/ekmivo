@@ -1532,6 +1532,14 @@ try{
  console.log("PG08 customer notice SQL PASS: verified consent, same-intent capabilities, atomic receipt enqueue, lease, unknown outcome, withdrawal, secret isolation (FICTIONAL)");
  const extensionEnv={...process.env,...pg06Env,PG10_ALLOW_MIGRATION:"true",PG10_MIGRATION_DIRECTORY:new URL("../../../infra/migrations/",import.meta.url).pathname};
  execFileSync("go",["run","./cmd/financial-migrate"],{cwd:new URL("../../../backend/",import.meta.url),env:extensionEnv,stdio:"pipe",timeout:90000});
+ // Disposable finance test databases: install the new additive invoice contracts
+ // after the PG10 base migration, without touching shared/prod data.
+ for(const realm of ["sandbox","live"]){
+  for(const filename of ["0078_invoice_numbers.sql","0079_public_invoice_details.sql","0080_invoice_public_draft.sql","0081_public_invoice_receipts.sql"]){
+   const sql=await readFile(new URL("../../../infra/migrations/"+filename,import.meta.url),"utf8");
+   await dbs[realm].unsafe(sql).simple();
+  }
+ }
  count+=await runPaymentExtensions({db:dbs.sandbox,live:dbs.live,control:admin,workspace:pg07WS,otherWorkspace:randomUUID()});
  console.log("PG10-PG17 extension source SQL cases executed against disposable realms; fictional evidence only");
  const controlEmpty=await admin`SELECT to_regclass('public.payment_intents') IS NULL AS no_payments`;
