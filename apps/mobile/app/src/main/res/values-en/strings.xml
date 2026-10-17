@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Ekmivo</string>
+    <string name="pair_header">Connect phone</string>
+    <string name="pair_header_scan">Scan the dashboard QR</string>
+    <string name="pair_header_code">Use a code</string>
+    <string name="pair_welcome_title">Connect this phone to Ekmivo</string>
+    <string name="pair_welcome_body">Payment SMS received on this phone will be forwarded to Ekmivo automatically.</string>
+    <string name="pair_step_1">Open ‘SMS devices’ in your dashboard</string>
+    <string name="pair_step_2">Choose ‘Connect phone’ and create a pairing QR</string>
+    <string name="pair_step_3">Scan the pairing QR code shown on your dashboard.</string>
+    <string name="pair_scan">Scan QR</string>
+    <string name="pair_code_link">Connect with a code</string>
+    <string name="pair_camera_title">Enable camera</string>
+    <string name="pair_camera_body">The camera is needed to scan a QR code. No photo is saved.</string>
+    <string name="pair_allow">Allow access</string>
+    <string name="pair_scan_hint">Hold the dashboard QR inside the frame</string>
+    <string name="pair_torch">Torch</string>
+    <string name="pair_scan_ok">Code scanned</string>
+    <string name="pair_confirm_generic">Dashboard phone</string>
+    <string name="pair_consent">Ekmivo checks incoming SMS on this phone and forwards only payment SMS to your connected workspace. Other SMS are not sent or stored.</string>
+    <string name="pair_confirm_button">Confirm and connect</string>
+    <string name="pair_cancel">Cancel</string>
+    <string name="pair_connecting">Connecting…</string>
+    <string name="pair_connecting_body">This phone is being connected to your dashboard.</string>
+    <string name="pair_code_title">Enter pairing code</string>
+    <string name="pair_code_body">The code appears on your dashboard ‘Connect phone’ page.</string>
+    <string name="pair_code_verify">Verify code</string>
+    <string name="pair_paste">Paste code</string>
+    <string name="pair_empty_clipboard">No valid pairing token was found in the clipboard.</string>
+    <string name="pair_error_format">Invalid code. Copy the complete code from the dashboard.</string>
+    <string name="pair_error_camera">Camera unavailable. Connect using the code instead.</string>
+    <string name="pair_error_permission">Allow camera access, or use a code.</string>
+    <string name="pair_error_expired">This code expired. Generate a new code in the dashboard.</string>
+    <string name="pair_error_used">This code was already used. Generate a new pairing code.</string>
+    <string name="pair_error_environment">This code belongs to a different environment. Check the dashboard environment and create a new code.</string>
+    <string name="pair_error_network">Cannot reach the server. Check your connection and retry.</string>
+    <string name="pair_error_generic">Could not connect. Check the code expiry and your connection, then retry.</string>
+    <string name="pair_error_saved">The server paired your phone, but saving local credentials failed. Keep this app open and try again.</string>
+    <string name="pair_legacy_continue">Set up phone permissions</string>
+    <string name="pair_token_progress">%1$d / %2$d code characters</string>
+    <string name="pair_token_placeholder">Enter or paste the 8-character code</string>
+    <string name="pair_code_copied_hint">You can paste the complete code</string>
+</resources>

@@ -1,4 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Ekmivo</string>
+    <string name="pair_header">ফোন যুক্ত করুন</string>
+    <string name="pair_header_scan">ড্যাশবোর্ডের QR স্ক্যান করুন</string>
+    <string name="pair_header_code">কোড দিয়ে</string>
+    <string name="pair_welcome_title">ফোনটি Ekmivo-র সাথে যুক্ত করুন</string>
+    <string name="pair_welcome_body">এই ফোনে আসা পেমেন্টের SMS নিজে থেকে Ekmivo-তে পাঠানো হবে।</string>
+    <string name="pair_step_1">ড্যাশবোর্ডে ‘SMS devices’ খুলুন</string>
+    <string name="pair_step_2">‘ফোন যুক্ত করুন’ থেকে pairing QR তৈরি করুন</string>
+    <string name="pair_step_3">ড্যাশবোর্ডে দেখানো পেয়ারিং QR কোডটি স্ক্যান করুন।</string>
+    <string name="pair_scan">QR স্ক্যান করুন</string>
+    <string name="pair_code_link">কোড দিয়ে যুক্ত করুন</string>
+    <string name="pair_camera_title">ক্যামেরা চালু করুন</string>
+    <string name="pair_camera_body">QR কোড স্ক্যান করতে ক্যামেরা লাগবে। কোনো ছবি সংরক্ষণ করা হয় না।</string>
+    <string name="pair_allow">অনুমতি দিন</string>
+    <string name="pair_scan_hint">ড্যাশবোর্ডের QR কোড ফ্রেমে ধরুন</string>
+    <string name="pair_torch">টর্চ</string>
+    <string name="pair_scan_ok">স্ক্যান সফল হয়েছে</string>
+    <string name="pair_confirm_generic">ড্যাশবোর্ডের ফোন</string>
+    <string name="pair_consent">Ekmivo এই ফোনে আসা SMS দেখে শুধু পেমেন্টের SMS আপনার সংযুক্ত ওয়ার্কস্পেসে পাঠাবে। বাকি SMS পাঠানো বা সংরক্ষণ করা হবে না।</string>
+    <string name="pair_confirm_button">নিশ্চিত করে যুক্ত করুন</string>
+    <string name="pair_cancel">বাতিল</string>
+    <string name="pair_connecting">যুক্ত হচ্ছে…</string>
+    <string name="pair_connecting_body">এই ফোনটি আপনার ড্যাশবোর্ডের সাথে যুক্ত করা হচ্ছে।</string>
+    <string name="pair_code_title">পেয়ারিং কোড লিখুন</string>
+    <string name="pair_code_body">ড্যাশবোর্ডের ‘ফোন যুক্ত করুন’ পেজে কোডটি দেখাবে।</string>
+    <string name="pair_code_verify">কোড যাচাই করুন</string>
+    <string name="pair_paste">কোড পেস্ট করুন</string>
+    <string name="pair_empty_clipboard">ক্লিপবোর্ডে সঠিক pairing token নেই।</string>
+    <string name="pair_error_format">কোডটি সঠিক নয়। ড্যাশবোর্ড থেকে সম্পূর্ণ কোড কপি করুন।</string>
+    <string name="pair_error_camera">ক্যামেরা চালু করা যায়নি। কোড দিয়ে যুক্ত করুন।</string>
+    <string name="pair_error_permission">ক্যামেরার অনুমতি দিন অথবা কোড ব্যবহার করুন।</string>
+    <string name="pair_error_expired">কোডের মেয়াদ শেষ। ড্যাশবোর্ড থেকে নতুন কোড তৈরি করুন।</string>
+    <string name="pair_error_used">কোডটি আগে ব্যবহার হয়েছে। নতুন pairing কোড তৈরি করুন।</string>
+    <string name="pair_error_environment">এই কোডটি নির্বাচিত environment-এর জন্য নয়। ড্যাশবোর্ডে environment মিলিয়ে নতুন কোড নিন।</string>
+    <string name="pair_error_network">সার্ভারের সাথে সংযোগ হচ্ছে না। ইন্টারনেট দেখে আবার চেষ্টা করুন।</string>
+    <string name="pair_error_generic">ফোন যুক্ত করা যায়নি। কোডের মেয়াদ ও সংযোগ দেখে আবার চেষ্টা করুন।</string>
+    <string name="pair_error_saved">ফোনটি যুক্ত হয়েছে, কিন্তু তথ্য সংরক্ষণে সমস্যা হয়েছে। অ্যাপটি বন্ধ না করে আবার চেষ্টা করুন।</string>
+    <string name="pair_legacy_continue">ফোনের অনুমতি সেটআপ</string>
+    <string name="pair_token_progress">কোডের %1$d / %2$d অক্ষর</string>
+    <string name="pair_token_placeholder">আট অক্ষরের কোড লিখুন বা পেস্ট করুন</string>
+    <string name="pair_code_copied_hint">সম্পূর্ণ কোড পেস্ট করতে পারেন</string>
 </resources>
