@@ -52,8 +52,6 @@ export function PaymentDocuments({kind,workspaceId,environment,locale,userId,can
   if(!isLinks)return;
   const abort=new AbortController();
   invoiceMoreRequest.current?.abort();invoiceMoreRequest.current=null;
-  setInvoiceLinks([]);
-  setInvoiceLinksCursor(null);
   const loadInvoices=async()=>{
    setInvoiceLinksLoading(true);setInvoiceLinksError("");
    try{
@@ -64,7 +62,7 @@ export function PaymentDocuments({kind,workspaceId,environment,locale,userId,can
    }catch{if(!abort.signal.aborted)setInvoiceLinksError(t("Invoice-linked payments are temporarily unavailable.","ইনভয়েসের পেমেন্ট লিংক এখন পাওয়া যাচ্ছে না।"))}
    finally{if(!abort.signal.aborted)setInvoiceLinksLoading(false)}
   };
-  void loadInvoices();
+  queueMicrotask(()=>{if(!abort.signal.aborted){setInvoiceLinks([]);setInvoiceLinksCursor(null);void loadInvoices()}});
   return()=>{abort.abort();invoiceMoreRequest.current?.abort()};
  },[isLinks,workspaceId,environment,invoiceLinksRefresh,t]);
  const loadMoreInvoiceLinks=async()=>{
