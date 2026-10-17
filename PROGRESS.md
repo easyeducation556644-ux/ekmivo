@@ -113,3 +113,19 @@ following docs/design/ekmivo-phase-prompts.md; no UI changes in Phase 1.
 - Source-assertion checks now reference the actual central device-signature transport context, Room queue guard, dashboard SMS-device module and normalized payer/locale-neutral route contracts. No payment/backend logic was changed to satisfy outdated literal assertions.
 - The fork-only CI skip workflow is NOT promoted to upstream; original full CI remains unchanged. A new upstream full CI green run is **not** claimed.
 - Phase 0 preview image comparison (360dp/412dp), Room/Keystore device instrumentation, and 30-minute Samsung background checks remain **PENDING**. User approved promotion after passing Android plus targeted contract checks; passing unit tests is not evidence of on-device production validation.
+
+## Phase 2 — Pairing screens implementation, pending device visual acceptance (2026-10-17)
+- Added Welcome, Camera permission, in-app CameraX/ML Kit scanner with 150dp bracket overlay + torch, consent Confirm sheet, Connecting, and complete token code entry. No Phase 3 permission wizard, Phase 4 Home, or backend rewrite.
+- Added Android ACTION_VIEW deep link for `ekmivo://pair?token=`; token is validated for exactly 43 unpadded base64url characters (the current actual emitted format), and never consumed before the user presses Confirm and connect. A copyable full code and explicit clipboard Paste are supported for one-device merchants.
+- User authorized generic workspace wording in place of a server-verified shop name; real identity is established by one-time signed POST /v1/device/claim. No invented shop name/avatar. QR success goes immediately to Confirm and only button action consumes the token.
+- UI text is loaded from separate BN and EN resources using the selected Ekmivo app language, not Android system locale. Demo payment providers and guarantee claims are not shipped. Copy identifies SMS forwarding, not payment settlement.
+- Successful claim stores original backend enrollment, consent timestamp/version, schedules WorkManager, then hands control to the preexisting permissions/Forwarder flow. Phase 3 will replace those legacy permissions screens.
+- Camera uses CameraX PreviewView and local ML Kit analysis only after CAMERA grant; no frame/photo is persisted/uploaded; scanner releases use cases on disposal.
+- Code entry represents a real 43-character capability across eight grouped visual cells instead of fake eight-character demo value; long tokens necessarily differ from reference's 8-cell single-character placeholder. 'Paste code' link was required by Final Prompt §3.3c.
+- Phase 2 icon tile and screen hierarchy follow spec 3.3/3.3a/3.3b and web-derived theme tokens. Real-camera device photos/screenshot match table at 360dp and 412dp still NOT VERIFIED; user will review generated APK.
+- Fork Android-only CI will build `:app:assembleDebug :app:testDebugUnitTest`; its debug APK is for testing, not a release signing/distribution claim. Do not copy fork CI-skip workflow upstream.
+
+### Fork Android CI result (2026-10-17)
+- Phase 2 validation: https://github.com/easyeducation556644-ux/ekmivo/actions/runs/39035147227: **SUCCESS**, `:app:assembleDebug :app:testDebugUnitTest` both passed (BUILD SUCCESSFUL in 2m 37s); debug APK `ekmivo-kotlin-debug` (artifact #12101587617).
+- Web, Go and Docker deliberately **skipped** for this phase on the fork to conserve CI usage; the upstream CI YAML stays unmodified.
+- Original reference screenshot comparison at 360dp and 412dp is **NOT DONE**; APK sent to owner for visual and device pairing acceptance. The generic copy for shop name was explicitly approved by the owner.
