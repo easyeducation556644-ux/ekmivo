@@ -17,7 +17,7 @@ export function HostedInvoice({locale,token}:{locale:"en"|"bn";token:string}){
  const total=doc?.amount_minor??0,paid=doc?.paid_minor??0;
  const draft=doc?.status==="draft";const cancelled=doc?.status==="cancelled";const fullyPaid=Boolean(doc)&&total>0&&paid>=total;const overdue=Boolean(doc?.body?.due_at)&&new Date(doc!.body!.due_at!).getTime()<Date.now();
  const status=draft?t("Draft","খসড়া"):cancelled?t("Void","বাতিল"):fullyPaid?t("Paid","পরিশোধিত"):overdue?t("Overdue","মেয়াদ পেরিয়েছে"):t("Due","বাকি");
- const theme=parseCheckoutTheme(doc?.brand?.checkout_theme);const logo=theme?.store.logo||doc?.brand?.logo_url;const safeLogo=logo&&(logo.startsWith("/")&&!logo.startsWith("//")||/^https:\/\/[^\s@]+$/i.test(logo))?logo:undefined;
+ const theme=parseCheckoutTheme(doc?.brand?.checkout_theme);const logo=theme?.store.logo||doc?.brand?.logo_url;const safeLogo=logo&&(logo.startsWith("/")&&!logo.startsWith("//")||/^https:\/\/[^\s@]+$/i.test(logo)||/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/i.test(logo))?logo:undefined;
  return <main className="ek-invoice-host" lang={locale}>
   <div className="ek-invoice-actions"><Link href="/" aria-label={t("Ekmivo home","Ekmivo হোম")}>ekmivo</Link><div><button type="button" onClick={()=>{document.cookie=`ekmivo-locale=${bn?"en":"bn"}; Path=/; Max-Age=31536000; SameSite=Lax`;window.location.reload()}}>{bn?"English":"বাংলা"}</button><button type="button" onClick={()=>window.print()} disabled={!doc}>{t("Print / Save PDF","প্রিন্ট / PDF সেভ")}</button></div></div>
   {pending?<p role="status">{t("Loading invoice…","ইনভয়েস লোড হচ্ছে…")}</p>:error?<p role="alert">{error}</p>:doc&&<article className="ek-invoice-sheet">
