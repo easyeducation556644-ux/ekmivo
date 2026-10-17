@@ -7,16 +7,16 @@ import {useCallback,useEffect,useRef,useState} from "react";
 import type {Locale,PaymentEnvironment} from "../lib/dashboard-navigation";
 
 type Account={ID:string;Method:string;Number:string;Label:string;Disabled:boolean};
-type Phone={id:string;name:string;claimed_at?:string|null;revoked_at?:string|null;heartbeat_at?:string|null;bindings:{id:string;account_id:string;source:string;binding:string}[]};
 const methodName:Record<string,string>={bkash:"bKash",nagad:"Nagad",rocket:"Rocket"};
 export function PaymentMethodManagement({locale,workspaceId,environment,canManage}:{locale:Locale;workspaceId:string;environment:PaymentEnvironment;canManage:boolean}){
  const bn=locale==="bn",t=useCallback((en:string,bd:string)=>bn?bd:en,[bn]);
  const formattedAccount=(value:string)=>{const digits=value.replace(/\D/g,"");const local=digits.startsWith("880")?digits.slice(3):digits.startsWith("0")?digits.slice(1):digits;return local.length===10?"+880 "+local.slice(0,4)+" "+local.slice(4):value};
  const base="/api/go/workspaces/"+workspaceId;
- const seed=useDashboardInitialData<{accounts:Account[];items:Phone[]}>("phones");
+ const seed=useDashboardInitialData<{accounts:Account[]}>("phones");
  const [accounts,setAccounts]=useState<Account[]>(seed?.data?.accounts??[]),[loading,setLoading]=useState(!seed),[busy,setBusy]=useState(false),[error,setError]=useState(seed?.error??""),[notice,setNotice]=useState("");
  const createDialog=useRef<HTMLDialogElement>(null),editDialog=useRef<HTMLDialogElement>(null),detailsDialog=useRef<HTMLDialogElement>(null);
  const [method,setMethod]=useState(""),[number,setNumber]=useState(""),[label,setLabel]=useState("");
+ const normalizeNumber=(raw:string)=>{const digits=raw.replace(/\D/g,"");return digits.startsWith("880")?("0"+digits.slice(3)):digits.startsWith("01")?digits:""};
  const [query,setQuery]=useState(""),[filter,setFilter]=useState<"all"|"active"|"disabled">("all"),[providerQuery,setProviderQuery]=useState("");
  const visibleAccounts=accounts.filter(a=>(filter==="all"||(filter==="active"?!a.Disabled:a.Disabled))&&[a.Label,a.Number,methodName[a.Method]||a.Method].join(" ").toLowerCase().includes(query.trim().toLowerCase()));
  const openAdd=()=>{setMethod("");setNumber("");setLabel("");setProviderQuery("");setError("");createDialog.current?.showModal()};
@@ -49,8 +49,8 @@ export function PaymentMethodManagement({locale,workspaceId,environment,canManag
   finally{setBusy(false)}
  }
  async function create(){
-  if(!/^(\+?880|0)1[0-9]{9}$/.test(number)){setError(t("Enter a valid Bangladesh mobile number.","সঠিক বাংলাদেশি মোবাইল নম্বর দিন।"));return}
-  const data=await post("/operations/gateways",{method,account_number:number});
+  if(!/^01[3-9][0-9]{8}$/.test(normalizeNumber(number))){setError(t("Enter a valid Bangladesh mobile number.","সঠিক বাংলাদেশি মোবাইল নম্বর দিন।"));return}
+  const data=await post("/operations/gateways",{method,account_number:normalizeNumber(number)});
   if(!data)return;
   const id=data.id||data.account_id;
   if(label.trim()&&id)await post("/phones/"+id+"/edit-account",{label:label.trim()});
@@ -75,8 +75,7 @@ export function PaymentMethodManagement({locale,workspaceId,environment,canManag
   {loading&&accounts.length===0?<div className="ekv3-rows-skeleton" role="status" aria-label={t("Loading accounts","অ্যাকাউন্ট লোড হচ্ছে")}>{[0,1,2].map(i=><div key={i} className="ekv3-skeleton-row"><i/><span/><b/></div>)}</div>:
   <div className="ek-ref-cards">
    {visibleAccounts.map(a=><article className="ek-ref-account wc" key={a.ID} data-disabled={a.Disabled}>
-    <div className="ek-ref-account-main"><div className={"ek-ref-logo ek-ref-"+a.Method}>{isPayMethod(a.Method)?<ProviderMark method={a.Method}/>:<span>{a.Method}</span>}</div><div className="ek-ref-account-identity"><strong>{a.Label||methodName[a.Method]||a.Method}</strong><span>{formattedAccount(a.Number)} <button type="button" onClick={()=>numberCopy(a.Number)} aria-label={t("Copy number","নম্বর কপি")} title={t("Copy number","নম্বর কপি")}><DashboardIcon name="copy" width={13} height={13}/></button></span></div></div>
-    <div className="ek-ref-account-footer"><span className="ek-ref-state"><i data-on={!a.Disabled}/>{status(a)}</span><div className="ek-ref-actions">{canManage&&<button type="button" role="switch" aria-checked={!a.Disabled} className="ek-ref-switch" disabled={busy} onClick={()=>setConfirmAccount(a)} aria-label={a.Disabled?t("Enable account","অ্যাকাউন্ট চালু করুন"):t("Disable account","অ্যাকাউন্ট বন্ধ করুন")}><span/></button>}<button type="button" className="ek-ref-manage" onClick={()=>setSelected(a.ID)}>{t("Manage","পরিচালনা")}</button></div></div>
+    <span className="ek-ref-orb" aria-hidden="true"/><div className={"ek-ref-logo ek-ref-"+a.Method}>{isPayMethod(a.Method)?<ProviderMark method={a.Method} bn={bn}/>:<span>{a.Method}</span>}</div><div className="ek-ref-account-identity"><span className="ek-ref-state"><i data-on={!a.Disabled}/>{status(a)}{a.Label&&<span className="ek-ref-caption">{a.Label}</span>}</span><span className="ek-ref-number">{formattedAccount(a.Number)} <button type="button" onClick={()=>numberCopy(a.Number)} aria-label={t("Copy number","নম্বর কপি")} title={t("Copy number","নম্বর কপি")}><DashboardIcon name="copy" width={14} height={14}/></button></span></div><div className="ek-ref-actions">{canManage&&<button type="button" role="switch" aria-checked={!a.Disabled} className="ek-ref-switch" disabled={busy} onClick={()=>setConfirmAccount(a)} aria-label={a.Disabled?t("Enable account","অ্যাকাউন্ট চালু করুন"):t("Disable account","অ্যাকাউন্ট বন্ধ করুন")}><span/></button>}<button type="button" className="ek-ref-manage" onClick={()=>setSelected(a.ID)}>{t("Manage","পরিচালনা")}</button></div>
    </article>)}
    {canManage&&<button type="button" className="ek-ref-add-card" onClick={openAdd}><span><DashboardIcon name="plus" width={16} height={16}/></span>{t("Add account","অ্যাকাউন্ট যোগ করুন")}</button>}
    {!loading&&visibleAccounts.length===0&&<div className="ek-ref-empty">{accounts.length?t("No accounts match your search.","অনুসন্ধানে কোনো অ্যাকাউন্ট পাওয়া যায়নি।"):t("No payment methods yet.","এখনো কোনো পেমেন্ট মাধ্যম নেই।")}</div>}
@@ -105,7 +104,7 @@ export function PaymentMethodManagement({locale,workspaceId,environment,canManag
     {!method?<><label className="ek-ref-search ek-ref-provider-search"><DashboardIcon name="search" width={16} height={16}/><input aria-label={t("Search providers","মাধ্যম খুঁজুন")} placeholder={t("Search providers","মাধ্যম খুঁজুন")} value={providerQuery} onChange={e=>setProviderQuery(e.target.value)}/></label><div className="ek-ref-providers">{Object.entries(methodName).filter(([,name])=>name.toLowerCase().includes(providerQuery.toLowerCase())).map(([key,name])=><button type="button" key={key} className="ek-ref-provider wc" onClick={()=>setMethod(key)}><span className={"ek-ref-logo ek-ref-"+key}>{isPayMethod(key)?<ProviderMark method={key}/>:name}</span><strong>{name}</strong></button>)}</div></>:<div className="ek-ref-selected-provider"><span className={"ek-ref-logo ek-ref-"+method}>{isPayMethod(method)?<ProviderMark method={method}/>:methodName[method]}</span><strong>{methodName[method]}</strong><button type="button" onClick={()=>setMethod("")}>{t("Change","পরিবর্তন")}</button></div>}
     {method&&<><label>{t("Receiving number","রিসিভিং নম্বর")}<input required type="tel" inputMode="tel" autoComplete="off" value={number} onChange={e=>setNumber(e.target.value)} placeholder="+8801XXXXXXXXX"/></label>
     <label>{t("Account name (optional)","অ্যাকাউন্টের নাম (ঐচ্ছিক)")}<input value={label} maxLength={100} onChange={e=>setLabel(e.target.value)}/></label>
-    </>}<div className="pg-phone-actions"><button type="button" onClick={()=>createDialog.current?.close()}>{t("Cancel","বাতিল")}</button><button type="submit" className="ekv3-primary" disabled={busy||!method||!number}>{t("Add account","অ্যাকাউন্ট যোগ করুন")}</button></div>
+    </>}<div className="pg-phone-actions"><button type="button" onClick={()=>createDialog.current?.close()}>{t("Cancel","বাতিল")}</button><button type="submit" className="ekv3-primary" disabled={busy||!method||!/^01[3-9][0-9]{8}$/.test(normalizeNumber(number))}>{t("Add account","অ্যাকাউন্ট যোগ করুন")}</button></div>
    </form>
   </dialog>
   {notice&&<div className="ekv3-toast" role="status">{notice}</div>}
