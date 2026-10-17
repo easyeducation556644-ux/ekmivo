@@ -1,9 +1,9 @@
 # Ekmivo Android rebuild — execution ledger
 
-Current phase: **1 (state machine and data layer, no UI changes)**.
+Current phase: **3 (permission wizard + Setup Health + Done; Android CI implemented)**.
 Acceptance: **OPEN** until Android build, unit tests and preview verification are evidenced.
 Date: 2026-10-17
-Scope: Phase 1 data-only implementation; phases 2–6 NOT started. Phase 0 evidence gates remain OPEN.
+Scope: Phase 3 only, including Welcome step-3 copy correction. Phases 0–2 code was already promoted. Phases 4–6 NOT started. Device screenshot acceptance is owner-provided.
 
 ## Initial source audit
 Read: apps/mobile/AGENTS.md, AndroidManifest.xml, MainActivity.kt, EkmivoApp.kt,
@@ -137,3 +137,8 @@ following docs/design/ekmivo-phase-prompts.md; no UI changes in Phase 1.
 - Distribution observed in this workflow: sideloaded test APK. Google Play's restricted SMS/FGS declarations would require separate review before Play submission.
 - CI: build + unit tests on EC Education fork; do not run unrelated backend/web/Docker jobs; do not promote fork-only workflow gating to upstream.
 - User explicitly owns live SMS/API device tests and device screenshot checks; these are NOT counted toward code/architecture/CI implementation acceptance. Their absence must still be disclosed honestly.
+
+### Phase 3 CI evidence and hardening
+- First fork Android run 39042607345: `assembleDebug` + `testDebugUnitTest` **PASSED**; unrelated Go/Web/Docker skipped.
+- Final refinements: language switch also on the wizard, revoke/permissions change stop running forwarding FGS, on Android 15 `Service.onTimeout` stops the dataSync service and requeues background work instead of promising limitless FGS runtime.
+- Owner will verify the real on-device flow and appearance; real live payment SMS and API delivery are excluded by request from the code-completion gate.

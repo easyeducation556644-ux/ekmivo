@@ -52,6 +52,17 @@ class ReceiptForwardingService:Service() {
   ReceiptSyncWorker.scheduleNow(applicationContext)
   return START_STICKY
  }
+ override fun onTimeout(startId:Int,fgsType:Int) {
+  // Android 15 may limit dataSync foreground service time. WorkManager and
+  // encrypted outbox continue to handle retries without the foreground service.
+  runCatching {
+   ReceiptStore(applicationContext).use {
+    it.setQueueError("FOREGROUND_SERVICE_TIME_LIMIT")
+   }
+   ReceiptSyncWorker.scheduleNow(applicationContext)
+  }
+  stopSelf(startId)
+ }
  companion object {
   /** Never launch from the boot broadcast (Android background FGS limits). */
   fun startFromVisibleApp(context:Context):Boolean = runCatching {

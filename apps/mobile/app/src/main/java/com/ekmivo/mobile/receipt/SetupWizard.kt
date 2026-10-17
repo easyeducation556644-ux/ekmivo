@@ -37,7 +37,7 @@ import com.ekmivo.mobile.ui.*
 
 /** One permission per screen. OEM steps never fabricate an OS-verified OK. */
 @Composable
-fun SetupWizard(bn:Boolean,onDone:()->Unit) {
+fun SetupWizard(bn:Boolean,onLanguageChange:(Boolean)->Unit,onDone:()->Unit) {
  val context=LocalContext.current
  val health=remember(context){SetupHealth(context.applicationContext)}
  val owner=LocalLifecycleOwner.current
@@ -134,6 +134,8 @@ fun SetupWizard(bn:Boolean,onDone:()->Unit) {
    Box(Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(p.text),
     contentAlignment=Alignment.Center){Text("e.",style=EkmivoType.shop,color=p.onPrimary)}
    Text("Ekmivo",style=EkmivoType.shop,color=p.text)
+   Spacer(Modifier.weight(1f))
+   EkmivoLanguageSwitch(bn,onLanguageChange)
   }
   Row(Modifier.padding(top=18.dp),horizontalArrangement=Arrangement.spacedBy(6.dp)){
    repeat(4){i->

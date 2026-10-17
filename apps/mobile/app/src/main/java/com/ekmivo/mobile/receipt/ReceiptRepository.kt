@@ -38,6 +38,7 @@ class ReceiptRepository private constructor(private val context: Context) {
  private val auth = ReceiptAuthInterceptor(
   DeviceCredentialRevoker { deviceId ->
    ReceiptStore(context).use { it.revokeCredentials(deviceId) }
+   ReceiptForwardingService.stop(context)
   },
   onRevoked = { mutable.value = ConnectionState.Revoked }
  )

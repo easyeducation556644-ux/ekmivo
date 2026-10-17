@@ -61,6 +61,9 @@ fun EkmivoApp(preferences:AppPreferences, incomingPairingLink:String?=null){
   val observer=LifecycleEventObserver { _,event ->
    if(event==Lifecycle.Event.ON_RESUME){
     healthNow=health.refresh()
+    if(SetupPlan.firstMissing(healthNow)!=null){
+     ReceiptForwardingService.stop(appContext)
+    }
     if(healthNow.backlogError && healthNow.samsung && healthNow.oemGuideAcknowledged){
      health.noteDeliveryGap()
      healthNow=health.refresh()
@@ -91,7 +94,9 @@ fun EkmivoApp(preferences:AppPreferences, incomingPairingLink:String?=null){
     onPaired={paired=true;wizardActive=true;healthNow=health.refresh()}
    )
   } else if(wizardActive) {
-   SetupWizard(bn=bn,onDone={
+   SetupWizard(bn=bn,onLanguageChange={toBn ->
+    scope.launch { preferences.updateLanguage(if(toBn) Language.BN else Language.EN) }
+   },onDone={
     wizardActive=false
     healthNow=health.refresh()
     ReceiptForwardingService.startFromVisibleApp(appContext)
