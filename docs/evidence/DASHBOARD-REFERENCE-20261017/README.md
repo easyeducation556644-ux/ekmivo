@@ -97,3 +97,9 @@ Production ledger check: nine migrations `0069` through `0077` are recorded in t
 The attached `Ekmivo_Dashboard_Premium(2).html` source defines the Customers table as Customer, Phone, Payments, **Last payment**, and an unlabeled chevron action. The separate issue screenshot differs. Following the owner's explicit rule that HTML is source of truth, commit `5331328` restores the Last payment column and chevron, undoing the earlier screenshot-driven Status/Details column changes. This is a source comparison, not an end-to-end visual acceptance.
 
 The HTML API-key create modal contains its own Sandbox/Live environment choice. Commits `7f320e1` / `fbf038e` / `1bc3423` implement the authorized realm selector, and `7a9be7c` / `909f3f1` switch to the created realm after the one-time secret is dismissed. The latter deployment reported Vercel success. Secret values remain generated server-side, never hardcoded. Real key creation/verification remains manual pending.
+
+### Sandbox credentials UI follow-up
+
+- `705dcc3`: create-form example and empty-state copy are selected-realm aware (no production-only wording on Sandbox).
+- `010c1d0`: credential draft storage uses the selected **create** realm, not the current outer list realm. Switching the create modal from Live to Sandbox keeps saved drafts isolated.
+- Newly created cross-realm secret is displayed once; after dismissal the list switches to the created realm. The backend remains authoritative about active realm, password and permissions. No actual key or secret was created during this audit.
