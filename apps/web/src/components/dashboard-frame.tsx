@@ -75,6 +75,11 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
   return()=>{document.removeEventListener("keydown",onEscape);document.removeEventListener("mousedown",onOutside)};
  },[]);
  const [unreadNotifications,setUnreadNotifications]=useState(0);
+
+ useEffect(()=>{
+  const current=scrollableNav.current?.querySelector<HTMLElement>('a[aria-current="page"]');
+  if(current)current.scrollIntoView({block:"nearest",inline:"nearest",behavior:"instant"});
+ },[section,service,workspace.id,pathname]);
  const groups=navigation[service];
  const foundGroups=searchableNavigation(service,globalQuery);
  const foundKeys=foundGroups.flatMap(group=>group.items);
@@ -261,12 +266,13 @@ export function DashboardFrame({ locale, service, section:initialSection, worksp
   </details>
   </div>
   <nav ref={mobile?undefined:scrollableNav} className={"ds-navigation"+(navHasMore&&!mobile?" has-more":"")} aria-label={bn?`${serviceNames[service].bn} নেভিগেশন`:`${serviceNames[service].en} navigation`}>
-   {groups.map(group=><section className="ds-nav-section" key={group.label.en}>
+   {groups.filter(group=>!(service==="payments"&&group.items.length===1&&group.items[0]==="billing")).map(group=><section className="ds-nav-section" key={group.label.en}>
     {service==="payments"&&group.label.en==="Commerce"?<details className="ds-unreleased-nav"><summary>{group.label[locale]} <small>{bn?"নির্মাণাধীন":"In development"}</small></summary><p>{bn?"কমার্সের এই কাজগুলো Payment phase-এর পরে চালু হবে।":"Commerce operations will follow the verified payment phase."}</p></details>:<h2>{group.label[locale]}</h2>}
     {!(service==="payments"&&group.label.en==="Commerce")&&group.items.filter(key=>!(service==="payments"&&key==="requests")).map(key=><Link key={key} href={key==="api-docs"?"/developers":contextHref(key)} target={key==="api-docs"?"_blank":undefined} rel={key==="api-docs"?"noopener noreferrer":undefined} className={section===key?"is-current":undefined} aria-current={section===key?"page":undefined} prefetch={key!=="api-docs"} onMouseEnter={()=>{if(key!=="api-docs")router.prefetch(contextHref(key))}} onFocus={()=>{if(key!=="api-docs")router.prefetch(contextHref(key))}} onClick={event=>{if(key!=="api-docs"){event.preventDefault();nav(key);}}}>
      <Icon name={key}/><span>{sections[key][locale]}</span>{key==="api-docs"&&<span aria-hidden="true">↗</span>}{section===key&&<span className="ds-active-mark"/>}</Link>)}
    </section>)}
   </nav>
+  {service==="payments"&&<div className="ds-nav-fixed-bottom"><Link href={contextHref("billing")} className={section==="billing"?"is-current":undefined} aria-current={section==="billing"?"page":undefined} onClick={event=>{event.preventDefault();nav("billing")}}><Icon name="billing"/><span>{sections.billing[locale]}</span></Link></div>}
  </>;
  return <div className="ds-app" data-service={service} data-environment={environment}><DashboardFeedback locale={locale}/>
   <a className="ds-skip" href="#dashboard-content">{bn?"মূল অংশে যান":"Skip to content"}</a>
