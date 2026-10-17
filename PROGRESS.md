@@ -162,3 +162,12 @@ following docs/design/ekmivo-phase-prompts.md; no UI changes in Phase 1.
 - Fork CI https://github.com/easyeducation556644-ux/ekmivo/actions/runs/39043254003 passed :app:assembleDebug and :app:testDebugUnitTest (other unrelated Web, Go, Docker jobs deliberately skipped).
 - Debug APK size 43,125,139 bytes, sha256 fbc9a69669f573852d0c5eda7178429e879ae8848acbb8f65b8877cf4c5e55b1.
 - Live device SMS/API and screenshot QA are owner-run; not verified in this session and intentionally excluded from user-defined code-completion acceptance.
+
+## Phase 4 — Home, Disconnected and two-tab nav (2026-10-17)
+- Exact reference structure targeted: 34dp logo header with state-derived chip, 136dp two-ring pulse and 112dp hero core, 3 equal stats, 30dp neutral sender tile, hairline feed rows, detail bottom sheet, and 2-item slim navigation bar (Live + Settings, no empty Inbox tab). Navigation leaves Phase 5 Settings presentation unchanged.
+- The repository StateFlow drives Live/Syncing/Offline/Needs attention/Revoked. Revoked displays a no-retry Disconnected screen with a Reconnect entry and a *conditional* link for real queued receipts; original revoked receipt evidence stays encrypted.
+- Stats and feed are sourced off-main-thread from the existing Keystore encrypted SQLite outbox and encrypted Room staging. Rows include real source, SMS amount if parsed, masked sender, actual intake time, attempts, safe delivery status and retry scheduling. No demo transactions, provider names/colours, or fictional balances.
+- **Honest semantic limits:** financial verification totals are NOT available from the Android server contract. The hero shows retained forwarded SMS amount only when every retained forwarded SMS has a parsable amount, labelled "Forwarded in history", never "Verified today". The forwarded stat counts retained history (last 60 ACKs + unsent rows), not an authoritative all-time count. Unknown sender uses neutral brand tile. Shop name is "Ekmivo", because the pairing API has no verified display name.
+- No API, financial, auth, migration or SMS ingestion changes. Existing Phase 3 setup and permissions stay in place.
+- Build and unit tests to run only for Android on the EC Education validation fork; fork-only workflow skip conditions must not be promoted upstream.
+- Still pending: emulator screenshots at 360dp/412dp (both themes), pixel comparison against HTML, real-device revoked/re-pairing and SMS evidence tests. Do not claim screenshot-perfect or fully accepted until those checks are complete.

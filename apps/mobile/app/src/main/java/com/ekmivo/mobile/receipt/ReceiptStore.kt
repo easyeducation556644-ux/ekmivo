@@ -289,7 +289,7 @@ class ReceiptStore(private val appContext: Context): SQLiteOpenHelper(appContext
      cipher.init(Cipher.DECRYPT_MODE,key(),GCMParameterSpec(128,encrypted.copyOfRange(0,12)))
      cipher.updateAAD(id.toByteArray())
      val receipt=JSONObject(String(cipher.doFinal(encrypted.copyOfRange(12,encrypted.size)),Charsets.UTF_8))
-     results.add(JSONObject().put("source",receipt.optString("source")).put("evidence",receipt.optString("evidence"))
+     results.add(JSONObject().put("id",id).put("source",receipt.optString("source")).put("evidence",receipt.optString("evidence"))
       .put("received_at",cursor.getLong(2)).put("sent",cursor.getInt(3)==1))
     }catch(_:Exception){setQueueError("RECEIPT_HISTORY_UNAVAILABLE")}
    }
