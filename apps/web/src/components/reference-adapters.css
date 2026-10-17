@@ -14,3 +14,14 @@
 .ref-notification-dot{position:absolute;top:6px;right:7px;width:7px;height:7px;border-radius:50%;background:#9a9aff;box-shadow:0 0 0 2px var(--color-surface)}.ds-notifications>summary{position:relative}.ref-notification-anchor{position:absolute;right:0;top:100%;z-index:80}
 
 .ref-dashboard .ref-sms-search{display:flex;gap:8px;align-items:center;min-width:0}.ref-dashboard .ref-sms-filters{padding:14px 16px;border-bottom:1px solid var(--line)}.ref-dashboard .ref-sms-filters select{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:8px}.ref-dashboard .ref-sms-filters[hidden]{display:none}@media(max-width:600px){.ref-dashboard .ref-sms-search{width:100%}.ref-dashboard .ref-sms-search .searchbox{flex:1;width:0;min-width:0}}
+
+
+/* API key realm switch: compact and inline with Search, not a separate page section. */
+.ref-api-key-page .ref-dashboard .ref-api-keys-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ref-api-key-page .ref-dashboard .ref-api-keys-toolbar>.searchbox{flex:1 1 260px;width:auto;min-width:170px}
+.ref-api-key-page .ref-dashboard .ref-api-keys-toolbar>.ref-api-realm-picker{display:inline-flex;align-items:center;gap:2px;flex:0 0 auto;white-space:nowrap;border:1px solid var(--line);background:var(--hover);padding:3px;border-radius:10px;box-shadow:none}
+.ref-api-key-page .ref-dashboard .ref-api-keys-toolbar>.ref-api-realm-picker button{appearance:none;min-height:30px;padding:6px 14px;border:0;border-radius:7px;font:inherit;font-size:12px;font-weight:600;line-height:18px;cursor:pointer;color:var(--mut);background:transparent;box-shadow:none}
+.ref-api-key-page .ref-dashboard .ref-api-keys-toolbar>.ref-api-realm-picker button.on{background:var(--panel);color:var(--txt);box-shadow:0 0 0 1px var(--line)}
+.ref-api-key-page .ref-dashboard .ref-api-keys-toolbar>.ref-api-realm-picker button:disabled{opacity:.45;cursor:not-allowed}
+.ref-api-key-page .ref-dashboard .ref-api-keys-toolbar>.ref-api-realm-picker button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+@media(max-width:600px){.ref-api-key-page .ref-dashboard .ref-api-keys-toolbar>.searchbox{flex-basis:100%;min-width:0}.ref-api-key-page .ref-dashboard .ref-api-keys-toolbar>.ref-api-realm-picker{margin-right:auto}}
