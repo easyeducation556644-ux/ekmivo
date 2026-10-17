@@ -169,7 +169,7 @@ func (w *InvoiceNoticeWorker) Work(ctx context.Context, job *river.Job[InvoiceNo
 	if json.Unmarshal(publicRaw,&invoice)!=nil || invoice.Kind!="invoices" {
 		return errors.New("invoice email data unavailable")
 	}
-	if invoice.Status=="cancelled" {return finish("cancelled")}
+	if invoice.Status!="issued" || invoice.DueMinor<=0 {return finish("cancelled")}
 	var seller string
 	if w.Control.QueryRow(ctx,"SELECT name FROM workspaces WHERE id=$1::uuid",n.Workspace).Scan(&seller)!=nil {
 		return errors.New("invoice merchant unavailable")
