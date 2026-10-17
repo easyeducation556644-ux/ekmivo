@@ -66,8 +66,10 @@ class ReceiptRepository private constructor(private val context: Context) {
   val missing = mutableSetOf<RequiredPermission>()
   if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED)
    missing += RequiredPermission.SMS
-  // Notification/battery/OEM Setup Health is introduced in Phase 3.
-  // Do not fabricate missing states for checks not implemented yet.
+  val health=SetupHealth(context).refresh()
+  if(health.notification!=HealthLevel.OK) missing+=RequiredPermission.NOTIFICATIONS
+  if(health.battery!=HealthLevel.OK) missing+=RequiredPermission.BATTERY
+  if(health.samsung&&!health.oemGuideAcknowledged) missing+=RequiredPermission.OEM
   return missing
  }
 

@@ -124,3 +124,16 @@ following docs/design/ekmivo-phase-prompts.md; no UI changes in Phase 1.
 - Simplified setup steps to SMS devices / Connect phone. No generic text fields in 8-cell code UI.
 - CI fork: Android assembleDebug + testDebugUnitTest, targeted Go code-generator test and targeted QR/UI/expiry assertions. No full Go/web/Docker runs. This fork-only CI filter must not be promoted to upstream.
 - APK device visual review by owner is pending. Backend must be deployed before a new 8-digit code can be issued by the live dashboard; a new APK alone cannot change an old server.
+
+## Phase 3 — Setup Health, permission wizard and Done (2026-10-17)
+- Flow correction: Welcome step 3 is now “Scan the pairing QR code shown on your dashboard.” (BN equivalent). No separate build made solely for copy.
+- SetupHealth.kt: re-evaluate on each activity RESUME: RECEIVE_SMS, POST_NOTIFICATIONS on API 33+, PowerManager battery exemption, manufacturer detection and existing encrypted queue error/backlog. OK/MISSING/UNKNOWN are explicit; a Samsung sleeping-app setting is never falsely shown OS-verified.
+- SetupPlan and SetupPlanTest: ordered SMS → notification → battery → Samsung OEM (Samsung only). Already granted steps skipped; Samsung guide completion is an honest manual acknowledgement, **not** a verified OS state. Re-surface when a delivery backlog/error appears.
+- SetupWizard.kt: same spec-sized header, 4 progress bars (22×4dp), centered 76dp icon tile, 19sp title, 13sp body, live status tags, primary system dialog/settings action, why-needed disclosure. Denied and don't-ask-again handled via app settings, no silent skip, callback/resume recheck. Done screen uses generic copy (user approved not showing unverifiable workspace name), Start goes to current app.
+- EkmivoApp.kt: after claim, show wizard, not old Forwarder screen; existing paired phones with missing setup re-enter wizard. Home fix card only when health requires attention; Settings reliability card shows real status and Fix link. No Phase 4 Home redesign.
+- Foreground service: low-importance channel with notification returning to app, started only from a visible Activity following completed setup; network delivery still handled by WorkManager with encrypted Room/legacy outbox retries. Does not start from BOOT_COMPLETED. Android 15+ may impose a dataSync FGS time limit; **never** claim guaranteed always-on operation.
+- AndroidManifest: narrowly required POST_NOTIFICATIONS, REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, FOREGROUND_SERVICE, FOREGROUND_SERVICE_DATA_SYNC, and non-exported dataSync service. Camera still only requested by explicit scanner action; READ_SMS remains opt-in for recovery, not part of setup wizard.
+- Existing paired credentials and unsent receipt database are preserved. No Go or Web API changes in Phase 3.
+- Distribution observed in this workflow: sideloaded test APK. Google Play's restricted SMS/FGS declarations would require separate review before Play submission.
+- CI: build + unit tests on EC Education fork; do not run unrelated backend/web/Docker jobs; do not promote fork-only workflow gating to upstream.
+- User explicitly owns live SMS/API device tests and device screenshot checks; these are NOT counted toward code/architecture/CI implementation acceptance. Their absence must still be disclosed honestly.
