@@ -171,3 +171,9 @@ following docs/design/ekmivo-phase-prompts.md; no UI changes in Phase 1.
 - No API, financial, auth, migration or SMS ingestion changes. Existing Phase 3 setup and permissions stay in place.
 - Build and unit tests to run only for Android on the EC Education validation fork; fork-only workflow skip conditions must not be promoted upstream.
 - Still pending: emulator screenshots at 360dp/412dp (both themes), pixel comparison against HTML, real-device revoked/re-pairing and SMS evidence tests. Do not claim screenshot-perfect or fully accepted until those checks are complete.
+
+### Phase 4 correctness refinements
+- CI run 39046527537 passed Android `assembleDebug` + `testDebugUnitTest` on initial implementation.
+- CI run 39046974983 passed Android `assembleDebug` + `testDebugUnitTest` on real durable Room `sent_at` query. Intake timestamp is no longer mislabelled as forwarding timestamp; when unknown UI says so. Room failed-state records provide the failed count rather than the limited feed slice. An unavailable data source is explicitly shown as unavailable, not zero transactions.
+- Final ring colour reflects state: green when Active, amber when degraded; reduced motion remains respected.
+- No owner screenshot QA claim. Payment verification totals remain unavailable; all visible figures refer only to locally retained forwarded SMS.

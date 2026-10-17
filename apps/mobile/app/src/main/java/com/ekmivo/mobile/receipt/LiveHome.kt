@@ -144,12 +144,15 @@ fun EkmivoLiveHome(bn:Boolean,state:ConnectionState,needsAttention:Boolean,onFix
   item{
    Column(Modifier.fillMaxWidth().padding(start=16.dp,end=16.dp,top=10.dp,bottom=6.dp),
     horizontalAlignment=Alignment.CenterHorizontally){
-    EkmivoPulseRing(reducedMotion=reduceMotion(ctx)||state!=ConnectionState.Active){
+    EkmivoPulseRing(
+     reducedMotion=reduceMotion(ctx)||state!=ConnectionState.Active,
+     ringColor=if(state==ConnectionState.Active)p.success else p.warning
+    ){
      Column(Modifier.size(112.dp).clip(CircleShape).background(p.surface)
       .border(1.dp,p.border,CircleShape),
       verticalArrangement=Arrangement.Center,horizontalAlignment=Alignment.CenterHorizontally){
       Text(currency(current.retainedAmount?.toString(),bn),
-       style=EkmivoType.heroAmount,color=p.text,maxLines=1)
+       style=EkmivoType.heroAmount,color=p.text,maxLines=1,overflow=TextOverflow.Ellipsis)
       Spacer(Modifier.height(2.dp))
       Text(if(bn)"সংরক্ষিত SMS পাঠানো" else "Forwarded in history",
        style=EkmivoType.meta,color=p.secondary,textAlign=TextAlign.Center)
