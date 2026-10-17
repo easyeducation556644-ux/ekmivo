@@ -38,6 +38,9 @@ import com.ekmivo.mobile.receipt.ReceiptRepository
 import com.ekmivo.mobile.receipt.ReceiptSyncWorker
 import com.ekmivo.mobile.receipt.DeviceHeartbeat
 import com.ekmivo.mobile.receipt.EkmivoSettingsScreen
+import com.ekmivo.mobile.inbox.InboxFeatureFlag
+import com.ekmivo.mobile.inbox.InboxPushTokenRegistry
+import com.ekmivo.mobile.inbox.InboxRoute
 import com.ekmivo.mobile.receipt.ConnectionEvent
 import com.ekmivo.mobile.receipt.PairingFlow
 import com.ekmivo.mobile.receipt.SetupWizard
@@ -90,6 +93,11 @@ fun EkmivoApp(preferences:AppPreferences, incomingPairingLink:String?=null){
   owner.lifecycle.addObserver(observer)
   onDispose { owner.lifecycle.removeObserver(observer) }
  }
+ LaunchedEffect(paired) {
+  if(paired && InboxFeatureFlag.inboxEnabled) {
+   InboxPushTokenRegistry.prepare(appContext)
+  }
+ }
  LaunchedEffect(paired,wizardActive) {
   if(paired&&!wizardActive && SetupPlan.firstMissing(health.refresh())==null) {
    ReceiptForwardingService.startFromVisibleApp(appContext)
@@ -140,6 +148,11 @@ fun EkmivoApp(preferences:AppPreferences, incomingPairingLink:String?=null){
    })
   } else Scaffold(
    containerColor=MaterialTheme.colorScheme.background,
+   topBar={
+    EkmivoBrandHeader(bn=bn,onLanguageChange={ toBn ->
+     scope.launch { preferences.updateLanguage(if(toBn) Language.BN else Language.EN) }
+    })
+   },
    bottomBar={
     EkmivoBottomNav(bn,if(tab==Tab.SETTINGS)EkmivoPage.SETTINGS else EkmivoPage.LIVE) {
      tab=if(it==EkmivoPage.LIVE)Tab.FORWARDER else Tab.SETTINGS
@@ -147,19 +160,6 @@ fun EkmivoApp(preferences:AppPreferences, incomingPairingLink:String?=null){
    }
   ){padding->
    Column(Modifier.fillMaxSize().padding(padding)){
-    if(tab==Tab.SETTINGS) Row(Modifier.fillMaxWidth().padding(start=25.dp,end=25.dp,top=15.dp,bottom=13.dp),
-     verticalAlignment=Alignment.CenterVertically){
-     Surface(color=MaterialTheme.colorScheme.primary,shape=RoundedCornerShape(11.dp)){
-      Text("e.",Modifier.padding(horizontal=13.dp,vertical=4.dp),
-       color=MaterialTheme.colorScheme.onPrimary,style=MaterialTheme.typography.titleLarge)
-     }
-     Spacer(Modifier.width(10.dp))
-     Text("ekmivo",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
-     Spacer(Modifier.weight(1f))
-     EkmivoLanguageSwitch(bn=bn,onChange={ toBn ->
-      scope.launch { preferences.updateLanguage(if(toBn) Language.BN else Language.EN) }
-     })
-    }
     AnimatedContent(targetState=tab,transitionSpec={
      fadeIn(tween(170)) togetherWith fadeOut(tween(100))
     },label="App section",modifier=Modifier.fillMaxSize()){page->
@@ -171,18 +171,8 @@ fun EkmivoApp(preferences:AppPreferences, incomingPairingLink:String?=null){
         else ReceiptSyncWorker.scheduleNow(appContext)
        }
       )
-      Tab.INBOX->Column(
-       Modifier.fillMaxSize().padding(25.dp),
-       verticalArrangement=Arrangement.Center,horizontalAlignment=Alignment.CenterHorizontally){
-       Surface(color=MaterialTheme.colorScheme.surfaceVariant,shape=CircleShape){
-        Icon(Icons.Outlined.ChatBubbleOutline,null,Modifier.padding(23.dp).size(36.dp))
-       }
-       Spacer(Modifier.height(22.dp))
-       Text(if(bn)"ইনবক্স" else "Inbox",style=MaterialTheme.typography.headlineMedium)
-       Spacer(Modifier.height(7.dp))
-       Text(if(bn)"এখানে আপনার বার্তাগুলো দেখা যাবে।" else "Your conversations will appear here.",
-        color=MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.bodyMedium)
-      }
+      // Off by default; no visible Inbox tab, no demo conversations.
+      Tab.INBOX->if(InboxFeatureFlag.inboxEnabled) InboxRoute()
       Tab.SETTINGS->EkmivoSettingsScreen(
        bn=bn,language=language,appearance=appearance,
        changeLanguage={scope.launch{preferences.updateLanguage(it)}},

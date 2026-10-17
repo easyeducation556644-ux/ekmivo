@@ -208,7 +208,7 @@ fun EkmivoSettingsScreen(
         runCatching{ReceiptStore(app).use{it.disconnect()}}.getOrDefault(false)
        }
        busy=false;confirm=false
-       if(ok){ReceiptForwardingService.stop(app);onDisconnected()}
+       if(ok){ReceiptForwardingService.stop(app);com.ekmivo.mobile.inbox.InboxPushTokenRegistry.clear(app);onDisconnected()}
        else warning=w(R.string.settings_blocked)
       }
      },contentAlignment=Alignment.Center){

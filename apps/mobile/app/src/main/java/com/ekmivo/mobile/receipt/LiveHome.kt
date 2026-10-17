@@ -102,6 +102,22 @@ fun HomeHeader(bn:Boolean,state:ConnectionState){
  }
 }
 
+/** A steady, intentional badge placement overlapping the hero pulse at upper-right. */
+@Composable
+private fun HeroStatusBadge(bn:Boolean,state:ConnectionState,modifier:Modifier=Modifier) {
+ val p=LocalEkmivoPalette.current
+ val good=state==ConnectionState.Active
+ Row(
+  modifier.clip(CircleShape).background(p.surface).border(1.dp,p.border,CircleShape)
+   .padding(horizontal=10.dp,vertical=5.dp),
+  horizontalArrangement=Arrangement.spacedBy(6.dp),verticalAlignment=Alignment.CenterVertically
+ ){
+  Box(Modifier.size(7.dp).clip(CircleShape).background(if(good)p.success else p.warning))
+  Text(HomeContent.chip(state,bn),style=EkmivoType.meta,
+   color=if(good)p.text else p.warning,maxLines=1)
+ }
+}
+
 @Composable
 fun EkmivoLiveHome(bn:Boolean,state:ConnectionState,needsAttention:Boolean,onFix:()->Unit){
  val p=LocalEkmivoPalette.current
@@ -131,7 +147,7 @@ fun EkmivoLiveHome(bn:Boolean,state:ConnectionState,needsAttention:Boolean,onFix
   Modifier.fillMaxSize().background(p.canvas),
   contentPadding=PaddingValues(bottom=12.dp)
  ){
-  item{HomeHeader(bn,state)}
+  // Shared EkmivoBrandHeader is provided once by the Scaffold topBar.
   if(needsAttention||state is ConnectionState.Degraded) item{
    Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=5.dp)
     .clip(RoundedCornerShape(10.dp)).background(p.warningBackground)
@@ -144,21 +160,25 @@ fun EkmivoLiveHome(bn:Boolean,state:ConnectionState,needsAttention:Boolean,onFix
   item{
    Column(Modifier.fillMaxWidth().padding(start=16.dp,end=16.dp,top=10.dp,bottom=6.dp),
     horizontalAlignment=Alignment.CenterHorizontally){
-    EkmivoPulseRing(
-     reducedMotion=reduceMotion(ctx)||state!=ConnectionState.Active,
-     ringColor=if(state==ConnectionState.Active)p.success else p.warning
-    ){
-     Column(Modifier.size(112.dp).clip(CircleShape).background(p.surface)
-      .border(1.dp,p.border,CircleShape),
-      verticalArrangement=Arrangement.Center,horizontalAlignment=Alignment.CenterHorizontally){
-      Text(currency(
-       if(current.acknowledged==0 && !current.unavailable)"0"
-       else current.retainedAmount?.toString(),bn),
-       style=EkmivoType.heroAmount,color=p.text,maxLines=1,overflow=TextOverflow.Ellipsis)
-      Spacer(Modifier.height(2.dp))
-      Text(if(bn)"সংরক্ষিত SMS পাঠানো" else "Forwarded in history",
-       style=EkmivoType.meta,color=p.secondary,textAlign=TextAlign.Center)
+    Box(Modifier.size(166.dp),contentAlignment=Alignment.Center) {
+     EkmivoPulseRing(
+      reducedMotion=reduceMotion(ctx)||state!=ConnectionState.Active,
+      ringColor=if(state==ConnectionState.Active)p.success else p.warning
+     ){
+      Column(Modifier.size(112.dp).clip(CircleShape).background(p.surface)
+       .border(1.dp,p.border,CircleShape),
+       verticalArrangement=Arrangement.Center,horizontalAlignment=Alignment.CenterHorizontally){
+       Text(currency(
+        if(current.acknowledged==0 && !current.unavailable)"0"
+        else current.retainedAmount?.toString(),bn),
+        style=EkmivoType.heroAmount,color=p.text,maxLines=1,overflow=TextOverflow.Ellipsis)
+       Spacer(Modifier.height(2.dp))
+       Text(if(bn)"সংরক্ষিত SMS\nপাঠানো" else "Forwarded\nin history",
+        style=EkmivoType.meta,color=p.secondary,textAlign=TextAlign.Center,maxLines=2)
+      }
      }
+     HeroStatusBadge(bn,state,
+      Modifier.align(Alignment.TopEnd).offset(x=13.dp,y=(-3).dp))
     }
     Spacer(Modifier.height(12.dp))
     Text(when{

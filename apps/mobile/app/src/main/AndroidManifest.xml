@@ -29,6 +29,12 @@
         <receiver android:name=".receipt.ReceiptSmsReceiver" android:exported="true" android:permission="android.permission.BROADCAST_SMS">
             <intent-filter><action android:name="android.provider.Telephony.SMS_RECEIVED" /></intent-filter>
         </receiver>
+        <!-- Disabled Inbox groundwork: Firebase service requires configured project before use. -->
+        <service android:name=".inbox.InboxFirebaseService" android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
         <service android:name=".receipt.ReceiptForwardingService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
