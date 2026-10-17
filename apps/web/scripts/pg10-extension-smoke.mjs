@@ -23,6 +23,35 @@ export async function runPaymentExtensions({db,live,control,workspace,otherWorks
  await reject(()=>scoped(otherWorkspace,tx=>tx.unsafe("SELECT pg10_write($1::uuid,'sandbox','customers',$2::uuid,'edit',$3::jsonb,$4,$5,$6,NULL)",[otherWorkspace,customer.id,db.json({...customerBody,expected_version:1}),randomUUID(),hash('edit'),hash('cap')])));
  const invoiceBody={reference:'INVOICE-'+randomUUID(),customer_id:customer.id,items:[{title:'Physical sample',quantity:2,unit_amount_minor:5000}],tax_minor:500,fee_minor:0,shipping_minor:200,discount_minor:100};
  const invoice=await create('invoices',invoiceBody);equal(Number(invoice.amount_minor),10600,'Invoice total must be calculated in SQL');
+
+ // Migrations 0078-0081: auto numbering and capability-protected invoice lifecycle.
+ const autoBody={reference:'',items:[{title:'Fictional numbered invoice',quantity:1,unit_amount_minor:5500}],private_notes:'CI PRIVATE'};
+ const autoKey=randomUUID(),autoCap=hash('invoice-'+autoKey),autoRequestHash=hash(JSON.stringify(autoBody));
+ const autoCreate=(key,cap,bodyHash)=>scoped(workspace,async tx=>(await tx.unsafe(
+  "SELECT pg10_invoice_auto_create($1::uuid,'sandbox',$2::jsonb,$3,$4,$5,NULL) result",
+  [workspace,db.json(autoBody),key,bodyHash,cap]))[0].result);
+ const numbered=await autoCreate(autoKey,autoCap,autoRequestHash);
+ equal(numbered.reference,'INV-0001','First automatic invoice reference is sequential');
+ equal((await autoCreate(autoKey,autoCap,autoRequestHash)).id,numbered.id,'Auto invoice replay returns original record');
+ await reject(()=>autoCreate(autoKey,autoCap,hash('changed-body')));
+ const secondKey=randomUUID(),second=await autoCreate(secondKey,hash('invoice-'+secondKey),hash('second-'+JSON.stringify(autoBody)));
+ equal(second.reference,'INV-0002','Next auto invoice reference increments exactly once');
+ const autoPublic=async()=> (await db.unsafe("SELECT pg10_public($1) data",[autoCap]))[0].data;
+ const draftPublic=await autoPublic();
+ equal(draftPublic.status,'draft','Draft invoice supports capability-only public preview');
+ equal(Object.hasOwn(draftPublic.body,'private_notes'),false,'Public invoice never exposes internal notes');
+ const numberAction=async(verb,expected)=>scoped(workspace,async tx=>(await tx.unsafe(
+  "SELECT pg10_write($1::uuid,'sandbox','invoices',$2::uuid,$3,$4::jsonb,$5,$6,$7,NULL) result",
+  [workspace,numbered.id,verb,db.json({expected_version:expected}),randomUUID(),hash(verb+expected),autoCap]))[0].result);
+ const numberedIssued=await numberAction('issue',1);
+ equal(numberedIssued.status,'issued','Numbered invoice can be issued without a second create');
+ const issuedPublic=await autoPublic();
+ equal(issuedPublic.status,'issued','Issued invoice becomes public and payable');
+ equal(Boolean(issuedPublic.issued_at),true,'Issue timestamp is stored for public invoice');
+ const numberedCancelled=await numberAction('cancel',2);
+ equal(numberedCancelled.status,'cancelled','Issued invoice cancellation preserves its record');
+ equal((await autoPublic()).status,'cancelled','Void invoice stays visible as non-payable public record');
+
  await reject(()=>create('invoices',{...invoiceBody,reference:randomUUID(),items:[{quantity:1,unit_amount_minor:100}]}));
  await reject(()=>create('invoices',{...invoiceBody,reference:randomUUID(),customer_id:randomUUID()}));
  const action=async(id,verb,body)=>scoped(workspace,async tx=>(await tx.unsafe("SELECT pg10_write($1::uuid,'sandbox','invoices',$2::uuid,$3,$4::jsonb,$5,$6,$7,NULL) result",[workspace,id,verb,db.json(body),randomUUID(),hash(verb+JSON.stringify(body)),hash('unused')]))[0].result);
