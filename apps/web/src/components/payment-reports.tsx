@@ -234,7 +234,7 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
    {loading&&<p className="financial-status" role="status">{t("Updating report…","রিপোর্ট আপডেট হচ্ছে…")}</p>}
    {error&&<div className="financial-error" role="alert">{error}<button onClick={()=>setRefresh(n=>n+1)}>{t("Retry","আবার চেষ্টা")}</button></div>}
    {displayed?<><div className="meta"><span>{active.from} — {active.to}</span><span>{generated&&t("Updated: ","আপডেট: ")+generated}</span></div>
-    <section className="card hero" aria-label={t("Verified volume","যাচাইকৃত পরিমাণ")}>
+    <section className="card fin-volume-card" aria-label={t("Verified volume","যাচাইকৃত পরিমাণ")}>
      <div><span className="lbl">{t("Verified volume","যাচাইকৃত পরিমাণ")}</span><div className="num" dir="ltr">{money(displayed.verified_gross_minor)}</div><span className="lbl">{numeric(displayed.payment_count,locale)} {t("verified transactions","টি যাচাইকৃত লেনদেন")}</span>
       <div className="bars" role="group" aria-label={t("Verified volume by day","দৈনিক যাচাইকৃত পরিমাণ")} onMouseLeave={()=>setHoverDay(null)}>{barDays.map(day=>{const amount=byDay[day]??0;return <button type="button" key={day} aria-label={niceDay(day)+", "+money(amount)} onMouseEnter={()=>setHoverDay(day)} onFocus={()=>setHoverDay(day)} onBlur={()=>setHoverDay(null)}><i className={amount?"on":""} style={{height:amount?Math.max(8,amount/peak*100)+"%":"0%"}}/></button>})}</div>
       <div className="ro">{hoverDay?niceDay(hoverDay)+" · "+money(byDay[hoverDay]??0)+(typeof dailyCounts[hoverDay]==="number"?" · "+dailyCounts[hoverDay]+" "+t("transactions","লেনদেন"):""):t("Daily verified volume","দৈনিক যাচাইকৃত পরিমাণ")}</div></div>
