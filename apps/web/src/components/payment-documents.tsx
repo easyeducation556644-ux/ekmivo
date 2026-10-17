@@ -47,9 +47,11 @@ export function PaymentDocuments({kind,workspaceId,environment,locale,userId,can
  const isLinks=kind==="payment-links";
  const [invoiceLinks,setInvoiceLinks]=useState<RecordRow[]>([]),[invoiceLinksError,setInvoiceLinksError]=useState("");
  const [invoiceLinksCursor,setInvoiceLinksCursor]=useState<string|null>(null),[invoiceLinksLoading,setInvoiceLinksLoading]=useState(false),[invoiceLinksRefresh,setInvoiceLinksRefresh]=useState(0);
+ const invoiceMoreRequest=useRef<AbortController|null>(null);
  useEffect(()=>{
   if(!isLinks)return;
   const abort=new AbortController();
+  invoiceMoreRequest.current?.abort();
   setInvoiceLinks([]);
   setInvoiceLinksCursor(null);
   const loadInvoices=async()=>{
@@ -63,20 +65,21 @@ export function PaymentDocuments({kind,workspaceId,environment,locale,userId,can
    finally{if(!abort.signal.aborted)setInvoiceLinksLoading(false)}
   };
   void loadInvoices();
-  return()=>abort.abort();
+  return()=>{abort.abort();invoiceMoreRequest.current?.abort()};
  },[isLinks,workspaceId,environment,invoiceLinksRefresh,t]);
  const loadMoreInvoiceLinks=async()=>{
   if(!isLinks||!invoiceLinksCursor||invoiceLinksLoading)return;
+  const controller=new AbortController();invoiceMoreRequest.current=controller;
   setInvoiceLinksLoading(true);setInvoiceLinksError("");
   try{
    const query=new URLSearchParams({environment,cursor:invoiceLinksCursor});
-   const response=await fetch(`/api/go/workspaces/${workspaceId}/documents/invoices?${query}`,{cache:"no-store",credentials:"same-origin"});
+   const response=await fetch(`/api/go/workspaces/${workspaceId}/documents/invoices?${query}`,{cache:"no-store",credentials:"same-origin",signal:controller.signal});
    if(!response.ok)throw Error(String(response.status));
    const data=await response.json();
    setInvoiceLinks(old=>[...old,...(Array.isArray(data.items)?data.items.filter((row:RecordRow)=>row.public_token&&["issued","cancelled"].includes(row.status)&&!old.some(existing=>existing.id===row.id)):[])]);
    setInvoiceLinksCursor(data.next_cursor??null);
-  }catch{setInvoiceLinksError(t("Could not load more invoice links.","আরও ইনভয়েস লিংক লোড করা যায়নি।"))}
-  finally{setInvoiceLinksLoading(false)}
+  }catch{if(!controller.signal.aborted)setInvoiceLinksError(t("Could not load more invoice links.","আরও ইনভয়েস লিংক লোড করা যায়নি।"))}
+  finally{if(invoiceMoreRequest.current===controller){invoiceMoreRequest.current=null;setInvoiceLinksLoading(false)}}
  };
  const [customerSearch,setCustomerSearch]=useState("");const [customerError,setCustomerError]=useState("");
  const [activity,setActivity]=useState<{id:string;reference:string;status:string;amount_minor:number;paid_minor:number}[]>([]);
