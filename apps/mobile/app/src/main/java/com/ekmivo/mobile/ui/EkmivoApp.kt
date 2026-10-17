@@ -37,6 +37,7 @@ import com.ekmivo.mobile.receipt.ConnectionState
 import com.ekmivo.mobile.receipt.ReceiptRepository
 import com.ekmivo.mobile.receipt.ReceiptSyncWorker
 import com.ekmivo.mobile.receipt.DeviceHeartbeat
+import com.ekmivo.mobile.receipt.EkmivoSettingsScreen
 import com.ekmivo.mobile.receipt.ConnectionEvent
 import com.ekmivo.mobile.receipt.PairingFlow
 import com.ekmivo.mobile.receipt.SetupWizard
