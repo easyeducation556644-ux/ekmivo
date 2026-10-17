@@ -17,6 +17,7 @@ export function PaymentRefunds({locale,workspaceId,environment,canManage,detailI
  const decisionDialog=useRef<HTMLDialogElement|null>(null);
  const closeButton=useRef<HTMLButtonElement>(null),returnFocus=useRef<HTMLElement|null>(null);
  const [search,setSearch]=useState("");
+ useEffect(()=>{if(!notice)return;const timeout=setTimeout(()=>setNotice(""),1800);return()=>clearTimeout(timeout)},[notice]);
  const [baseCounts,setBaseCounts]=useState<Record<string,number>>(()=>{const counts:Record<string,number>={};for(const row of seed?.data?.items??[])counts[row.status]=(counts[row.status]??0)+1;return counts});
  const [viewing,setViewing]=useState<Row|null>(null);
  const [selected,setSelected]=useState<Row|null>(null),[action,setAction]=useState<Action>("review"),[note,setNote]=useState(""),[reference,setReference]=useState(""),[confirmed,setConfirmed]=useState(false);
