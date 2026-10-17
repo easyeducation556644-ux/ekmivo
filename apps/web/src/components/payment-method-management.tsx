@@ -1,6 +1,5 @@
 "use client";
 import {useDashboardInitialData} from "./dashboard-initial-data";
-import Link from "next/link";
 import {DashboardConfirmDialog} from "./dashboard-confirm-dialog";
 import {DashboardIcon} from "./dashboard-icon";
 import {useCallback,useEffect,useRef,useState} from "react";
@@ -12,15 +11,15 @@ const methodName:Record<string,string>={bkash:"bKash",nagad:"Nagad",rocket:"Rock
 export function PaymentMethodManagement({locale,workspaceId,environment,canManage}:{locale:Locale;workspaceId:string;environment:PaymentEnvironment;canManage:boolean}){
  const bn=locale==="bn",t=useCallback((en:string,bd:string)=>bn?bd:en,[bn]);
  const formattedAccount=(value:string)=>{const digits=value.replace(/\D/g,"");const local=digits.startsWith("880")?digits.slice(3):digits.startsWith("0")?digits.slice(1):digits;return local.length===10?"+880 "+local.slice(0,4)+" "+local.slice(4):value};
- const base="/api/go/workspaces/"+workspaceId,deviceHref="/"+locale+"/w/"+workspaceId+"/payments/devices?env="+environment;
+ const base="/api/go/workspaces/"+workspaceId;
  const seed=useDashboardInitialData<{accounts:Account[];items:Phone[]}>("phones");
- const [accounts,setAccounts]=useState<Account[]>(seed?.data?.accounts??[]),[phones,setPhones]=useState<Phone[]>(seed?.data?.items??[]),[loading,setLoading]=useState(!seed),[busy,setBusy]=useState(false),[error,setError]=useState(seed?.error??""),[notice,setNotice]=useState("");
+ const [accounts,setAccounts]=useState<Account[]>(seed?.data?.accounts??[]),[loading,setLoading]=useState(!seed),[busy,setBusy]=useState(false),[error,setError]=useState(seed?.error??""),[notice,setNotice]=useState("");
  const createDialog=useRef<HTMLDialogElement>(null),editDialog=useRef<HTMLDialogElement>(null),detailsDialog=useRef<HTMLDialogElement>(null);
  const [method,setMethod]=useState("bkash"),[number,setNumber]=useState(""),[label,setLabel]=useState("");
  const [selected,setSelected]=useState<string|null>(null),[edited,setEdited]=useState<string|null>(null),[newLabel,setNewLabel]=useState(""),[newNumber,setNewNumber]=useState("");
  const [confirmAccount,setConfirmAccount]=useState<Account|null>(null);
  const current=accounts.find(account=>account.ID===selected)||null;
- const paired=phones.filter(phone=>phone.claimed_at&&!phone.revoked_at);
+ 
  useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(""),2400);return()=>clearTimeout(timer)},[notice]);
  useEffect(()=>{const dialog=detailsDialog.current;if(!dialog)return;if(selected&&!dialog.open)dialog.showModal();else if(!selected&&dialog.open)dialog.close()},[selected]);
  useEffect(()=>{const dialog=editDialog.current;if(!dialog)return;if(edited&&!dialog.open)dialog.showModal();else if(!edited&&dialog.open)dialog.close()},[edited]);
@@ -31,7 +30,7 @@ export function PaymentMethodManagement({locale,workspaceId,environment,canManag
    if(response.status===403)throw Error(t("You do not have permission to view receiving accounts.","রিসিভিং অ্যাকাউন্ট দেখার অনুমতি নেই।"));
    if(!response.ok)throw Error(t("Unable to load payment methods.","পেমেন্ট মাধ্যমের তথ্য পাওয়া যায়নি।"));
    const data=await response.json();
-   if(!signal?.aborted){setAccounts(data.accounts||[]);setPhones(data.items||[])}
+   if(!signal?.aborted){setAccounts(data.accounts||[])}
   }catch(e){if(!signal?.aborted)setError(e instanceof Error?e.message:t("Unable to load payment methods.","পেমেন্ট মাধ্যমের তথ্য পাওয়া যায়নি।"))}
   finally{if(!signal?.aborted)setLoading(false)}
  },[base,environment,t]);
@@ -54,7 +53,7 @@ export function PaymentMethodManagement({locale,workspaceId,environment,canManag
   setNumber("");setLabel("");createDialog.current?.close();
  }
  function edit(account:Account){setNewLabel(account.Label||"");setNewNumber(account.Number);setEdited(account.ID)}
- const status=(a:Account)=>a.Disabled?t("Disabled","বন্ধ"):paired.length===0?t("No phone connected","কোনো ফোন যুক্ত নেই"):t("Active","সক্রিয়");
+ const status=(a:Account)=>a.Disabled?t("Disabled","বন্ধ"):t("Active","সক্রিয়");
  function numberCopy(value:string){void navigator.clipboard.writeText(value).then(()=>setNotice(t("Number copied","নম্বর কপি হয়েছে"))).catch(()=>setError(t("Copy failed.","কপি করা যায়নি।")))}
  const closeDetails=()=>setSelected(null);
  return <section className="pg-phone-panel ekv3-methods" aria-busy={loading||busy}>
@@ -69,8 +68,8 @@ export function PaymentMethodManagement({locale,workspaceId,environment,canManag
     <span className="ekv3-method-avatar" aria-hidden="true">{(methodName[a.Method]||a.Method).slice(0,1).toUpperCase()}</span>
     <div className="ekv3-account-name"><strong>{a.Label||methodName[a.Method]||a.Method}</strong>{a.Label&&<small>{methodName[a.Method]||a.Method}</small>}</div>
     <div className="ekv3-account-number"><span>{formattedAccount(a.Number)}</span><button type="button" className="ekv3-copy" onClick={()=>numberCopy(a.Number)} title={t("Copy number","নম্বর কপি")} aria-label={t("Copy number","নম্বর কপি")}><DashboardIcon name="copy" width={15} height={15}/></button></div>
-    <span className={paired.length?"ekv3-account-phones":"ekv3-account-phones ekv3-warning"}>{paired.length?paired.map(phone=>phone.name).join(", "):t("No phone connected","কোনো ফোন যুক্ত নেই")}</span>
-    <span className="ekv3-status" data-tone={a.Disabled?"neutral":!paired.length?"warning":"success"}>{status(a)}</span>
+    
+    <span className="ekv3-status" data-tone={a.Disabled?"neutral":"success"}>{status(a)}</span>
     <button type="button" className="ekv3-secondary" onClick={()=>setSelected(a.ID)}>{t("Manage","পরিচালনা")}</button>
    </div>)}
    {!loading&&!accounts.length&&<div className="ekv3-empty">{t("No payment methods yet.","এখনো কোনো পেমেন্ট মাধ্যম নেই।")}{canManage&&<button className="ekv3-primary" type="button" onClick={()=>createDialog.current?.showModal()}>{t("Add account","অ্যাকাউন্ট যোগ করুন")}</button>}</div>}
@@ -79,7 +78,7 @@ export function PaymentMethodManagement({locale,workspaceId,environment,canManag
    {current&&<div className="ekv3-drawer-content">
     <div className="ekv3-drawer-heading"><h2>{current.Label||methodName[current.Method]||current.Method}</h2><button type="button" aria-label={t("Close","বন্ধ করুন")} onClick={closeDetails}>×</button></div>
     <div className="ekv3-drawer-list"><div><span>{t("Payment method","পেমেন্ট মাধ্যম")}</span><strong>{methodName[current.Method]||current.Method}</strong></div><div><span>{t("Receiving number","রিসিভিং নম্বর")}</span><strong>{formattedAccount(current.Number)}<button type="button" aria-label={t("Copy number","নম্বর কপি")} className="ekv3-copy" onClick={()=>numberCopy(current.Number)}><DashboardIcon name="copy" width={15} height={15}/></button></strong></div><div><span>{t("Status","অবস্থা")}</span><strong>{status(current)}</strong></div></div>
-    <div className="ekv3-drawer-section"><h3>{t("Phones","ফোন")}</h3>{paired.length?paired.map(phone=><div className="ekv3-device-name" key={phone.id}>{phone.name}</div>):<p>{t("No phone connected","কোনো ফোন যুক্ত নেই")}</p>}<Link className="ekv3-secondary" href={deviceHref}>{t("Manage phones","ফোন পরিচালনা")}</Link></div>
+    
     <div className="ekv3-drawer-footer">{canManage&&<><button type="button" className="ekv3-danger" onClick={()=>setConfirmAccount(current)}>{current.Disabled?t("Enable","চালু করুন"):t("Disable","বন্ধ করুন")}</button><button type="button" className="ekv3-secondary" onClick={()=>edit(current)}>{t("Edit account","অ্যাকাউন্ট পরিবর্তন")}</button></>}<button type="button" className="ekv3-primary" onClick={closeDetails}>{t("Done","সম্পন্ন")}</button></div>
    </div>}
   </dialog>
