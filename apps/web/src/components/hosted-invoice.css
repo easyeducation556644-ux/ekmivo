@@ -9,3 +9,5 @@ html[data-theme=dark] .ek-invoice-sheet th{background:#1e232d;color:#aeb8c7}
 html[data-theme=dark] .ek-invoice-meta h1{color:#f2f3f5}
 html[data-theme=dark] .ek-invoice-totals>.ek-invoice-total span{color:#f2f3f5}
 html[data-theme=dark] .ek-invoice-pay{background:#e9ecf1;color:#131720!important}
+
+.ek-invoice-receipts{border-top:1px solid #e8e9ed;padding-top:20px;margin-top:24px}.ek-invoice-receipts h2{font-size:15px;font-weight:650;margin:0 0 12px}.ek-invoice-receipt{padding:12px 0;border-bottom:1px solid #e8e9ed;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.ek-invoice-receipt>div{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:4px}.ek-invoice-receipt span{font-size:11px;color:#6a7280}.ek-invoice-receipt code{font-size:12px;white-space:normal;overflow-wrap:anywhere;max-width:100%}.ek-invoice-receipt b{font-size:13px;overflow-wrap:anywhere}.ek-invoice-receipt button{appearance:none;background:none;border:0;padding:3px 0;font-size:12px;text-decoration:underline;cursor:pointer;color:inherit}@media(max-width:440px){.ek-invoice-receipt{grid-template-columns:1fr}}@media print{.ek-invoice-receipt button{display:none}}
