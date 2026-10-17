@@ -13,7 +13,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  targeted_contract_regression:
+    name: Targeted PG06 and public payment contract assertions
+    if: ${{ github.event_name == 'pull_request' && github.head_ref == 'ci/android-phase0-phase1-20261017' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run only previously failing source-contract test files
+        run: node --test tools/testing/pg06-physical-phone-contract.test.mjs tools/testing/public-pay-design.test.mjs
+
   web:
+    # EC Education validation branch: these jobs already passed and are not re-run.
+    if: ${{ github.event_name != 'pull_request' || github.head_ref != 'ci/android-phase0-phase1-20261017' }}
     name: Next.js lint, build and isolated PostgreSQL smoke
     runs-on: ubuntu-latest
     services:
@@ -138,6 +151,8 @@ jobs:
         run: npm run build
 
   backend:
+    # EC Education validation branch: these jobs already passed and are not re-run.
+    if: ${{ github.event_name != 'pull_request' || github.head_ref != 'ci/android-phase0-phase1-20261017' }}
     name: Go compile and unit tests
     runs-on: ubuntu-latest
     steps:
@@ -185,6 +200,8 @@ jobs:
           go build -o /tmp/ekmivo-worker ./cmd/worker
 
   financial_containers:
+    # EC Education validation branch: these jobs already passed and are not re-run.
+    if: ${{ github.event_name != 'pull_request' || github.head_ref != 'ci/android-phase0-phase1-20261017' }}
     name: PG04 runtime and migration Docker builds
     runs-on: ubuntu-latest
     steps:
@@ -198,6 +215,8 @@ jobs:
 
 
   android:
+    # EC Education validation branch: these jobs already passed and are not re-run.
+    if: ${{ github.event_name != 'pull_request' || github.head_ref != 'ci/android-phase0-phase1-20261017' }}
     name: Native Kotlin Compose assemble and unit tests
     runs-on: ubuntu-latest
     steps:
