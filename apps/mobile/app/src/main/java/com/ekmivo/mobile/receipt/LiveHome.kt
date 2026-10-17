@@ -151,7 +151,9 @@ fun EkmivoLiveHome(bn:Boolean,state:ConnectionState,needsAttention:Boolean,onFix
      Column(Modifier.size(112.dp).clip(CircleShape).background(p.surface)
       .border(1.dp,p.border,CircleShape),
       verticalArrangement=Arrangement.Center,horizontalAlignment=Alignment.CenterHorizontally){
-      Text(currency(current.retainedAmount?.toString(),bn),
+      Text(currency(
+       if(current.acknowledged==0 && !current.unavailable)"0"
+       else current.retainedAmount?.toString(),bn),
        style=EkmivoType.heroAmount,color=p.text,maxLines=1,overflow=TextOverflow.Ellipsis)
       Spacer(Modifier.height(2.dp))
       Text(if(bn)"সংরক্ষিত SMS পাঠানো" else "Forwarded in history",

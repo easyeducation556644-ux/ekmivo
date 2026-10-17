@@ -36,6 +36,8 @@ import com.ekmivo.mobile.receipt.EkmivoDisconnected
 import com.ekmivo.mobile.receipt.ConnectionState
 import com.ekmivo.mobile.receipt.ReceiptRepository
 import com.ekmivo.mobile.receipt.ReceiptSyncWorker
+import com.ekmivo.mobile.receipt.DeviceHeartbeat
+import com.ekmivo.mobile.receipt.ConnectionEvent
 import com.ekmivo.mobile.receipt.PairingFlow
 import com.ekmivo.mobile.receipt.SetupWizard
 import com.ekmivo.mobile.receipt.SetupHealth
@@ -47,6 +49,9 @@ import com.ekmivo.mobile.receipt.ReceiptForwardingService
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import com.ekmivo.mobile.receipt.ReceiptStore
 import com.ekmivo.mobile.receipt.ReceiptRecoveryControl
 import kotlinx.coroutines.launch
@@ -66,6 +71,7 @@ fun EkmivoApp(preferences:AppPreferences, incomingPairingLink:String?=null){
  var healthNow by remember { mutableStateOf(health.refresh()) }
  var wizardActive by remember { mutableStateOf(paired && health.needsWizard()) }
  val owner=LocalLifecycleOwner.current
+ val scope=rememberCoroutineScope()
  DisposableEffect(owner) {
   val observer=LifecycleEventObserver { _,event ->
    if(event==Lifecycle.Event.ON_RESUME){
@@ -88,11 +94,22 @@ fun EkmivoApp(preferences:AppPreferences, incomingPairingLink:String?=null){
    ReceiptForwardingService.startFromVisibleApp(appContext)
   }
  }
+ // Check signed authorization while the app is visible. Server revoke/403
+ // updates the repository StateFlow immediately, without app restart.
+ LaunchedEffect(owner,paired) {
+  owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+   while(isActive){
+    val now=System.currentTimeMillis()
+    val previous=DeviceHeartbeat.lastAttempt(appContext)?:0L
+    if(paired && now-previous>=30_000L) DeviceHeartbeat.check(appContext)
+    delay(45_000L)
+   }
+  }
+ }
  val appearance by preferences.appearance.collectAsState(initial=Appearance.SYSTEM)
  val language by preferences.language.collectAsState(initial=Language.EN)
  val bn=language==Language.BN
  val dark=when(appearance){Appearance.SYSTEM->isSystemInDarkTheme();Appearance.DARK->true;Appearance.LIGHT->false}
- val scope=rememberCoroutineScope()
  var tab by rememberSaveable{mutableStateOf(Tab.FORWARDER)}
  EkmivoTheme(dark=dark){
   if(connection==ConnectionState.Revoked && !reconnecting){
@@ -165,37 +182,17 @@ fun EkmivoApp(preferences:AppPreferences, incomingPairingLink:String?=null){
        Text(if(bn)"এখানে আপনার বার্তাগুলো দেখা যাবে।" else "Your conversations will appear here.",
         color=MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.bodyMedium)
       }
-      Tab.SETTINGS->Column(
-       Modifier.fillMaxSize().padding(24.dp),
-       verticalArrangement=Arrangement.spacedBy(19.dp)){
-       Text(if(bn)"সেটিংস" else "Settings",style=MaterialTheme.typography.headlineMedium)
-       Text(if(bn)"ভাষা" else "Language",style=MaterialTheme.typography.titleMedium)
-       Row(horizontalArrangement=Arrangement.spacedBy(9.dp)){
-        FilterChip(selected=language==Language.BN,onClick={scope.launch{preferences.updateLanguage(Language.BN)}},
-         label={Text("বাংলা")})
-        FilterChip(selected=language==Language.EN,onClick={scope.launch{preferences.updateLanguage(Language.EN)}},
-         label={Text("English")})
+      Tab.SETTINGS->EkmivoSettingsScreen(
+       bn=bn,language=language,appearance=appearance,
+       changeLanguage={scope.launch{preferences.updateLanguage(it)}},
+       changeAppearance={scope.launch{preferences.updateAppearance(it)}},
+       onSetup={wizardActive=true},
+       onDisconnected={
+        paired=false;reconnecting=false;wizardActive=false
+        repository.dispatch(ConnectionEvent.Disconnected)
+        tab=Tab.FORWARDER
        }
-       HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant)
-       Text(if(bn)"অ্যাপের রং" else "Appearance",style=MaterialTheme.typography.titleMedium)
-       Row(horizontalArrangement=Arrangement.spacedBy(9.dp)){
-        listOf(Appearance.SYSTEM,Appearance.LIGHT,Appearance.DARK).forEach{option->
-         val text=when(option){
-          Appearance.SYSTEM->if(bn)"সিস্টেম" else "System"
-          Appearance.LIGHT->if(bn)"লাইট" else "Light"
-          Appearance.DARK->if(bn)"ডার্ক" else "Dark"
-         }
-         FilterChip(selected=appearance==option,
-          onClick={scope.launch{preferences.updateAppearance(option)}},label={Text(text)})
-        }
-       }
-       HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant)
-       SetupHealthCard(bn,healthNow){wizardActive=true}
-       ReceiptRecoveryControl(bn)
-       Spacer(Modifier.weight(1f))
-       Text("Ekmivo · v"+BuildConfig.VERSION_NAME,style=MaterialTheme.typography.labelMedium,
-        color=MaterialTheme.colorScheme.onSurfaceVariant)
-      }
+      )
      }
     }
    }

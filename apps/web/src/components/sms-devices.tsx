@@ -9,7 +9,7 @@ import {merchantStatusLabel} from "../lib/dashboard-status-labels";
 import type {Locale,PaymentEnvironment} from "../lib/dashboard-navigation";
 type Phone={receipt_count?:number;id:string;name:string;created_at?:string;claimed_at?:string|null;revoked_at?:string|null;model?:string;app_version?:string;heartbeat_at?:string|null;permission_ok:boolean;backlog:number;last_queue_error?:string};
 type Props={locale:Locale;workspaceId:string;environment:PaymentEnvironment;canManage:boolean;detailId?:string};
-function health(p:Phone,now:number){if(p.revoked_at)return "revoked";if(!p.claimed_at)return p.created_at&&now-Date.parse(p.created_at)>=300000?"expired":"pairing";if(!p.heartbeat_at)return "waiting";if(!p.permission_ok)return "permission";const elapsed=now-Date.parse(p.heartbeat_at);if(!Number.isFinite(elapsed)||elapsed>=1200000)return "offline";return elapsed>=300000?"delayed":"online";}
+function health(p:Phone,now:number){if(p.revoked_at)return "revoked";if(!p.claimed_at)return p.created_at&&now-Date.parse(p.created_at)>=300000?"expired":"pairing";if(!p.heartbeat_at)return "waiting";if(!p.permission_ok)return "permission";const elapsed=now-Date.parse(p.heartbeat_at);if(!Number.isFinite(elapsed)||elapsed>=2700000)return "offline";return elapsed>=1200000?"delayed":"online";}
 export function PaymentPhoneManagement(props:Props){
  return <ScopedDevices key={JSON.stringify([props.workspaceId,props.environment,props.canManage,props.detailId])} {...props}/>;
 }
