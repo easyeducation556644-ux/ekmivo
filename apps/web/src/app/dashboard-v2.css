@@ -584,3 +584,72 @@
 .ds-app[data-service="payments"] .doc-edit-dialog :is(.pl-advanced,.doc-notes)>summary::after{content:"⌄";float:right;color:var(--color-text-muted);font-size:16px}
 .ds-app[data-service="payments"] .doc-edit-dialog :is(.pl-advanced,.doc-notes)[open]>summary::after{transform:rotate(180deg)}
 @media(max-width:600px){.ds-app[data-service="payments"] .doc-edit-dialog .pg10-line{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+
+
+/* Payment methods reference — scoped to the existing dashboard shell. */
+.ds-app[data-service="payments"] .ekv3-methods{
+ --ref-bg:#f5f5f9;--ref-surface:#fff;--ref-line:#dadae5;--ref-line-soft:#e3e3ec;
+ --ref-text:#14141c;--ref-muted:#555568;--ref-subtle:#6c6c80;--ref-accent:#4340c8;
+ --ref-primary:#14141c;--ref-primary-fg:#fff;--ref-chip:#ecebff;
+ --ref-shadow:0 1px 2px rgba(20,20,40,.08),0 6px 18px rgba(20,20,40,.06);
+ color:var(--ref-text);
+}
+:root[data-theme="dark"] .ds-app[data-service="payments"] .ekv3-methods{
+ --ref-bg:#0a0a0f;--ref-surface:#0e0e15;--ref-line:#23232f;--ref-line-soft:#1f1f2b;
+ --ref-text:#ececf1;--ref-muted:#a1a1b0;--ref-subtle:#7a7a8a;--ref-accent:#c3c1ff;
+ --ref-primary:#f3f3f8;--ref-primary-fg:#0a0a0f;--ref-chip:#23233a;--ref-shadow:none;
+}
+.ds-app[data-service="payments"] .ekv3-methods .ekv3-page-header{margin:0 0 24px}
+.ds-app[data-service="payments"] .ekv3-methods .ekv3-page-header h1{font-size:28px;font-weight:600;letter-spacing:-.02em;line-height:1.15}
+.ds-app[data-service="payments"] .ekv3-methods .ekv3-page-header p{font-size:14px;line-height:1.5;margin-top:6px}
+.ds-app[data-service="payments"] .ekv3-methods .ekv3-primary{background:var(--ref-primary);color:var(--ref-primary-fg);border:0;border-radius:10px;min-height:40px;padding:0 16px;font-weight:600}
+.ds-app[data-service="payments"] .ekv3-methods .ekv3-icon-button{height:40px;width:40px;border:1px solid var(--ref-line);border-radius:10px;background:var(--ref-surface);color:var(--ref-text)}
+.ekv3-methods .ek-ref-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:24px}
+.ekv3-methods .ek-ref-search{flex:1 1 240px;display:flex;align-items:center;gap:8px;height:40px;box-sizing:border-box;padding:0 12px;border:1px solid var(--ref-line);border-radius:10px;background:var(--ref-surface);color:var(--ref-muted)}
+.ekv3-methods .ek-ref-search input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;font-size:14px;color:var(--ref-text)}
+.ekv3-methods .ek-ref-search input::placeholder{color:var(--ref-subtle)}
+.ekv3-methods .ek-ref-tabs{display:flex;gap:4px;padding:3px;border:1px solid var(--ref-line);border-radius:10px;background:var(--ref-surface)}
+.ekv3-methods .ek-ref-tabs button{display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:0;border-radius:7px;background:transparent;color:var(--ref-muted);font:inherit;font-size:13px;font-weight:500;cursor:pointer}
+.ekv3-methods .ek-ref-tabs button.is-selected{background:var(--ref-chip);color:var(--ref-accent)}
+.ekv3-methods .ek-ref-tabs button span{font-family:"Geist Mono",monospace;font-size:12px;opacity:.8}
+.ekv3-methods .ek-ref-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(295px,1fr));gap:12px}
+.ekv3-methods .ek-ref-account{display:flex;flex-direction:column;justify-content:space-between;min-height:136px;padding:16px;box-sizing:border-box;border:1px solid var(--ref-line-soft);border-radius:14px;background:var(--ref-surface);box-shadow:var(--ref-shadow);transition:transform .18s ease,box-shadow .18s ease}
+.ekv3-methods .ek-ref-account:hover,.ekv3-methods .wc:hover{transform:translateY(-3px);box-shadow:0 14px 32px rgba(0,0,0,.16)}
+.ekv3-methods .ek-ref-account[data-disabled="true"] .ek-ref-logo{filter:saturate(.25);opacity:.75}
+.ekv3-methods .ek-ref-account-main{display:flex;align-items:center;gap:12px}
+.ekv3-methods .ek-ref-logo{width:54px;height:48px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:10px;font-size:12px;font-weight:700;background:#f8f1f5;color:#dc006b;overflow:hidden}
+.ekv3-methods .ek-ref-nagad{background:#fff4eb;color:#ed2025}
+.ekv3-methods .ek-ref-rocket{background:#f5eafb;color:#92278f}
+.ekv3-methods .ek-ref-bkash{background:#fcecf5;color:#df146b}
+.ekv3-methods .ek-ref-account-identity{display:flex;flex-direction:column;gap:5px;min-width:0}
+.ekv3-methods .ek-ref-account-identity strong{font-size:14px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.ekv3-methods .ek-ref-account-identity>span{font-family:"Geist Mono",monospace;font-size:12px;color:var(--ref-muted);display:flex;align-items:center;gap:5px}
+.ekv3-methods .ek-ref-account-identity button{display:inline-flex;align-items:center;border:0;background:transparent;color:var(--ref-muted);cursor:pointer}
+.ekv3-methods .ek-ref-account-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:20px}
+.ekv3-methods .ek-ref-state{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ref-muted)}
+.ekv3-methods .ek-ref-state i{width:7px;height:7px;border-radius:50%;background:#7d7480}
+.ekv3-methods .ek-ref-state i[data-on="true"]{background:#12a066}
+.ekv3-methods .ek-ref-actions{display:flex;align-items:center;gap:10px}
+.ekv3-methods .ek-ref-switch{position:relative;display:block;width:38px;height:22px;flex:none;border:0;border-radius:999px;background:#aaaab4;cursor:pointer}
+.ekv3-methods .ek-ref-switch[aria-checked="true"]{background:#6d6af2}
+.ekv3-methods .ek-ref-switch span{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s}
+.ekv3-methods .ek-ref-switch[aria-checked="true"] span{left:19px}
+.ekv3-methods .ek-ref-manage{height:28px;padding:0 14px;border:0;border-radius:999px;background:var(--ref-chip);color:var(--ref-text);font:inherit;font-size:12px;font-weight:500;cursor:pointer}
+.ekv3-methods .ek-ref-add-card{display:flex;align-items:center;justify-content:center;gap:10px;min-height:76px;border:1.5px dashed #9190af;border-radius:14px;background:transparent;color:var(--ref-accent);font:inherit;font-size:14px;font-weight:500;cursor:pointer}
+.ekv3-methods .ek-ref-add-card>span{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:var(--ref-chip)}
+.ekv3-methods .ek-ref-count{font-size:12px;color:var(--ref-subtle);margin:16px 0 0}
+.ekv3-methods .ek-ref-empty{grid-column:1/-1;text-align:center;padding:24px;color:var(--ref-muted)}
+.ekv3-methods .ek-ref-modal{max-width:480px;width:calc(100% - 32px);border-radius:18px;background:var(--ref-surface);color:var(--ref-text)}
+.ekv3-methods .ek-ref-modal .pg-phone-dialog-head{padding:20px 20px 16px}
+.ekv3-methods .ek-ref-modal .pg-phone-dialog-head h2{font-size:18px;letter-spacing:-.01em;font-weight:600}
+.ekv3-methods .ek-ref-modal .pg-phone-dialog-head p{font-size:13px;color:var(--ref-muted);margin:4px 0 0}
+.ekv3-methods .ek-ref-modal .pg-phone-setup{padding:0 20px 20px;display:flex;flex-direction:column;gap:12px}
+.ekv3-methods .ek-ref-provider-search{flex:unset;width:100%}
+.ekv3-methods .ek-ref-providers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.ekv3-methods .ek-ref-provider{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:84px;border:1px solid var(--ref-line);border-radius:12px;background:var(--ref-surface);color:var(--ref-text);font:inherit;font-size:12px;cursor:pointer}
+.ekv3-methods .ek-ref-provider .ek-ref-logo{width:52px;height:38px}
+.ekv3-methods .ek-ref-selected-provider{display:flex;align-items:center;gap:12px;padding:10px;border:1px solid var(--ref-line);border-radius:10px}
+.ekv3-methods .ek-ref-selected-provider strong{flex:1}
+.ekv3-methods .ek-ref-selected-provider>button{border:0;border-radius:999px;background:var(--ref-chip);color:var(--ref-accent);font:inherit;font-size:12px;padding:7px 12px;cursor:pointer}
+.ekv3-methods button:focus-visible,.ekv3-methods input:focus-visible{outline:2px solid var(--ref-accent);outline-offset:2px}
+@media(max-width:600px){.ekv3-methods .ek-ref-cards{grid-template-columns:1fr}.ekv3-methods .ek-ref-toolbar{align-items:stretch}.ekv3-methods .ek-ref-tabs{width:100%;justify-content:space-between}.ekv3-methods .ek-ref-tabs button{padding:0 9px}}
