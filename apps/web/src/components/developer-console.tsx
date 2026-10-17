@@ -1,6 +1,6 @@
 import {database} from "../lib/server/db";
-import {AutomaticWebhookSecret} from "./automatic-webhook-secret";
-import {ApiKeyManager,type ApiKeyRow} from "./api-key-manager";
+import {CredentialEnvironmentSwitcher} from "./credential-environment-switcher";
+import type {ApiKeyRow} from "./api-key-manager";
 
 import type {Locale,PaymentEnvironment} from "../lib/dashboard-navigation";
 import type {Workspace} from "../lib/server/auth";
@@ -14,6 +14,7 @@ export async function DeveloperConsole({locale,workspace,environment,userId}:{
  const keys:{live:ApiKeyRow[];sandbox:ApiKeyRow[]}={live:[],sandbox:[]};
 
  let unavailable=false;
+ let enabled:PaymentEnvironment[]=[];
  if(allowed){
   try{
    const [environments,...groups]=await Promise.all([
@@ -23,7 +24,7 @@ export async function DeveloperConsole({locale,workspace,environment,userId}:{
       AND EXISTS(SELECT 1 FROM workspace_environments e WHERE e.workspace_id=${workspace.id}::uuid AND e.environment=${realm} AND e.status='active')
       ORDER BY created_at DESC LIMIT 100`)
    ]);
-   void environments;
+   enabled=environments.map(row=>String(row.environment)).filter((value):value is PaymentEnvironment=>value==="sandbox"||value==="live");
    for(const [index,realm] of (["live","sandbox"] as const).entries())keys[realm]=groups[index].map(row=>({
     id:String(row.id),publicId:String(row.public_id).trim(),
     name:String(row.name),scopes:(row.scopes as string[]),
@@ -44,6 +45,6 @@ export async function DeveloperConsole({locale,workspace,environment,userId}:{
   </div>:unavailable?<div role="alert" className="ds-empty">
    <h3>{bn?"Credential service পাওয়া যাচ্ছে না":"Credential service unavailable"}</h3>
    <p>{bn?"ডাটাবেস migration এবং service readiness নিশ্চিত করতে হবে। কোনো demo কী দেখানো হচ্ছে না।":"Database migration and service readiness must be checked. No demo keys are shown."}</p>
-  </div>:<><ApiKeyManager key={`${userId}:${workspace.id}:${realm}`} locale={locale} userId={userId} workspaceId={workspace.id} environment={realm} keys={keys[realm]}/><AutomaticWebhookSecret key={realm} workspaceId={workspace.id} environment={realm} locale={locale}/></>;
+  </div>:<CredentialEnvironmentSwitcher locale={locale} userId={userId} workspaceId={workspace.id} initialEnvironment={realm} enabled={enabled} keys={keys}/>;
  return <section className="ref-api-key-page">{keyPanel(environment)}</section>;
 }
