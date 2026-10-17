@@ -103,3 +103,10 @@ The HTML API-key create modal contains its own Sandbox/Live environment choice. 
 - `705dcc3`: create-form example and empty-state copy are selected-realm aware (no production-only wording on Sandbox).
 - `010c1d0`: credential draft storage uses the selected **create** realm, not the current outer list realm. Switching the create modal from Live to Sandbox keeps saved drafts isolated.
 - Newly created cross-realm secret is displayed once; after dismissal the list switches to the created realm. The backend remains authoritative about active realm, password and permissions. No actual key or secret was created during this audit.
+
+### Localization and source-reference audit follow-up — 2026-10-17
+
+- The attached Premium HTML, not the differing Customers screenshot, defines the precise table shape. The table was restored to the reference in `5331328` (Last payment, chevron).
+- Checkout Themes localizes server load/save/conflict feedback and logo upload errors in `cc53c34`; preview control accessibility labels updated in `2732f2c`. No payment proof or backend theme schema behavior was modified.
+- Source-only CSS rule comparison against all five dedicated HTML references found nearly all copied named selectors represented in the corresponding scoped CSS; deviations were chiefly root/body scoping, existing layout adapters and some overrides. This is **not** pixel-equivalent browser evidence or proof of interactive acceptance.
+- Control database READ ONLY for the authenticated workspace shown in the connected Ekmivo browser confirmed its Live and Sandbox environments are both active and payment product access is enabled. Do not store key secrets, passwords or mutable workspace fixtures as evidence.
