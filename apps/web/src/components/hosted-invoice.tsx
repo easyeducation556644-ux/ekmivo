@@ -1,9 +1,11 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 import {useEffect,useState} from "react";
 import Link from "next/link";
+import {parseCheckoutTheme} from "../lib/checkout-theme";
 import "./hosted-invoice.css";
 type Item={title:string;quantity:number;unit_amount_minor:number};
-type Invoice={kind:string;reference:string;merchant_name?:string;brand?:{logo_url?:string;title?:string};amount_minor:number;paid_minor:number;due_minor?:number;environment?:string;created_at?:string;body?:{items?:Item[];due_at?:string;issued_at?:string;name?:string;email?:string;description?:string;notes?:string;tax_minor?:number;fee_minor?:number;shipping_minor?:number;discount_minor?:number}};
+type Invoice={kind:string;reference:string;merchant_name?:string;brand?:{logo_url?:string;title?:string;checkout_theme?:string};amount_minor:number;paid_minor:number;due_minor?:number;environment?:string;created_at?:string;body?:{items?:Item[];due_at?:string;issued_at?:string;name?:string;email?:string;description?:string;notes?:string;tax_minor?:number;fee_minor?:number;shipping_minor?:number;discount_minor?:number}};
 export function HostedInvoice({locale,token}:{locale:"en"|"bn";token:string}){
  const bn=locale==="bn",t=(en:string,be:string)=>bn?be:en;
  const [doc,setDoc]=useState<Invoice|null>(null),[pending,setPending]=useState(true),[error,setError]=useState("");
@@ -14,7 +16,7 @@ export function HostedInvoice({locale,token}:{locale:"en"|"bn";token:string}){
  const total=doc?.amount_minor??0,paid=doc?.paid_minor??0;
  const fullyPaid=Boolean(doc)&&total>0&&paid>=total;const overdue=Boolean(doc?.body?.due_at)&&new Date(doc!.body!.due_at!).getTime()<Date.now();
  const status=fullyPaid?t("Paid","পরিশোধিত"):overdue?t("Overdue","মেয়াদ পেরিয়েছে"):t("Due","বাকি");
- const logo=doc?.brand?.logo_url;const safeLogo=logo&&/^https:\/\/[^\s@]+$/i.test(logo)?logo:undefined;
+ const theme=parseCheckoutTheme(doc?.brand?.checkout_theme);const logo=theme?.store.logo||doc?.brand?.logo_url;const safeLogo=logo&&(logo.startsWith("/")&&!logo.startsWith("//")||/^https:\/\/[^\s@]+$/i.test(logo))?logo:undefined;
  return <main className="ek-invoice-host" lang={locale}>
   <div className="ek-invoice-actions"><Link href="/" aria-label={t("Ekmivo home","Ekmivo হোম")}>ekmivo</Link><div><Link href={`/${bn?"en":"bn"}/invoice/${token}`}>{bn?"English":"বাংলা"}</Link><button type="button" onClick={()=>window.print()} disabled={!doc}>{t("Print / Save PDF","প্রিন্ট / PDF সেভ")}</button></div></div>
   {pending?<p role="status">{t("Loading invoice…","ইনভয়েস লোড হচ্ছে…")}</p>:error?<p role="alert">{error}</p>:doc&&<article className="ek-invoice-sheet">
