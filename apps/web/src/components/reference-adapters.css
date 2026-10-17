@@ -41,3 +41,23 @@
 .ref-dashboard .ref-native-dialog.dr .dw>.mb :is(table,pre){max-width:100%;overflow-wrap:anywhere}
 .ref-dashboard .ref-native-dialog.dr .dw>.mb .drawer-group{width:100%}
 @media(max-width:600px){.ref-dashboard .ref-native-dialog.dr .dw{width:100vw;border-left:0}.ref-dashboard .ref-native-dialog.dr .dw>.mh{padding:16px}.ref-dashboard .ref-native-dialog.dr .dw>.mb{padding:16px 16px 24px}.ref-dashboard .ref-native-dialog.dr .dw>.mf{padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px))}}
+
+
+/* Invoice financial summary and invoice-linked capabilities: scoped premium controls. */
+.ref-dashboard .ref-invoice-summary{display:flex;flex-direction:column;gap:9px;margin-top:14px;padding:16px 18px;border:1px solid var(--line);background:var(--panel);border-radius:12px;min-width:0}
+.ref-dashboard .ref-invoice-summary>div{display:flex;justify-content:space-between;align-items:baseline;gap:18px;min-width:0;color:var(--mut);font-size:13px}
+.ref-dashboard .ref-invoice-summary>div>b{flex:none;font-size:13px;font-weight:600;color:var(--txt);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.ref-dashboard .ref-invoice-summary>div.total{padding-top:11px;margin-top:4px;border-top:1px solid var(--line);font-size:14px;font-weight:650;color:var(--txt)}
+.ref-dashboard .ref-invoice-summary>div.total>b{font-size:16px}
+.ref-dashboard .ref-invoice-links{overflow:hidden}
+.ref-dashboard .ref-invoice-links>summary{appearance:none;list-style:none;display:flex;align-items:center;gap:9px;cursor:pointer;padding:14px 18px;color:var(--txt);font-size:13px;font-weight:600;outline-offset:-3px}
+.ref-dashboard .ref-invoice-links>summary::-webkit-details-marker{display:none}
+.ref-dashboard .ref-invoice-links>summary::before{content:"";display:block;flex:none;width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg);transition:transform .15s ease}
+.ref-dashboard .ref-invoice-links[open]>summary::before{transform:rotate(45deg)}
+.ref-dashboard .ref-invoice-links[open]>summary{border-bottom:1px solid var(--line)}
+.ref-dashboard .ref-invoice-links .panel-pad{padding:12px 18px}
+.ref-dashboard .ref-invoice-links .kv{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line);min-width:0}
+.ref-dashboard .ref-invoice-links .kv:last-child{border-bottom:0}
+.ref-dashboard .ref-invoice-links .kv>span{min-width:0;overflow-wrap:anywhere}
+.ref-dashboard .ref-invoice-links .actionline{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:6px}
+@media(max-width:600px){.ref-dashboard .ref-invoice-summary{padding:12px}.ref-dashboard .ref-invoice-links .kv{align-items:flex-start;flex-direction:column}.ref-dashboard .ref-invoice-links .actionline{justify-content:flex-start}}
