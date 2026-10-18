@@ -12,15 +12,30 @@ android {
   applicationId = "com.ekmivo.mobile"
   minSdk = 26
   targetSdk = 35
-  versionCode = 3
-  versionName = "0.2.1"
+  versionCode = 4
+  versionName = "0.2.2"
   testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   // Public origin only: never embed credentials or a payment authority in a mobile binary.
   buildConfigField("String", "API_BASE_URL",
     "\"" + (providers.gradleProperty("ekmivoApiBaseUrl").orElse("https://ekmivo-go-api.onrender.com").get().trimEnd('/')) + "\"")
  }
+ // The production key comes ONLY from environment variables at build time.
+ // No keystore, key password, or private key is committed to this repo.
+ val releaseKeyStorePath = providers.environmentVariable("EKMIVO_ANDROID_KEYSTORE_FILE").orNull
+ signingConfigs {
+  create("ekmivoProduction") {
+   if (releaseKeyStorePath != null) storeFile = file(releaseKeyStorePath)
+   storePassword = providers.environmentVariable("EKMIVO_ANDROID_KEYSTORE_PASSWORD").orNull
+   keyAlias = "ekmivo-production"
+   keyPassword = providers.environmentVariable("EKMIVO_ANDROID_KEYSTORE_PASSWORD").orNull
+   storeType = "pkcs12"
+  }
+ }
  buildTypes {
   release {
+   if (releaseKeyStorePath != null) {
+    signingConfig = signingConfigs.getByName("ekmivoProduction")
+   }
    isMinifyEnabled = true
    isShrinkResources = true
    proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
