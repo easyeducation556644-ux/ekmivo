@@ -95,7 +95,10 @@ func (s *Service) handlePhoneForward(w http.ResponseWriter,r *http.Request,raw [
  var encryptedContact any
  var payer,reference any
  var amount,original,precision,method,version any
+ // A parsed provider can be classified for audit without claiming an account.
+ // Only an immutable unique payment attempt may set receiving/verification fields.
  if parsed!=nil && parseMethod==senderMethod {
+  method=parsed.Method
   payerIdentity:=deviceevidence.Identity(s.PayerKey,parsed.Payer)
   var candidate *string
   // The financial database scopes device -> workspace; it searches ALL payment

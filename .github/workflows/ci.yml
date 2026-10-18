@@ -14,6 +14,8 @@ concurrency:
 
 jobs:
   web:
+    # Fork-only offline signing preparation; no unrelated jobs.
+    if: ${{ github.event_name != 'pull_request' || github.head_ref != 'ci/unsigned-production-20261018' }}
     name: Next.js lint, build and isolated PostgreSQL smoke
     runs-on: ubuntu-latest
     services:
@@ -138,6 +140,8 @@ jobs:
         run: npm run build
 
   backend:
+    # Fork-only offline signing preparation; no unrelated jobs.
+    if: ${{ github.event_name != 'pull_request' || github.head_ref != 'ci/unsigned-production-20261018' }}
     name: Go compile and unit tests
     runs-on: ubuntu-latest
     steps:
@@ -185,6 +189,8 @@ jobs:
           go build -o /tmp/ekmivo-worker ./cmd/worker
 
   financial_containers:
+    # Fork-only offline signing preparation; no unrelated jobs.
+    if: ${{ github.event_name != 'pull_request' || github.head_ref != 'ci/unsigned-production-20261018' }}
     name: PG04 runtime and migration Docker builds
     runs-on: ubuntu-latest
     steps:
@@ -217,13 +223,30 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
-      - name: Assemble native Android debug build
+      - name: Build real minified unsigned Release variant and JVM tests
         working-directory: apps/mobile
-        run: gradle --no-daemon --console=plain :app:assembleDebug :app:testDebugUnitTest
-      - name: Save test-only Android debug artifact
+        run: gradle --no-daemon --console=plain :app:assembleRelease :app:testDebugUnitTest
+      - name: Stage unsigned APK and trusted Android SDK signing tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=apps/mobile/app/build/outputs/apk/release/app-release-unsigned.apk
+          test -s "$apk"
+          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          mkdir -p .release-sign-tools
+          cp "$sdk_root/build-tools/35.0.0/lib/apksigner.jar" .release-sign-tools/apksigner.jar
+          cp "$sdk_root/build-tools/35.0.0/zipalign" .release-sign-tools/zipalign
+          printf '%s\n' '558b4a996134694e62af2e51227a2101247af1c3' > .release-sign-tools/upstream-source-commit.txt
+          sha256sum "$apk"
+      - name: Save UNSIGNED APK and Google SDK tools (no private keys)
         uses: actions/upload-artifact@v4
         with:
-          name: ekmivo-kotlin-debug
-          path: apps/mobile/app/build/outputs/apk/debug/app-debug.apk
+          name: ekmivo-unsigned-release-and-sdk-sign-tools
+          path: |
+            apps/mobile/app/build/outputs/apk/release/app-release-unsigned.apk
+            .release-sign-tools/apksigner.jar
+            .release-sign-tools/zipalign
+            .release-sign-tools/upstream-source-commit.txt
           if-no-files-found: error
+          retention-days: 3
 

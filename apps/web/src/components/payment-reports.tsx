@@ -4,9 +4,9 @@ import {useDashboardInitialData} from "./dashboard-initial-data";
 import {useCallback,useEffect,useMemo,useRef,useState} from "react";
 import type {FormEvent} from "react";
 import Link from "next/link";
-import {DashboardIcon} from "./dashboard-icon";
+import {FinancialIcon as DashboardIcon} from "./financial-icon";
 import {PaymentReportLedger} from "./payment-report-ledger";
-import {DashboardDateRangePicker} from "./dashboard-date-controls";
+import "./ek-financial-pages.css";
 
 type Locale="en"|"bn";
 type MoneyRow={amount_minor:number;payment_count:number};
@@ -14,7 +14,7 @@ type MethodRow=MoneyRow&{method:string};
 type AccountRow=MoneyRow&{account_id:string;method:string;display_suffix:string};
 type CustomerRow=MoneyRow&{customer_id:string;reference:string;name:string};
 type RefundRow={status:string;amount_minor:number;request_count:number};
-type DayRow={day:string;amount_minor:number};
+type DayRow={day:string;amount_minor:number;payment_count?:number};
 type Report={
  verified_gross_minor:number;allocated_minor:number;unallocated_minor:number;payment_count:number;
  seller_reported_returned_minor:number;open_requested_refund_minor:number;refund_request_count:number;
@@ -105,6 +105,10 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
  const [preset,setPreset]=useState<Preset>("30");
  const [section,setSection]=useState<Section>("summary");
  const [compare,setCompare]=useState(false);
+ const [hoverDay,setHoverDay]=useState<string|null>(null);
+ const [toast,setToast]=useState("");
+ const fromInput=useRef<HTMLInputElement>(null);
+ useEffect(()=>{if(!toast)return;const timer=setTimeout(()=>setToast(""),1800);return()=>clearTimeout(timer)},[toast]);
  const [previous,setPrevious]=useState<CompareSnapshot|null>(null);
  const [compareLoading,setCompareLoading]=useState(false);
  const [compareError,setCompareError]=useState("");
@@ -200,87 +204,61 @@ export function PaymentReports({locale,workspaceId,environment,canReveal}:{local
  const avg=displayed&&displayed.payment_count>0?Math.round(displayed.verified_gross_minor/displayed.payment_count):null;
  const delta=matchedCompare&&displayed?changePercent(displayed.verified_gross_minor,matchedCompare.report.verified_gross_minor):null;
  const countDelta=matchedCompare&&displayed?changePercent(displayed.payment_count,matchedCompare.report.payment_count):null;
- return <div className="er-reports">
-  <header className="er-heading">
-   <div><h1>{t("Reports","রিপোর্ট")}</h1><p>{t("Your payments at a glance.","এক নজরে পেমেন্টের হিসাব।")}</p></div>
-   <div className="er-heading-actions">
-    <button type="button" onClick={()=>setRefresh(n=>n+1)} disabled={loading} aria-label={t("Refresh report","রিপোর্ট রিফ্রেশ")}><DashboardIcon name="arrow" width={16} height={16}/> {t("Refresh","রিফ্রেশ")}</button>
-    <button type="button" disabled={!displayed||stale} onClick={()=>exportDialog.current?.showModal()}><DashboardIcon name="reports" width={16} height={16}/> {t("Export","এক্সপোর্ট")}</button>
-    <button type="button" disabled={!displayed||stale} onClick={()=>window.print()}>{t("Print","প্রিন্ট")}</button>
-   </div>
-  </header>
-  <dialog ref={exportDialog} className="ekv2-export-dialog" aria-label={t("Export report","রিপোর্ট এক্সপোর্ট")} onClick={e=>{if(e.target===e.currentTarget)exportDialog.current?.close()}}>
-   <div className="ekv2-detail-head"><h2>{t("Export report","রিপোর্ট এক্সপোর্ট")}</h2><button type="button" onClick={()=>exportDialog.current?.close()} aria-label={t("Close","বন্ধ করুন")}>×</button></div>
-   <div className="ekv2-export-fields">
-    <label>{t("Format","ফরম্যাট")}<select value={exportFormat} onChange={e=>setExportFormat(e.target.value as "csv"|"pdf")}><option value="csv">CSV</option><option value="pdf">{t("PDF (print)","PDF (প্রিন্ট)")}</option></select></label>
-    {exportFormat==="csv"&&<label>{t("Include","যা থাকবে")}<select value={exportScope} onChange={e=>setExportScope(e.target.value as "all"|"summary")}><option value="all">{t("Summary and details","সারাংশ ও বিস্তারিত")}</option><option value="summary">{t("Summary only","শুধু সারাংশ")}</option></select></label>}
-   </div>
-   <div className="ekv2-detail-actions"><button type="button" onClick={()=>exportDialog.current?.close()}>{t("Cancel","বাতিল")}</button><button type="button" className="ekv2-primary" disabled={!displayed||stale} onClick={()=>{exportDialog.current?.close();if(exportFormat==="csv"){if(displayed)exportReport(displayed,active,exportScope)}else window.print()}}>{t("Export","এক্সপোর্ট")}</button></div>
-  </dialog>
-  <section className="er-filter-panel" aria-label={t("Report filters","রিপোর্টের ফিল্টার")}>
-   <div className="er-period-buttons" role="group" aria-label={t("Date presets","সময়সীমা")}>
-    {([7,30,90] as const).map(days=><button key={days} type="button" aria-pressed={preset===String(days)} onClick={()=>quick(days)}>{days} {t("days","দিন")}</button>)}
-    <button type="button" aria-pressed={preset==="custom"} onClick={()=>setPreset("custom")}>{t("Custom","নিজের মতো")}</button>
-   </div>
-   <form onSubmit={apply} className="er-filter-fields">
-    <DashboardDateRangePicker locale={locale} from={draft.from} to={draft.to} onChange={(from,to)=>{setPreset("custom");setDraft(v=>({...v,from,to}))}}/>
-    <label className="er-account-filter"><span>{t("Account","অ্যাকাউন্ট")}</span><select value={draft.account} disabled={accountError} onChange={e=>setDraft(v=>({...v,account:e.target.value}))}>
-      <option value="">{t("All accounts","সব অ্যাকাউন্ট")}</option>{accounts.map(a=><option key={a.id} value={a.id}>{a.method}{accountNumbers[a.id]?" · "+accountNumbers[a.id]:""}</option>)}
-     </select></label>
-    <button type="submit" className="er-apply" disabled={loading}>{t("Apply","প্রয়োগ করুন")}</button>
-   </form>
-   {accountError&&<p className="er-inline-notice" role="status">{t("Account filter unavailable. All-account reporting still works.","অ্যাকাউন্ট ফিল্টার পাওয়া যাচ্ছে না; সব অ্যাকাউন্টের রিপোর্ট দেখা যাবে।")}</p>}
-   
-  </section>
-  {loading&&<div className="er-status" role="status">{t("Updating report…","রিপোর্ট আপডেট হচ্ছে…")}</div>}
-  {error&&<div className="er-error" role="alert"><span>{error}</span><button type="button" onClick={()=>setRefresh(n=>n+1)}>{t("Retry","আবার চেষ্টা")}</button></div>}
-  
-  {!displayed&&!loading&&!error&&<section className="er-empty">{t("No report available yet.","এখনো রিপোর্ট পাওয়া যায়নি।")}</section>}
-  {displayed&&<div className="er-results" aria-busy={loading}>
-   <div className="er-result-period"><span>{active.from} — {active.to}{active.account?" · "+t("Selected account","নির্বাচিত অ্যাকাউন্ট"):""}</span>{generated&&<span>{t("Updated","আপডেট")}: {generated}</span>}</div>
-   <section className="er-period-analysis" aria-label={t("Period analysis","সময়সীমার বিশ্লেষণ")}>
-    <div className="er-analysis-total">
-     <span className="er-eyebrow">{t("Verified volume","যাচাইকৃত পরিমাণ")}</span>
-     <strong>{cash(displayed.verified_gross_minor,locale)}</strong>
-     <span className="er-analysis-context">{numeric(displayed.payment_count,locale)} {t("verified transactions","টি যাচাইকৃত লেনদেন")}</span>
-    </div>
-    <div className="er-analysis-metrics">
-     <div><span>{t("Average payment","গড় পেমেন্ট")}</span><strong>{avg===null?"—":cash(avg,locale)}</strong></div>
-     <div><span>{t("Change","পরিবর্তন")}</span><strong>{matchedCompare?(delta??t("No previous baseline","আগে লেনদেন নেই")):compareLoading?t("Loading…","লোড হচ্ছে…"):compareError?"—":t("Not compared","তুলনা বন্ধ")}</strong></div>
-     <label className="er-comparison-toggle"><input type="checkbox" checked={compare} onChange={e=>{setCompare(e.target.checked);setCompareError("")}}/>{t("Compare previous period","আগের সময়ের সঙ্গে তুলনা")}</label>
-    </div>
-    {compare&&<div className="er-comparison-detail" role="status">
-     {compareLoading?t("Loading previous period…","আগের সময়ের হিসাব আনা হচ্ছে…"):compareError||matchedCompare?<>
-      {compareError||<><span>{matchedCompare?.from} — {matchedCompare?.to}</span><span>{t("Previous volume","আগের মোট")}: <strong>{cash(matchedCompare?.report.verified_gross_minor??0,locale)}</strong></span><span>{t("Transaction change","লেনদেনের পরিবর্তন")}: <strong>{countDelta??t("No previous baseline","আগে লেনদেন নেই")}</strong></span></>}
-     </>:t("Previous period will appear here.","আগের সময়ের হিসাব এখানে আসবে।")}
-    </div>}
+ const barDays=useMemo(()=>{const from=Date.parse(active.from+"T00:00:00Z"),to=Date.parse(active.to+"T00:00:00Z");if(!Number.isFinite(from)||!Number.isFinite(to)||from>to)return [] as string[];return Array.from({length:Math.min(400,Math.floor((to-from)/millis)+1)},(_,i)=>new Date(from+i*millis).toISOString().slice(0,10))},[active.from,active.to]);
+ const byDay=Object.fromEntries((displayed?.daily??[]).map(day=>[day.day,day.amount_minor]));
+ const dailyCounts=Object.fromEntries((displayed?.daily??[]).map(day=>[day.day,day.payment_count]));
+ const peak=Math.max(1,...barDays.map(day=>byDay[day]??0));
+ const niceDay=(day:string)=>new Date(day+"T00:00:00Z").toLocaleDateString("en-US",{timeZone:"UTC",month:"short",day:"numeric"});
+ const money=(minor:number)=>"BDT "+(minor/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+ const matching=[displayed?.allocated_minor??0,displayed?.unallocated_minor??0,displayed?.statement_links.amount_minor??0];
+ const matchingTotal=matching.reduce((a,b)=>a+b,0);
+ const percent=(part:number)=>matchingTotal?Math.round(part/matchingTotal*100):0;
+ const icon=(name:string)=><DashboardIcon name={name as Parameters<typeof DashboardIcon>[0]["name"]} width={16} height={16}/>;
+ const printReport=()=>{const root=document.documentElement,original=root.dataset.theme;root.dataset.theme="light";window.print();if(original===undefined)delete root.dataset.theme;else root.dataset.theme=original};
+ return <div className="ek-page-scope er-reference">
+  <div className="page">
+   <header className="ph"><div><h1>{t("Reports","রিপোর্ট")}</h1><p>{t("Verified payments, matching and refunds for the period you choose.","নির্বাচিত সময়ের যাচাইকৃত পেমেন্ট, মিল ও রিফান্ড।")}</p></div>
+    <div className="acts"><button className={"btn"+(loading?" spin":"")} disabled={loading} onClick={()=>{setRefresh(n=>n+1);setToast(t("Refreshed","রিফ্রেশ করা হয়েছে"))}}>{icon("refresh")}{t("Refresh","রিফ্রেশ")}</button>
+     <button className="btn" disabled={!displayed||stale} onClick={()=>{if(displayed){exportReport(displayed,active);setToast(t("Export started","এক্সপোর্ট শুরু হয়েছে"))}}}>{icon("download")}{t("Export","এক্সপোর্ট")}</button>
+     <button className="btn" disabled={!displayed||stale} onClick={printReport}>{icon("printer")}{t("Print","প্রিন্ট")}</button></div></header>
+   <section className="card fl" id="fl" aria-label={t("Report period","রিপোর্টের সময়সীমা")}>
+    <div className="chips" role="group" aria-label={t("Period","সময়সীমা")}>{([["7",t("7 days","৭ দিন")],["30",t("30 days","৩০ দিন")],["90",t("90 days","৯০ দিন")],["custom",t("Custom","নিজের মতো")]] as const).map(([k,label])=><button key={k} type="button" className="chip" aria-pressed={preset===k} onClick={()=>{if(k==="custom"){setPreset("custom");fromInput.current?.focus()}else quick(Number(k) as 7|30|90)}}>{label}</button>)}</div>
+    <form className="fgrid" onSubmit={e=>{apply(e);setToast(t("Report updated","রিপোর্ট আপডেট হয়েছে"))}}>
+     <label className="fd"><span>{t("From","শুরু")}</span><input ref={fromInput} className="inp" type="date" value={draft.from} onChange={e=>{setPreset("custom");setDraft(v=>({...v,from:e.target.value}))}} required/></label>
+     <label className="fd"><span>{t("To","শেষ")}</span><input className="inp" type="date" value={draft.to} onChange={e=>{setPreset("custom");setDraft(v=>({...v,to:e.target.value}))}} required/></label>
+     <label className="fd"><span>{t("Account","অ্যাকাউন্ট")}</span><select className="inp" value={draft.account} disabled={accountError} onChange={e=>setDraft(v=>({...v,account:e.target.value}))}><option value="">{t("All accounts","সব অ্যাকাউন্ট")}</option>{accounts.map(a=><option key={a.id} value={a.id}>{a.method}{accountNumbers[a.id]?" · "+accountNumbers[a.id]:""}</option>)}</select></label>
+     <button className="btn go2" type="submit" disabled={loading||!pending}>{t("Apply","প্রয়োগ করুন")}</button>
+    </form>
    </section>
-   <section className="er-allocation-analysis">
-    <div className="er-allocation-head"><div><h2>{t("Payment breakdown","পেমেন্টের হিসাব")}</h2><span>{t("","")}</span></div><Link href={root+"reconciliation"}>{t("Reconciliation","হিসাব মিল")} ↗</Link></div>
-    
-    <div className="er-allocation-values">
-     <div><span>{t("Matched","মিলেছে")}</span><strong>{cash(displayed.allocated_minor,locale)}</strong></div>
-     <div><span>{t("Not matched","মেলেনি")}</span><strong>{cash(displayed.unallocated_minor,locale)}</strong></div>
-     <div><span>{t("Statement matches","স্টেটমেন্টে মিলেছে")}</span><strong>{cash(displayed.statement_links.amount_minor,locale)}</strong></div>
-    </div>
-   </section>
-  </div>}
-  <section className="er-card er-details">
-    <div className="er-details-heading"><h2>{t("Breakdown","বিভাগভিত্তিক হিসাব")}</h2><span>{t("","")}</span></div>
-    <div className="er-tabs" role="tablist" aria-label={t("Report sections","রিপোর্টের বিভাগ")}>
-     {sections.map(id=><button type="button" role="tab" key={id} aria-selected={section===id} onClick={()=>setSection(id)}>{labels[id]}</button>)}
-    </div>
+   {accountError&&<p className="financial-status">{t("Account filter unavailable. All-account reporting still works.","অ্যাকাউন্ট ফিল্টার পাওয়া যাচ্ছে না; সব অ্যাকাউন্টের রিপোর্ট দেখা যাবে।")}</p>}
+   {loading&&<p className="financial-status" role="status">{t("Updating report…","রিপোর্ট আপডেট হচ্ছে…")}</p>}
+   {error&&<div className="financial-error" role="alert">{error}<button onClick={()=>setRefresh(n=>n+1)}>{t("Retry","আবার চেষ্টা")}</button></div>}
+   {displayed?<><div className="meta"><span>{active.from} — {active.to}</span><span>{generated&&t("Updated: ","আপডেট: ")+generated}</span></div>
+    <section className="card fin-volume-card" aria-label={t("Verified volume","যাচাইকৃত পরিমাণ")}>
+     <div><span className="lbl">{t("Verified volume","যাচাইকৃত পরিমাণ")}</span><div className="num" dir="ltr">{money(displayed.verified_gross_minor)}</div><span className="lbl">{numeric(displayed.payment_count,locale)} {t("verified transactions","টি যাচাইকৃত লেনদেন")}</span>
+      <div className="bars" role="group" aria-label={t("Verified volume by day","দৈনিক যাচাইকৃত পরিমাণ")} onMouseLeave={()=>setHoverDay(null)}>{barDays.map(day=>{const amount=byDay[day]??0;return <button type="button" key={day} aria-label={niceDay(day)+", "+money(amount)} onMouseEnter={()=>setHoverDay(day)} onFocus={()=>setHoverDay(day)} onBlur={()=>setHoverDay(null)}><i className={amount?"on":""} style={{height:amount?Math.max(8,amount/peak*100)+"%":"0%"}}/></button>})}</div>
+      <div className="ro">{hoverDay?niceDay(hoverDay)+" · "+money(byDay[hoverDay]??0)+(typeof dailyCounts[hoverDay]==="number"?" · "+dailyCounts[hoverDay]+" "+t("transactions","লেনদেন"):""):t("Daily verified volume","দৈনিক যাচাইকৃত পরিমাণ")}</div></div>
+     <div className="side2"><div><span className="lbl">{t("Average payment","গড় পেমেন্ট")}</span><div className="num md" dir="ltr">{money(avg??0)}</div></div>
+      <div><span className="lbl">{t("Change","পরিবর্তন")}</span><div className={"num md "+(delta&&delta.startsWith("-")?"dn":delta?"up":"mu")}>{!compare?t("Not compared","তুলনা করা হয়নি"):compareLoading?t("Loading…","লোড হচ্ছে…"):compareError||!matchedCompare?t("No data","তথ্য নেই"):delta??t("No data","তথ্য নেই")}</div>{matchedCompare&&<span className="lbl">{t("vs","বনাম")} {money(matchedCompare.report.verified_gross_minor)} {t("in the previous period","আগের সময়সীমায়")}</span>}</div>
+      <label className="sw"><input type="checkbox" checked={compare} onChange={e=>{setCompare(e.target.checked);setCompareError("")}}/><span>{t("Compare previous period","আগের সময়ের সঙ্গে তুলনা")}</span></label></div>
+    </section>
+    <section className="card pb"><div className="pbh"><h3>{t("Payment breakdown","পেমেন্টের হিসাব")}</h3><Link className="lk" href={root+"reconciliation"}>{t("Reconciliation","হিসাব মিল")} ↗</Link></div>
+     <div className="split">{matching.map((value,i)=>value>0?<i key={i} style={{flex:value,background:["var(--ok)","var(--warn)","var(--ac)"][i]}}/>:null)}</div>
+     <div className="leg">{([["Matched","মিলেছে"],["Not matched","মেলেনি"],["Statement matches","স্টেটমেন্টে মিলেছে"]] as const).map(([en,bd],i)=><div key={en} style={{"--c":["var(--ok)","var(--warn)","var(--ac)"][i]} as React.CSSProperties}><span>{t(en,bd)}</span><b dir="ltr">{money(matching[i])}</b><em>{percent(matching[i])}% {t("of total","মোটের")}</em></div>)}</div>
+    </section></>:!loading&&<div className="empty"><b>{t("No report available yet","এখনো রিপোর্ট পাওয়া যায়নি")}</b></div>}
+   <section className="card"><div className="bh"><h3>{t("Breakdown","বিভাগভিত্তিক হিসাব")}</h3></div><div className="tabs" role="tablist" aria-label={t("Report sections","রিপোর্টের বিভাগ")}>{sections.map(id=><button key={id} role="tab" type="button" className="tab" aria-selected={section===id} onClick={()=>setSection(id)}>{labels[id]}</button>)}</div>
+    <div className="tw" role="tabpanel">
     {section==="payments"&&canReveal&&<PaymentReportLedger key={JSON.stringify([workspaceId,environment,applied.from,applied.to,applied.account])} locale={locale} workspaceId={workspaceId} environment={environment} period={applied} canReveal={canReveal}/>}
-    {section==="payments"&&!canReveal&&<p className="er-card-empty">{t("You do not have access to payment details.","পেমেন্টের বিস্তারিত দেখার অনুমতি নেই।")}</p>}
-    {!displayed&&section!=="payments"&&<p className="er-card-empty" role="status">{error||t("Loading…","লোড হচ্ছে…")}</p>}
-    {displayed&&section==="summary"&&<BreakdownTable locale={locale} headings={[t("Day","দিন"),t("Verified volume","যাচাইকৃত পরিমাণ")]} rows={displayed.daily.map(r=>[r.day,cash(r.amount_minor,locale)])} empty={t("No payments in this period","এই সময়ে কোনো পেমেন্ট নেই")}/>}
-    {displayed&&section==="methods"&&<div className="ekv2-report-method-breakdown"><BreakdownTable locale={locale} headings={[t("Method","মাধ্যম"),t("Payments","পেমেন্ট"),t("Amount","পরিমাণ")]} rows={displayed.methods.map(r=>[r.method,numeric(r.payment_count,locale),cash(r.amount_minor,locale)])} empty={t("No payments in this period","এই সময়ে কোনো পেমেন্ট নেই")}/>
-      <details className="ekv2-report-accounts"><summary>{t("Receiving accounts","রিসিভিং অ্যাকাউন্ট")}</summary><BreakdownTable locale={locale} headings={[t("Account","অ্যাকাউন্ট"),t("Payments","পেমেন্ট"),t("Amount","পরিমাণ")]} rows={displayed.accounts.map(r=>[r.method+" ••••"+r.display_suffix,numeric(r.payment_count,locale),cash(r.amount_minor,locale)])} empty={t("No account data","অ্যাকাউন্টের তথ্য নেই")}/></details>
-    </div>}
-    {displayed&&section==="customers"&&<BreakdownTable locale={locale} headings={[t("Customer","গ্রাহক"),t("Payments","পেমেন্ট"),t("Amount","পরিমাণ")]} rows={displayed.customers.map(r=>[r.name||r.reference,numeric(r.payment_count,locale),cash(r.amount_minor,locale)])} empty={t("No customer payments in this period","এই সময়ে গ্রাহকের পেমেন্ট নেই")}/>}
-    {displayed&&section==="refunds"&&<BreakdownTable locale={locale} headings={[t("Status","অবস্থা"),t("Requests","অনুরোধ"),t("Amount","পরিমাণ")]} rows={displayed.refunds.map(r=>[refundLabels[r.status]||r.status,numeric(r.request_count,locale),cash(r.amount_minor,locale)])} empty={t("No refunds in this period","এই সময়ে কোনো রিফান্ড নেই")}/>}
-    {displayed&&section==="payouts"&&<p className="er-card-empty">{t("Payout data is not available.","পেআউটের তথ্য পাওয়া যাচ্ছে না।")}</p>}
-   </section>
+    {section==="payments"&&!canReveal&&<div className="empty">{t("You do not have access to payment details.","পেমেন্টের বিস্তারিত দেখার অনুমতি নেই।")}</div>}
+    {displayed&&section==="summary"&&<table><thead><tr><th>{t("Day","দিন")}</th><th>{t("Payments","পেমেন্ট")}</th><th className="r">{t("Verified volume","যাচাইকৃত পরিমাণ")}</th></tr></thead><tbody>{displayed.daily.map(day=><tr key={day.day}><td><b>{day.day}</b></td><td>{day.payment_count??"—"}</td><td className="r amt">{money(day.amount_minor)}</td></tr>)}</tbody>{displayed.daily.length>1&&<tfoot><tr><td>{t("Total","মোট")}</td><td>{displayed.payment_count}</td><td className="r amt">{money(displayed.verified_gross_minor)}</td></tr></tfoot>}</table>}
+    {displayed&&section==="methods"&&<table><thead><tr><th>{t("Method","মাধ্যম")}</th><th>{t("Payments","পেমেন্ট")}</th><th>{t("Share","অংশ")}</th><th className="r">{t("Verified volume","যাচাইকৃত পরিমাণ")}</th></tr></thead><tbody>{displayed.methods.map(row=>{const share=displayed.verified_gross_minor?Math.round(row.amount_minor/displayed.verified_gross_minor*100):0;return <tr key={row.method}><td>{row.method}</td><td>{row.payment_count}</td><td><span className="share"><i style={{width:share+"%"}}/></span>{share}%</td><td className="r amt">{money(row.amount_minor)}</td></tr>})}</tbody></table>}
+    {displayed&&section==="customers"&&<table><thead><tr><th>{t("Customer","গ্রাহক")}</th><th>{t("Payments","পেমেন্ট")}</th><th className="r">{t("Verified volume","যাচাইকৃত পরিমাণ")}</th></tr></thead><tbody>{displayed.customers.map(row=><tr key={row.customer_id}><td>{row.name||row.reference||row.customer_id}</td><td>{row.payment_count}</td><td className="r amt">{money(row.amount_minor)}</td></tr>)}</tbody></table>}
+    {displayed&&section==="refunds"&&<table><thead><tr><th>{t("Status","অবস্থা")}</th><th>{t("Requests","অনুরোধ")}</th><th className="r">{t("Amount","পরিমাণ")}</th></tr></thead><tbody>{displayed.refunds.map((row,i)=><tr key={row.status+i}><td><span className={"bd "+(row.status==="approved"?"approved":row.status==="cancelled"?"cancelled":row.status==="rejected"?"declined":"pending")}>{refundLabels[row.status]||row.status}</span></td><td>{row.request_count}</td><td className="r amt">{money(row.amount_minor)}</td></tr>)}</tbody></table>}
+    {section==="payouts"&&<div className="empty"><b>{t("No payouts in this period","এই সময়ে কোনো পেআউট নেই")}</b>{t("Payouts will appear here once funds are paid out to you.","ফান্ড পাঠানো হলে পেআউট এখানে দেখা যাবে।")}</div>}
+    {displayed&&section!=="payments"&&section!=="payouts"&&((section==="summary"&&!displayed.daily.length)||(section==="methods"&&!displayed.methods.length)||(section==="customers"&&!displayed.customers.length)||(section==="refunds"&&!displayed.refunds.length))&&<div className="empty"><b>{section==="refunds"?t("No refund requests in this period","এই সময়ে কোনো রিফান্ড অনুরোধ নেই"):t("No verified payments in this period","এই সময়ে কোনো যাচাইকৃত পেমেন্ট নেই")}</b>{t("Try a longer period or a different account.","আরও বড় সময়সীমা বা অন্য অ্যাকাউন্ট বেছে নিন।")}</div>}
+    </div></section>
+   </div>
+   {toast&&<div className="toast on" role="status">{toast}</div>}
  </div>;
 }
 function BreakdownTable({headings,rows,empty,locale}:{locale:Locale;headings:string[];rows:string[][];empty:string}){
